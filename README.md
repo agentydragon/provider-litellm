@@ -33,9 +33,9 @@ Both API groups are served, so it works on either Crossplane generation:
 - **Self-service through Compositions.** Bundle a `Team`, a `Budget` and a `Key` into a
   single XR so application teams can request LLM access without touching the LiteLLM
   admin console or holding the master key.
-- **Kubernetes-native secrets.** Upstream provider API keys come from Kubernetes
-  Secrets, and generated key tokens are written back to Secrets your workloads can
-  mount directly.
+- **Kubernetes-native secrets.** Upstream provider API keys are read from Kubernetes
+  Secrets rather than inlined in the spec, and values LiteLLM generates are published
+  as connection details for other resources to consume.
 - **Continuous drift correction.** If somebody edits a model in the Admin UI, the
   provider notices and puts it back.
 - **No Terraform state to babysit.** The reconciler is the state; the cluster is the
