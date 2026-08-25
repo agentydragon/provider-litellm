@@ -1,40 +1,1578 @@
-name: hashicorp/null
+name: ncecere/litellm
 resources:
-    null_resource:
+    litellm_access_group:
         subCategory: ""
-        description: The null_resource resource implements the standard resource lifecycle but takes no further action. On Terraform 1.4 and later, use the terraform_data resource type https://developer.hashicorp.com/terraform/language/resources/terraform-data instead. Terraform 1.9 and later support the moved configuration block from null_resource to terraform_data. The triggers argument allows specifying an arbitrary set of values that, when changed, will cause the resource to be replaced.
-        name: null_resource
-        title: null_resource Resource - terraform-provider-null
+        description: Manages an access group in LiteLLM. Access groups define collections of models that can be referenced together when assigning model access to keys or teams.
+        name: litellm_access_group
+        title: litellm_access_group
         examples:
-            - name: cluster
+            - name: example
               manifest: |-
                 {
-                  "connection": [
+                  "access_group": "basic-models",
+                  "model_names": [
+                    "${litellm_model.gpt4.model_name}"
+                  ]
+                }
+              references:
+                model_names: litellm_model.gpt4.model_name
+              dependencies:
+                litellm_model.gpt4: |-
                     {
-                      "host": "${element(aws_instance.cluster[*].public_ip, 0)}"
+                      "base_model": "gpt-4o-mini",
+                      "custom_llm_provider": "openai",
+                      "model_name": "gpt-4o-mini"
+                    }
+            - name: all_models
+              manifest: |-
+                {
+                  "access_group": "all-models",
+                  "model_names": [
+                    "${litellm_model.gpt4.model_name}",
+                    "${litellm_model.claude.model_name}"
+                  ]
+                }
+              references:
+                model_names: litellm_model.gpt4.model_name
+              dependencies:
+                litellm_model.claude: |-
+                    {
+                      "base_model": "claude-sonnet-4-20250514",
+                      "custom_llm_provider": "anthropic",
+                      "model_name": "claude-sonnet"
+                    }
+                litellm_model.gpt4: |-
+                    {
+                      "base_model": "gpt-4o-mini",
+                      "custom_llm_provider": "openai",
+                      "model_name": "gpt-4o-mini"
+                    }
+        argumentDocs:
+            access_group: '- (Required, ForceNew) The name of the access group. Changing this value forces creation of a new resource.'
+            id: '- The internal resource identifier.'
+            model_names: '- (Required) A list of model names to include in the access group. Each model must exist in LiteLLM.'
+        importStatements:
+            - terraform import litellm_access_group.example <access-group-name>
+    litellm_agent:
+        subCategory: ""
+        description: Manages a LiteLLM Agent (A2A). Agents are AI-powered entities that can be discovered, invoked, and composed using the Agent-to-Agent protocol.
+        name: litellm_agent
+        title: litellm_agent
+        examples:
+            - name: simple
+              manifest: |-
+                {
+                  "agent_card": [
+                    {
+                      "name": "My Agent",
+                      "url": "https://agent.example.com/a2a"
                     }
                   ],
-                  "provisioner": {
-                    "remote-exec": [
+                  "agent_name": "my-agent"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "agent_card": [
+                    {
+                      "capabilities": [
+                        {
+                          "push_notifications": false,
+                          "state_transition_history": true,
+                          "streaming": true
+                        }
+                      ],
+                      "default_input_modes": [
+                        "application/json"
+                      ],
+                      "default_output_modes": [
+                        "application/json",
+                        "text/plain"
+                      ],
+                      "description": "An agent that reviews code for quality and best practices",
+                      "documentation_url": "https://docs.example.com/code-reviewer",
+                      "icon_url": "https://example.com/icon.png",
+                      "name": "Code Reviewer",
+                      "preferred_transport": "httpsse",
+                      "protocol_version": "0.2.6",
+                      "provider": [
+                        {
+                          "organization": "Acme Corp",
+                          "url": "https://acme.example.com"
+                        }
+                      ],
+                      "skills": [
+                        {
+                          "description": "Reviews code for quality, bugs, and best practices",
+                          "examples": [
+                            "Review this Go function",
+                            "Check this Python script"
+                          ],
+                          "id": "review-code",
+                          "input_modes": [
+                            "application/json"
+                          ],
+                          "name": "Code Review",
+                          "output_modes": [
+                            "text/plain"
+                          ],
+                          "tags": [
+                            "code",
+                            "review",
+                            "quality"
+                          ]
+                        },
+                        {
+                          "description": "Suggests fixes for identified issues",
+                          "id": "suggest-fixes",
+                          "name": "Suggest Fixes",
+                          "tags": [
+                            "code",
+                            "fix"
+                          ]
+                        }
+                      ],
+                      "url": "https://agent.example.com/a2a",
+                      "version": "1.0.0"
+                    }
+                  ],
+                  "agent_name": "code-reviewer",
+                  "extra_headers": [
+                    "Authorization"
+                  ],
+                  "litellm_params": {
+                    "model": "gpt-4o"
+                  },
+                  "object_permission": [
+                    {
+                      "agents": [
+                        "other-agent-id"
+                      ],
+                      "mcp_servers": [
+                        "mcp-server-1"
+                      ],
+                      "models": [
+                        "gpt-4o",
+                        "gpt-4o-mini"
+                      ]
+                    }
+                  ],
+                  "rpm_limit": 100,
+                  "session_rpm_limit": 50,
+                  "session_tpm_limit": 5000,
+                  "static_headers": {
+                    "X-Custom-Header": "value"
+                  },
+                  "tpm_limit": 10000
+                }
+        argumentDocs:
+            agent_name: '- (Required) The name of the agent.'
+            agents: '- (Optional) List of other agent IDs this agent can invoke.'
+            created_at: '- Timestamp when the agent was created.'
+            created_by: '- User who created the agent.'
+            default_input_modes: '- (Optional) List of default input MIME types.'
+            default_output_modes: '- (Optional) List of default output MIME types.'
+            description: '- (Optional) Human-readable description of the agent.'
+            documentation_url: '- (Optional) URL for the agent''s documentation.'
+            examples: '- (Optional) List of example inputs.'
+            extra_headers: '- (Optional) List of extra header names to forward from incoming requests.'
+            icon_url: '- (Optional) URL for the agent''s icon.'
+            id: '- (Required) Unique identifier for the skill.'
+            input_modes: '- (Optional) List of supported input MIME types.'
+            litellm_params: '- (Optional) Map of LiteLLM-specific parameters (e.g. model, api_key).'
+            mcp_access_groups: '- (Optional) List of MCP access groups the agent belongs to.'
+            mcp_servers: '- (Optional) List of MCP server IDs the agent can access.'
+            mcp_tool_permissions: '- (Optional) Map of MCP server ID to allowed tools (JSON-encoded).'
+            models: '- (Optional) List of model IDs the agent can use.'
+            name: '- (Required) Display name of the agent.'
+            organization: '- (Optional) Organization name of the agent provider.'
+            output_modes: '- (Optional) List of supported output MIME types.'
+            preferred_transport: '- (Optional) Preferred transport protocol (e.g. httpsse, websocket).'
+            protocol_version: '- (Optional) A2A protocol version (e.g. 0.2.6).'
+            push_notifications: '- (Optional) Whether the agent supports push notifications.'
+            rpm_limit: '- (Optional) Requests per minute limit for the agent.'
+            session_rpm_limit: '- (Optional) Per-session requests per minute limit.'
+            session_tpm_limit: '- (Optional) Per-session tokens per minute limit.'
+            state_transition_history: '- (Optional) Whether the agent supports state transition history.'
+            static_headers: '- (Optional) Map of static headers to send with agent requests.'
+            streaming: '- (Optional) Whether the agent supports streaming responses.'
+            tags: '- (Optional) List of tags for categorizing the skill.'
+            tpm_limit: '- (Optional) Tokens per minute limit for the agent.'
+            updated_at: '- Timestamp when the agent was last updated.'
+            updated_by: '- User who last updated the agent.'
+            url: '- (Required) The URL endpoint for the agent.'
+            version: '- (Optional) Version of the agent.'
+        importStatements:
+            - terraform import litellm_agent.example <agent-id>
+    litellm_budget:
+        subCategory: ""
+        description: Manages a budget in LiteLLM. Budgets define spending limits and rate limits that can be associated with teams, users, or API keys.
+        name: litellm_budget
+        title: litellm_budget
+        examples:
+            - name: minimal
+              manifest: '{}'
+            - name: full
+              manifest: |-
+                {
+                  "budget_duration": "30d",
+                  "budget_id": "production-budget",
+                  "max_budget": 1000,
+                  "max_parallel_requests": 20,
+                  "rpm_limit": 1000,
+                  "soft_budget": 800,
+                  "tpm_limit": 100000
+                }
+            - name: with_model_budget
+              manifest: |-
+                {
+                  "budget_duration": "30d",
+                  "budget_id": "model-limited-budget",
+                  "max_budget": 500,
+                  "model_max_budget": "${jsonencode({\n    \"gpt-4o\"      = { max_budget = 300.0, budget_duration = \"30d\" }\n    \"gpt-4o-mini\" = { max_budget = 200.0, budget_duration = \"30d\" }\n  })}"
+                }
+        argumentDocs:
+            budget_duration: '- (Optional) Duration for the budget cycle (e.g., "30d", "7d", "1h").'
+            budget_id: '- (Optional, ForceNew) A unique identifier for the budget. If omitted, a UUID is generated by LiteLLM. Changing this value forces the resource to be recreated.'
+            id: '- The unique identifier of the budget (same as budget_id).'
+            max_budget: '- (Optional) Maximum budget amount.'
+            max_parallel_requests: '- (Optional) Maximum number of parallel requests allowed.'
+            model_max_budget: '- (Optional) A JSON string defining per-model budget limits. The API expects a specific nested object format per model. This feature may require a LiteLLM Enterprise license.'
+            rpm_limit: '- (Optional) Requests per minute limit.'
+            soft_budget: '- (Optional) Soft budget threshold. When exceeded, alerts are triggered but requests are not blocked.'
+            tpm_limit: '- (Optional) Tokens per minute limit.'
+        importStatements:
+            - terraform import litellm_budget.example <budget-id>
+    litellm_credential:
+        subCategory: ""
+        description: Manages a LiteLLM credential for storing sensitive authentication information. Credentials can be used to securely store API keys, tokens, and other sensitive data that can be referenced by models.
+        name: litellm_credential
+        title: litellm_credential
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "credential_info": {
+                    "description": "OpenAI API credential"
+                  },
+                  "credential_name": "my-openai-cred",
+                  "credential_values": {
+                    "api_key": "sk-your-api-key"
+                  }
+                }
+            - name: openai
+              manifest: |-
+                {
+                  "credential_info": {
+                    "environment": "production",
+                    "provider": "openai"
+                  },
+                  "credential_name": "openai-production",
+                  "credential_values": {
+                    "api_key": "${var.openai_api_key}",
+                    "org_id": "${var.openai_org_id}"
+                  },
+                  "model_id": "gpt-4o"
+                }
+            - name: azure
+              manifest: |-
+                {
+                  "credential_info": {
+                    "provider": "azure",
+                    "service": "openai"
+                  },
+                  "credential_name": "azure-openai-cred",
+                  "credential_values": {
+                    "api_base": "${var.azure_openai_endpoint}",
+                    "api_key": "${var.azure_openai_key}",
+                    "api_version": "2024-02-15-preview"
+                  }
+                }
+        argumentDocs:
+            credential_info: '- (Optional, Computed) Map of additional non-sensitive metadata about the credential.'
+            credential_name: '- (Required, ForceNew) Name of the credential. Changing this forces creation of a new resource.'
+            credential_values: '- (Required, Sensitive) Map of sensitive credential values such as API keys and tokens. These values are not read back from the API and are preserved only in Terraform state.'
+            id: '- The identifier of the credential.'
+            model_id: '- (Optional) Model ID of an existing model registered in LiteLLM to associate with this credential.'
+        importStatements:
+            - terraform import litellm_credential.example "credential-name"
+    litellm_fallback:
+        subCategory: ""
+        description: Manages fallback configuration for a LiteLLM model. Fallbacks define which models to try when a primary model call fails after retries. You can configure separate fallbacks for general errors, context-window exceeded, and content-policy violations.
+        name: litellm_fallback
+        title: litellm_fallback
+        examples:
+            - name: general
+              manifest: |-
+                {
+                  "fallback_models": [
+                    "${litellm_model.fallback.model_name}"
+                  ],
+                  "fallback_type": "general",
+                  "model": "${litellm_model.primary.model_name}"
+                }
+              references:
+                fallback_models: litellm_model.fallback.model_name
+                model: litellm_model.primary.model_name
+              dependencies:
+                litellm_model.fallback: |-
+                    {
+                      "base_model": "gpt-4o-mini",
+                      "custom_llm_provider": "openai",
+                      "model_name": "gpt-4o-mini"
+                    }
+                litellm_model.primary: |-
+                    {
+                      "base_model": "gpt-3.5-turbo",
+                      "custom_llm_provider": "openai",
+                      "model_name": "gpt-3.5-turbo"
+                    }
+            - name: general
+              manifest: |-
+                {
+                  "fallback_models": [
+                    "gpt-4o",
+                    "gpt-4o-mini"
+                  ],
+                  "fallback_type": "general",
+                  "model": "my-model"
+                }
+            - name: context_window
+              manifest: |-
+                {
+                  "fallback_models": [
+                    "gpt-4o"
+                  ],
+                  "fallback_type": "context_window",
+                  "model": "my-model"
+                }
+            - name: content_policy
+              manifest: |-
+                {
+                  "fallback_models": [
+                    "gpt-4o-mini"
+                  ],
+                  "fallback_type": "content_policy",
+                  "model": "my-model"
+                }
+        argumentDocs:
+            (model, fallback_type): pair. Creating a resource with the same model and type updates the existing configuration.
+            content_policy: '- Used for content policy violations.'
+            context_window: '- Used when the request exceeds the model''s context window.'
+            fallback_models: '- (List of String) List of fallback model names in order of priority. Each must be a model known to the proxy.'
+            fallback_type: '- (String, Optional, Forces new resource) Type of fallback. Defaults to general. One of:'
+            general: '- Used for any error after retries.'
+            id: '- Unique identifier for this fallback (model:fallback_type).'
+            model: '- (String, Forces new resource) The model name to configure fallbacks for (e.g. gpt-3.5-turbo). Must match a model that exists on the proxy. A model cannot be its own fallback.'
+        importStatements:
+            - terraform import litellm_fallback.example "gpt-3.5-turbo:general"
+    litellm_guardrail:
+        subCategory: ""
+        description: Manages guardrails in LiteLLM. Guardrails allow you to enforce content safety and validation policies on LLM requests and responses using various provider integrations.
+        name: litellm_guardrail
+        title: litellm_guardrail
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "guardrail": "aporia",
+                  "guardrail_name": "content-safety",
+                  "mode": "pre_call"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "default_on": true,
+                  "guardrail": "bedrock",
+                  "guardrail_info": "${jsonencode({\n    \"description\" = \"Production content safety guardrail\"\n  })}",
+                  "guardrail_name": "bedrock-guardrail",
+                  "litellm_params": "${jsonencode({\n    \"guardrailIdentifier\" = \"my-guardrail-id\"\n    \"guardrailVersion\"    = \"1\"\n  })}",
+                  "mode": "pre_call"
+                }
+            - name: lakera
+              manifest: |-
+                {
+                  "default_on": false,
+                  "guardrail": "lakera",
+                  "guardrail_name": "prompt-injection-detection",
+                  "mode": "pre_call"
+                }
+        argumentDocs:
+            created_at: '- Timestamp of when the guardrail was created.'
+            default_on: '- (Bool) Whether this guardrail is enabled by default for all requests.'
+            during_call: '- Checks content during streaming responses.'
+            guardrail: '- (String) The guardrail provider to use. Supported values include aporia, bedrock, lakera, and others supported by LiteLLM.'
+            guardrail_id: '- (String, ForceNew) The unique identifier for the guardrail. If not provided, one will be generated automatically. Changing this forces creation of a new resource.'
+            guardrail_info: '- (String) A JSON-encoded string containing additional metadata or information about the guardrail.'
+            guardrail_name: '- (String) A unique name for the guardrail.'
+            id: '- The unique identifier for the guardrail (same as guardrail_id).'
+            litellm_params: '- (String) A JSON-encoded string containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). When reading back from the API, only the keys originally configured by the user are preserved, preventing the API''s default values from appearing in state.'
+            mode: '- (String) When the guardrail is applied. Must be one of:'
+            post_call: '- Validates output after the LLM response is received.'
+            pre_call: '- Validates input before the LLM request is sent.'
+        importStatements:
+            - terraform import litellm_guardrail.example <guardrail-id>
+    litellm_key:
+        subCategory: ""
+        description: Manages a LiteLLM API key.
+        name: litellm_key
+        title: litellm_key
+        examples:
+            - name: minimal
+              manifest: '{}'
+            - name: predefined
+              manifest: |-
+                {
+                  "key": "sk-my-custom-key-value",
+                  "key_alias": "my-custom-key",
+                  "models": [
+                    "gpt-4o"
+                  ]
+                }
+            - name: example
+              manifest: |-
+                {
+                  "allowed_cache_controls": [
+                    "no-cache"
+                  ],
+                  "allowed_routes": [
+                    "llm_api_routes"
+                  ],
+                  "blocked": false,
+                  "budget_duration": "30d",
+                  "duration": "90d",
+                  "key_alias": "prod-key-1",
+                  "max_budget": 100,
+                  "max_parallel_requests": 10,
+                  "metadata": {
+                    "environment": "production",
+                    "owner": "terraform"
+                  },
+                  "model_rpm_limit": {
+                    "gpt-4o": 100
+                  },
+                  "model_tpm_limit": {
+                    "gpt-4o": 25000
+                  },
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini"
+                  ],
+                  "rpm_limit": 200,
+                  "rpm_limit_type": "best_effort_throughput",
+                  "soft_budget": 80,
+                  "tpm_limit": 50000,
+                  "tpm_limit_type": "best_effort_throughput"
+                }
+            - name: service_account
+              manifest: |-
+                {
+                  "allowed_routes": [
+                    "/chat/completions",
+                    "/keys/*"
+                  ],
+                  "metadata": {
+                    "environment": "automation"
+                  },
+                  "service_account_id": "github-ci",
+                  "team_id": "team456"
+                }
+            - name: with_logging
+              manifest: |-
+                {
+                  "key_alias": "logged-key",
+                  "metadata": {
+                    "environment": "production",
+                    "logging": "${jsonencode([\n      {\n        callback_name = \"langsmith\"\n        callback_type = \"success\"\n        callback_vars = {\n          langsmith_project = \"my-project\"\n        }\n      }\n    ])}"
+                  }
+                }
+        argumentDocs:
+            aliases: '- (Optional) Map of model aliases.'
+            allowed_cache_controls: '- (Optional) List of allowed cache control directives.'
+            allowed_passthrough_routes: '- (Optional) Pass-through endpoints the key is allowed to access.'
+            allowed_routes: '- (Optional) List of LiteLLM proxy routes this key is allowed to call.'
+            blocked: '- (Optional) Whether this key is blocked.'
+            budget_duration: '- (Optional) Duration for the budget (e.g., "30d", "7d").'
+            budget_id: '- (Optional) Budget ID to associate with this key.'
+            config: '- (Optional) Map of configuration options.'
+            duration: '- (Optional) Duration for which this key is valid (e.g., "30d", "90d").'
+            enforced_params: '- (Optional) List of enforced parameters for this key.'
+            guardrails: '- (Optional) List of guardrails applied to this key.'
+            id: '- Non-sensitive unique identifier for this key (SHA256 hash of the key value). This is safe to appear in logs and CI/CD output.'
+            key: '- (Optional) User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state.'
+            key_alias: '- (Optional) Human-readable alias for this key.'
+            max_budget: '- (Optional) Maximum budget for this key.'
+            max_parallel_requests: '- (Optional) Maximum number of parallel requests allowed.'
+            metadata: '- (Optional) Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API.'
+            model_max_budget: '- (Optional) Map of maximum budget per model. Note: Requires LiteLLM Enterprise license.'
+            model_rpm_limit: '- (Optional) Map of requests per minute limit per model.'
+            model_tpm_limit: '- (Optional) Map of tokens per minute limit per model.'
+            models: '- (Optional) List of models that can be used with this key.'
+            organization_id: '- (Optional) Organization ID associated with this key.'
+            permissions: '- (Optional) Map of permissions.'
+            project_id: '- (Optional) Project ID associated with this key. When set, models and budget are validated against the project''s limits.'
+            prompts: '- (Optional) List of prompt IDs associated with this key.'
+            rpm_limit: '- (Optional) Requests per minute limit.'
+            rpm_limit_type: '- (Optional) Type of RPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").'
+            service_account_id: '- (Optional, ForceNew) Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.'
+            soft_budget: '- (Optional) Soft budget warning threshold.'
+            tags: '- (Optional) List of tags. Note: Requires LiteLLM Enterprise license.'
+            team_id: '- (Optional) Team ID associated with this key. If set and models is omitted, the provider automatically allows the key to use all models that belong to the team by sending "all-team-models" to the API.'
+            tpm_limit: '- (Optional) Tokens per minute limit.'
+            tpm_limit_type: '- (Optional) Type of TPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").'
+            user_id: '- (Optional) User ID associated with this key.'
+        importStatements:
+            - $ terraform import litellm_key.example sk-xxxxxxxxxxxx
+    litellm_key_block:
+        subCategory: ""
+        description: Manages the blocked state of a LiteLLM API key. Creating this resource blocks the key; destroying it unblocks the key.
+        name: litellm_key_block
+        title: litellm_key_block
+        examples:
+            - name: block_key
+              manifest: |-
+                {
+                  "key": "${litellm_key.example.key}"
+                }
+              references:
+                key: litellm_key.example.key
+              dependencies:
+                litellm_key.example: '{}'
+        argumentDocs:
+            blocked: '- Whether the key is currently blocked.'
+            id: '- The ID of this resource.'
+            key: '- (Required, Sensitive, ForceNew) The API key token to block. Changing this forces creation of a new resource.'
+        importStatements:
+            - terraform import litellm_key_block.example <key-token>
+    litellm_mcp_server:
+        subCategory: ""
+        description: Manages MCP (Model Context Protocol) server configurations in LiteLLM. MCP servers allow LLM models to access external tools and data sources through a standardized protocol.
+        name: litellm_mcp_server
+        title: litellm_mcp_server
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "server_name": "my_mcp_server",
+                  "transport": "sse",
+                  "url": "https://example.com/mcp"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "alias": "github_mcp",
+                  "allow_all_keys": true,
+                  "allowed_tools": [
+                    "tool1",
+                    "tool2"
+                  ],
+                  "args": [],
+                  "auth_type": "none",
+                  "credentials": {
+                    "token": "my-token"
+                  },
+                  "description": "GitHub MCP server",
+                  "env": {
+                    "ENV_VAR": "value"
+                  },
+                  "mcp_access_groups": [
+                    "dev_team"
+                  ],
+                  "mcp_info": [
+                    {
+                      "description": "Repository operations",
+                      "logo_url": "https://example.com/logo.png",
+                      "mcp_server_cost_info": [
+                        {
+                          "default_cost_per_query": 0.01,
+                          "tool_name_to_cost_per_query": {
+                            "tool1": 0.02,
+                            "tool2": 0.005
+                          }
+                        }
+                      ],
+                      "server_name": "GitHub MCP Server"
+                    }
+                  ],
+                  "server_name": "github_mcp_server",
+                  "spec_version": "2024-11-05",
+                  "static_headers": {
+                    "X-Static": "static-value"
+                  },
+                  "transport": "sse",
+                  "url": "https://api.github.com/mcp"
+                }
+            - name: authenticated
+              manifest: |-
+                {
+                  "auth_type": "bearer_token",
+                  "credentials": {
+                    "auth_value": "my-secret-token"
+                  },
+                  "server_name": "private_mcp_server",
+                  "transport": "http",
+                  "url": "https://private.example.com/mcp"
+                }
+            - name: internal
+              manifest: |-
+                {
+                  "allow_all_keys": true,
+                  "auth_type": "none",
+                  "server_name": "lightrag",
+                  "skip_url_validation": true,
+                  "transport": "http",
+                  "url": "http://mcp.kar-dp-lightrag.svc.cluster.local:8000/mcp"
+                }
+            - name: stdio_server
+              manifest: |-
+                {
+                  "args": [
+                    "/opt/mcp-servers/dev-tools/server.py",
+                    "--verbose"
+                  ],
+                  "command": "python3",
+                  "env": {
+                    "DEBUG": "true",
+                    "PYTHONPATH": "/opt/mcp-servers/dev-tools"
+                  },
+                  "server_name": "local_dev_tools",
+                  "transport": "stdio",
+                  "url": "stdio://local"
+                }
+            - name: oauth_server
+              manifest: |-
+                {
+                  "allow_all_keys": false,
+                  "allowed_tools": [
+                    "read_data",
+                    "write_data",
+                    "query"
+                  ],
+                  "auth_type": "oauth2",
+                  "authorization_url": "https://auth.example.com/oauth/authorize",
+                  "credentials": {
+                    "client_id": "${var.oauth_client_id}",
+                    "client_secret": "${var.oauth_client_secret}"
+                  },
+                  "extra_headers": [
+                    "X-API-Version"
+                  ],
+                  "registration_url": "https://auth.example.com/oauth/register",
+                  "server_name": "oauth_protected_server",
+                  "static_headers": {
+                    "Accept": "application/json"
+                  },
+                  "token_url": "https://auth.example.com/oauth/token",
+                  "transport": "http",
+                  "url": "https://api.example.com/mcp"
+                }
+        argumentDocs:
+            alias: '- (String) An alias for the server. Must not contain hyphens.'
+            allow_all_keys: '- (Bool) Whether all API keys are allowed to access this MCP server.'
+            allowed_tools: '- (List of String) List of tool names that are allowed to be used from this server.'
+            args: '- (List of String) Arguments to pass to the command for stdio transport.'
+            auth_type: '- (String) The authentication type. Defaults to "none". Supported values: none, bearer_token, bearer, basic, api_key, authorization, oauth2. When using a value other than "none", the API requires credentials to be provided.'
+            authorization_url: '- (String) OAuth2 authorization URL (used with oauth2 auth type).'
+            command: '- (String) Command to execute for stdio transport.'
+            created_at: '- Timestamp of when the MCP server was created.'
+            created_by: '- The user or system that created the MCP server.'
+            credentials: '- (Map of String, Sensitive) Credentials for authenticating with the MCP server. This attribute is marked as sensitive and will not be displayed in plan output.'
+            description: '- (String) A human-readable description of the MCP server.'
+            env: '- (Map of String) Environment variables to set when running the MCP server.'
+            extra_headers: '- (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.'
+            id: '- The unique identifier for the MCP server (same as server_id).'
+            logo_url: '- (String, Optional) URL to the server''s logo image.'
+            mcp_access_groups: '- (List of String) Access groups that are allowed to use this MCP server.'
+            mcp_info.default_cost_per_query: '- (Float64, Optional) Default cost per query for all tools.'
+            mcp_info.mcp_server_cost_info: block to monitor spending on MCP tool usage.
+            mcp_info.tool_name_to_cost_per_query: '- (Map of Float64, Optional) Per-tool cost overrides, mapping tool names to their cost per query.'
+            registration_url: '- (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).'
+            server_id: '- The server identifier assigned by LiteLLM.'
+            server_name: '- (String) The name of the MCP server. Must not contain hyphens.'
+            skip_url_validation: '- (Bool) Skip MCP server URL reachability validation during creation/update. Use this when the MCP server is reachable from LiteLLM but not from the Terraform runner or validation path.'
+            spec_version: '- (String) The MCP specification version. Defaults to "2024-11-05".'
+            static_headers: '- (Map of String) Static HTTP headers that are always included in requests.'
+            token_url: '- (String) OAuth2 token URL (used with oauth2 auth type).'
+            transport: '- (String) The transport protocol. Must be one of: http, sse, stdio.'
+            url: '- (String) The URL endpoint of the MCP server.'
+        importStatements:
+            - terraform import litellm_mcp_server.example <server-id>
+    litellm_model:
+        subCategory: ""
+        description: Manages a LiteLLM model configuration. This resource allows you to create, update, and delete model configurations in your LiteLLM instance.
+        name: litellm_model
+        title: litellm_model
+        examples:
+            - name: gpt4
+              manifest: |-
+                {
+                  "base_model": "gpt-4",
+                  "custom_llm_provider": "openai",
+                  "input_cost_per_million_tokens": 30,
+                  "mode": "chat",
+                  "model_api_key": "${var.openai_api_key}",
+                  "model_name": "gpt-4-proxy",
+                  "output_cost_per_million_tokens": 60,
+                  "tier": "paid"
+                }
+              references:
+                model_api_key: var.openai_api_key
+            - name: advanced_gpt4
+              manifest: |-
+                {
+                  "api_version": "2023-05-15",
+                  "base_model": "gpt-4",
+                  "custom_llm_provider": "openai",
+                  "input_cost_per_million_tokens": 30,
+                  "merge_reasoning_content_in_choices": true,
+                  "mode": "chat",
+                  "model_api_base": "https://api.openai.com/v1",
+                  "model_api_key": "${var.openai_api_key}",
+                  "model_name": "gpt-4-advanced",
+                  "output_cost_per_million_tokens": 60,
+                  "reasoning_effort": "medium",
+                  "rpm": 1000,
+                  "team_id": "team-123",
+                  "thinking_budget_tokens": 1024,
+                  "thinking_enabled": true,
+                  "tier": "paid",
+                  "tpm": 100000
+                }
+              references:
+                model_api_key: var.openai_api_key
+            - name: bedrock_claude
+              manifest: |-
+                {
+                  "aws_access_key_id": "${var.aws_access_key_id}",
+                  "aws_region_name": "us-east-1",
+                  "aws_role_name": "arn:aws:iam::123456789012:role/LiteLLMCrossAccountRole",
+                  "aws_secret_access_key": "${var.aws_secret_access_key}",
+                  "aws_session_name": "litellm-cross-account-session",
+                  "base_model": "anthropic.claude-3-sonnet-20240229-v1:0",
+                  "custom_llm_provider": "bedrock",
+                  "input_cost_per_million_tokens": 3,
+                  "mode": "chat",
+                  "model_name": "bedrock-claude-proxy",
+                  "output_cost_per_million_tokens": 15,
+                  "tier": "paid"
+                }
+              references:
+                aws_access_key_id: var.aws_access_key_id
+                aws_secret_access_key: var.aws_secret_access_key
+            - name: claude
+              manifest: |-
+                {
+                  "base_model": "claude-3-sonnet-20240229",
+                  "custom_llm_provider": "anthropic",
+                  "input_cost_per_million_tokens": 3,
+                  "mode": "chat",
+                  "model_api_key": "${var.anthropic_api_key}",
+                  "model_name": "claude-proxy",
+                  "output_cost_per_million_tokens": 15,
+                  "tier": "paid"
+                }
+              references:
+                model_api_key: var.anthropic_api_key
+            - name: azure_gpt4
+              manifest: |-
+                {
+                  "api_version": "2023-12-01-preview",
+                  "base_model": "gpt-4",
+                  "custom_llm_provider": "azure",
+                  "input_cost_per_million_tokens": 30,
+                  "mode": "chat",
+                  "model_api_base": "${var.azure_openai_endpoint}",
+                  "model_api_key": "${var.azure_openai_key}",
+                  "model_name": "azure-gpt4-proxy",
+                  "output_cost_per_million_tokens": 60,
+                  "tier": "paid"
+                }
+              references:
+                model_api_base: var.azure_openai_endpoint
+                model_api_key: var.azure_openai_key
+            - name: gpt4_with_credential
+              manifest: |-
+                {
+                  "base_model": "gpt-4",
+                  "custom_llm_provider": "openai",
+                  "input_cost_per_million_tokens": 30,
+                  "litellm_credential_name": "${litellm_credential.openai_creds.credential_name}",
+                  "mode": "chat",
+                  "model_name": "gpt-4-with-cred",
+                  "output_cost_per_million_tokens": 60,
+                  "tier": "paid"
+                }
+              references:
+                litellm_credential_name: litellm_credential.openai_creds.credential_name
+              dependencies:
+                litellm_credential.openai_creds: |-
+                    {
+                      "credential_name": "openai-production",
+                      "credential_values": {
+                        "api_key": "${var.openai_api_key}"
+                      }
+                    }
+            - name: gpt4_premium
+              manifest: |-
+                {
+                  "access_groups": [
+                    "premium-models",
+                    "gpt4-access"
+                  ],
+                  "base_model": "gpt-4",
+                  "custom_llm_provider": "openai",
+                  "input_cost_per_million_tokens": 30,
+                  "mode": "chat",
+                  "model_api_key": "${var.openai_api_key}",
+                  "model_name": "gpt-4-premium",
+                  "output_cost_per_million_tokens": 60,
+                  "tier": "paid"
+                }
+              references:
+                model_api_key: var.openai_api_key
+              dependencies:
+                litellm_team.premium_team: |-
+                    {
+                      "models": [
+                        "premium-models"
+                      ],
+                      "team_alias": "premium-users"
+                    }
+            - name: with_additional
+              manifest: |-
+                {
+                  "additional_litellm_params": {
+                    "additional_drop_params": "[\"reasoningEffort\"]",
+                    "complex_config": "{\"nested\": {\"value\": 42}}",
+                    "max_context": "16384",
+                    "note": "for testing",
+                    "scale": "0.75",
+                    "use_fine_tune": "true"
+                  },
+                  "base_model": "gpt-4",
+                  "custom_llm_provider": "openai",
+                  "mode": "chat",
+                  "model_api_key": "${var.openai_api_key}",
+                  "model_name": "custom-model"
+                }
+              references:
+                model_api_key: var.openai_api_key
+        argumentDocs:
+            '"16384"': -> 16384, "0.75" -> 0.75)
+            '"true"': / "false" (strings) -> boolean true / false
+            /model/update: ) merges litellm_params using dict.update() with exclude_none=True. This means adding or changing keys works, but removing a key from additional_litellm_params in your configuration will not remove it from the remote model — it will simply stop being sent. To fully remove a key, recreate the resource using terraform apply -replace or terraform taint.
+            '[': or {) are parsed as JSON objects/arrays
+            access_groups: '- (Optional) list(string). List of access groups this model belongs to. Teams and keys with access to these groups can use this model. See LiteLLM Access Groups for more details.'
+            additional_drop_params: is provided as a JSON array string, it specifies parameters to remove from the final litellm_params before sending to the API
+            additional_litellm_params: '- (Optional) map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.'
+            api_version: '- (Optional) string. The API version to use for the model provider.'
+            aws_access_key_id: '- (Optional) string (Sensitive). AWS access key ID for AWS-based models.'
+            aws_region_name: '- (Optional) string. AWS region name for AWS-based models.'
+            aws_role_name: '- (Optional) string (Sensitive). AWS IAM role name for cross-account access scenarios.'
+            aws_secret_access_key: '- (Optional) string (Sensitive). AWS secret access key for AWS-based models.'
+            aws_session_name: '- (Optional) string (Sensitive). AWS session name for cross-account access scenarios.'
+            base_model: '- (Required) string. The actual model identifier from the provider (e.g., "gpt-4", "claude-2").'
+            custom_llm_provider: '- (Required) string. The LLM provider for this model (e.g., "openai", "anthropic", "azure", "bedrock").'
+            id: '- The ID of the model configuration.'
+            input_cost_per_million_tokens: '- (Optional) float. Cost per million input tokens. The provider converts this to a per-token cost sent to the API.'
+            input_cost_per_pixel: '- (Optional) float. Cost applied per input pixel for models that charge by image size.'
+            input_cost_per_second: '- (Optional) float. Cost applied per input second for audio/transcription models.'
+            litellm_credential_name: '- (Optional) string. Name of a credential created via litellm_credential resource. This allows you to reference stored credentials instead of providing API keys directly in the model configuration.'
+            litellm_params: payload sent to the API.
+            merge_reasoning_content_in_choices: '- (Optional) boolean. When set to true, merges reasoning content into the model''s choices.'
+            mode: '- (Optional) string. The intended use of the model. Valid values (aligned with LiteLLM proxy API):'
+            model_api_base: '- (Optional) string. The base URL for the model provider''s API.'
+            model_api_key: '- (Optional) string (Sensitive). The API key for the underlying model provider.'
+            model_name: '- (Required) string. The name of the model configuration used to identify the model in API calls.'
+            output_cost_per_million_tokens: '- (Optional) float. Cost per million output tokens. The provider converts this to a per-token cost sent to the API.'
+            output_cost_per_pixel: '- (Optional) float. Cost applied per output pixel for image-generation models.'
+            output_cost_per_second: '- (Optional) float. Cost applied per output second for audio/transcription models.'
+            reasoning_effort: '- (Optional) string. Configures the model''s reasoning effort level. Valid values are:'
+            rpm: '- (Optional) integer. Requests per minute limit for this model.'
+            team_id: '- (Optional) string. Associate the model with a specific team.'
+            thinking_budget_tokens: '- (Optional) integer. Sets the token budget for the model''s thinking capability. Default: 1024. Note: this field is only relevant when thinking_enabled = true.'
+            thinking_enabled: '- (Optional) boolean. Enables the model''s thinking capability. Default: false.'
+            tier: '- (Optional) string. The usage tier for this model. Valid values are "free" or "paid". Default: "free".'
+            tpm: '- (Optional) integer. Tokens per minute limit for this model.'
+            vertex_credentials: '- (Optional) string. Vertex credentials (JSON string or path depending on your setup).'
+            vertex_location: '- (Optional) string. Vertex AI location (e.g., us-central1).'
+            vertex_project: '- (Optional) string. Vertex AI project id (for custom_llm_provider = "vertex").'
+        importStatements:
+            - terraform import litellm_model.gpt4 <model-id>
+    litellm_organization:
+        subCategory: ""
+        description: Manages organizations in LiteLLM. Organizations provide a way to group teams and users together under a shared budget and set of permissions.
+        name: litellm_organization
+        title: litellm_organization
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "organization_alias": "my-organization"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "blocked": false,
+                  "budget_duration": "30d",
+                  "max_budget": 1000,
+                  "metadata": {
+                    "environment": "testing"
+                  },
+                  "model_rpm_limit": {
+                    "gpt-4o": 1000
+                  },
+                  "model_tpm_limit": {
+                    "gpt-4o": 100000
+                  },
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini"
+                  ],
+                  "organization_alias": "enterprise-org",
+                  "rpm_limit": 2000,
+                  "tags": [
+                    "testing",
+                    "full"
+                  ],
+                  "tpm_limit": 200000
+                }
+            - name: company
+              manifest: |-
+                {
+                  "max_budget": 5000,
+                  "organization_alias": "company-org"
+                }
+              dependencies:
+                litellm_team.dev_team: |-
+                    {
+                      "max_budget": 1000,
+                      "organization_id": "${litellm_organization.company.organization_id}",
+                      "team_alias": "development"
+                    }
+                litellm_team.prod_team: |-
+                    {
+                      "max_budget": 3000,
+                      "organization_id": "${litellm_organization.company.organization_id}",
+                      "team_alias": "production"
+                    }
+        argumentDocs:
+            blocked: '- (Bool) Whether the organization is blocked from making requests.'
+            budget_duration: '- (String) Duration of the budget window (e.g., "30d", "1h", "7d").'
+            budget_id: '- (String) The ID of an existing budget to associate with this organization.'
+            created_at: '- Timestamp of when the organization was created.'
+            id: '- The unique identifier for the organization (same as organization_id).'
+            max_budget: '- (Float64) Maximum budget allowed for the organization.'
+            metadata: '- (Map of String) Metadata associated with the organization. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.'
+            model_rpm_limit: '- (Map of Int64) Per-model requests per minute limits.'
+            model_tpm_limit: '- (Map of Int64) Per-model tokens per minute limits.'
+            models: '- (List of String) List of model names the organization is allowed to use.'
+            organization_alias: '- (String) A human-readable alias for the organization. Must be unique.'
+            organization_id: '- (String, ForceNew) The unique identifier for the organization. If not provided, one will be generated automatically. Changing this forces creation of a new resource.'
+            rpm_limit: '- (Int64) Requests per minute limit for the organization.'
+            tags: '- (List of String) Tags associated with the organization.'
+            tpm_limit: '- (Int64) Tokens per minute limit for the organization.'
+        importStatements:
+            - terraform import litellm_organization.example <organization-id>
+    litellm_organization_member:
+        subCategory: ""
+        description: Manages a member within a LiteLLM organization. Removing this resource removes the user from the organization but does not delete the user.
+        name: litellm_organization_member
+        title: litellm_organization_member
+        examples:
+            - name: admin
+              manifest: |-
+                {
+                  "organization_id": "${litellm_organization.company.id}",
+                  "role": "internal_user",
+                  "user_id": "admin-user"
+                }
+              references:
+                organization_id: litellm_organization.company.id
+              dependencies:
+                litellm_organization.company: |-
+                    {
+                      "organization_alias": "my-company"
+                    }
+        argumentDocs:
+            id: '- A composite ID in the format organization_id:user_id.'
+            max_budget_in_organization: '- (Optional) The maximum budget allocated to this user within the organization.'
+            organization_id: '- (Required, ForceNew) The ID of the organization. Changing this forces creation of a new resource.'
+            role: '- (Required) The role of the user within the organization. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, org_admin.'
+            user_email: '- (Optional, ForceNew) The email address of the user. Changing this forces creation of a new resource.'
+            user_id: '- (Optional, ForceNew) The ID of the user to add to the organization. If not provided, it will be computed. Changing this forces creation of a new resource.'
+        importStatements:
+            - terraform import litellm_organization_member.example <organization_id>:<user_id>
+    litellm_project:
+        subCategory: ""
+        description: Manages a LiteLLM Project. Projects sit between teams and keys in the hierarchy, allowing fine-grained budget and model access control within a team.
+        name: litellm_project
+        title: litellm_project
+        examples:
+            - name: simple
+              manifest: |-
+                {
+                  "team_id": "${litellm_team.example.id}"
+                }
+              references:
+                team_id: litellm_team.example.id
+            - name: full
+              manifest: |-
+                {
+                  "budget_duration": "30d",
+                  "description": "Production API project for the platform team",
+                  "max_budget": 1000,
+                  "metadata": {
+                    "cost_center": "engineering",
+                    "environment": "production"
+                  },
+                  "model_rpm_limit": {
+                    "gpt-4o": 500,
+                    "gpt-4o-mini": 1000
+                  },
+                  "model_tpm_limit": {
+                    "gpt-4o": 50000,
+                    "gpt-4o-mini": 100000
+                  },
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini",
+                    "claude-sonnet-4-20250514"
+                  ],
+                  "project_alias": "production-api",
+                  "rpm_limit": 1000,
+                  "soft_budget": 800,
+                  "tags": [
+                    "production",
+                    "platform"
+                  ],
+                  "team_id": "${litellm_team.platform.id}",
+                  "tpm_limit": 100000
+                }
+              references:
+                team_id: litellm_team.platform.id
+        argumentDocs:
+            blocked: '- (Optional) Whether the project is blocked from making requests.'
+            budget_duration: '- (Optional) Budget reset duration (e.g. 30d, 1h).'
+            budget_id: '- (Optional) Budget ID to associate with this project.'
+            created_at: '- Timestamp when the project was created.'
+            created_by: '- User who created the project.'
+            description: '- (Optional) Description of the project''s purpose and use case.'
+            id: '- The project ID assigned by LiteLLM.'
+            max_budget: '- (Optional) Maximum budget for this project.'
+            max_parallel_requests: '- (Optional) Maximum parallel requests allowed.'
+            metadata: '- (Optional) Metadata for the project. Values are strings; use jsonencode() for complex values.'
+            model_max_budget: '- (Optional) Per-model budget limits (map of model name to float).'
+            model_rpm_limit: '- (Optional) Per-model RPM limits (map of model name to int).'
+            model_tpm_limit: '- (Optional) Per-model TPM limits (map of model name to int).'
+            models: '- (Optional) List of models the project can access.'
+            project_alias: '- (Optional) Human-friendly name for the project.'
+            rpm_limit: '- (Optional) Requests per minute limit.'
+            soft_budget: '- (Optional) Soft budget limit for warnings.'
+            tags: '- (Optional) Tags associated with the project.'
+            team_id: '- (Required, ForceNew) The team ID that this project belongs to. Changing this forces a new resource.'
+            tpm_limit: '- (Optional) Tokens per minute limit.'
+            updated_at: '- Timestamp when the project was last updated.'
+            updated_by: '- User who last updated the project.'
+        importStatements:
+            - terraform import litellm_project.example <project-id>
+    litellm_prompt:
+        subCategory: ""
+        description: Manages a LiteLLM prompt. Prompts allow you to store reusable prompt templates that can be used across different models and applications via the LiteLLM prompt manager.
+        name: litellm_prompt
+        title: litellm_prompt
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "prompt_id": "my-prompt",
+                  "prompt_integration": "dotprompt"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "dotprompt_content": "---\nmodel: gpt-4o\n---\nYou are a helpful assistant. Answer the user's question concisely.\n{{question}}\n",
+                  "ignore_prompt_manager_model": false,
+                  "ignore_prompt_manager_optional_params": false,
+                  "prompt_id": "customer-support",
+                  "prompt_integration": "dotprompt",
+                  "prompt_type": "db"
+                }
+            - name: with_api
+              manifest: |-
+                {
+                  "api_base": "https://my-litellm-instance.example.com",
+                  "api_key": "${var.litellm_api_key}",
+                  "dotprompt_content": "---\nmodel: gpt-4o-mini\n---\nSummarize the following text in {{language}}:\n{{text}}\n",
+                  "ignore_prompt_manager_model": true,
+                  "prompt_id": "external-prompt",
+                  "prompt_integration": "dotprompt",
+                  "prompt_type": "db"
+                }
+              references:
+                api_key: var.litellm_api_key
+        argumentDocs:
+            '---': delimiters) for specifying model and parameter defaults.
+            <<-EOT: ) for multi-line dotprompt content.
+            '{{variable}}': syntax within the prompt body.
+            api_base: '- (Optional) API base URL for the prompt manager endpoint.'
+            api_key: '- (Optional, Sensitive) API key for authenticating with the prompt manager endpoint.'
+            dotprompt_content: '- (Optional) The dotprompt-formatted content for the prompt. Supports YAML frontmatter for model configuration and Mustache-style {{variable}} template syntax.'
+            id: '- The identifier of the prompt.'
+            ignore_prompt_manager_model: '- (Optional) When true, ignores the model specified in the prompt manager and uses the caller''s model instead.'
+            ignore_prompt_manager_optional_params: '- (Optional) When true, ignores optional parameters specified in the prompt manager.'
+            prompt_id: '- (Required, ForceNew) Unique identifier for the prompt. Changing this forces creation of a new resource.'
+            prompt_integration: '- (Required) The prompt integration type (e.g., "dotprompt").'
+            prompt_type: '- (Optional) The type of prompt storage (e.g., "db" for database-stored prompts).'
+            provider_specific_query_params: '- (Optional) Provider-specific query parameters to pass through.'
+        importStatements:
+            - terraform import litellm_prompt.example <prompt-id>
+    litellm_search_tool:
+        subCategory: ""
+        description: Manages a search tool configuration in LiteLLM. Search tools allow LLM models to perform web searches using providers such as Tavily, Serper, Bing, or Google.
+        name: litellm_search_tool
+        title: litellm_search_tool
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "search_provider": "tavily",
+                  "search_tool_name": "my-search"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "api_base": "https://api.tavily.com",
+                  "api_key": "tvly-your-api-key",
+                  "max_retries": 3,
+                  "search_provider": "tavily",
+                  "search_tool_info": "${jsonencode({\n    \"description\" = \"Web search tool\"\n    \"category\"    = \"web-search\"\n  })}",
+                  "search_tool_name": "tavily-search",
+                  "timeout": 30
+                }
+        argumentDocs:
+            api_base: '- (Optional) The base URL for the search provider API.'
+            api_key: '- (Optional, Sensitive) The API key for authenticating with the search provider.'
+            id: '- The internal resource identifier.'
+            max_retries: '- (Optional) Maximum number of retry attempts for failed search requests.'
+            search_provider: '- (Required) The search provider to use. Supported values include tavily, serper, bing, and google.'
+            search_tool_id: '- The unique identifier assigned to the search tool by LiteLLM.'
+            search_tool_info: '- (Optional) A JSON string containing additional search tool configuration. Use jsonencode() to construct this value. The provider automatically parses it into a JSON object when sending to the API.'
+            search_tool_name: '- (Required) The name of the search tool.'
+            timeout: '- (Optional) Request timeout in seconds for search requests.'
+        importStatements:
+            - terraform import litellm_search_tool.example <search-tool-id>
+    litellm_tag:
+        subCategory: ""
+        description: Manages a LiteLLM tag. Tags allow you to categorize and organize resources like models, teams, and API keys. Tags can also enforce budget limits, rate limits, and model-level spending controls.
+        name: litellm_tag
+        title: litellm_tag
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "name": "production"
+                }
+            - name: with_models
+              manifest: |-
+                {
+                  "description": "Models used for chat applications",
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini",
+                    "claude-sonnet-4-20250514"
+                  ],
+                  "name": "chat-models"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "budget_duration": "30d",
+                  "description": "Enterprise tier resources",
+                  "max_budget": 500,
+                  "max_parallel_requests": 10,
+                  "model_max_budget": "${jsonencode({\n    \"gpt-4o\" = 250.0\n  })}",
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini"
+                  ],
+                  "name": "enterprise-tier",
+                  "rpm_limit": 500,
+                  "soft_budget": 400,
+                  "tpm_limit": 50000
+                }
+            - name: dev
+              manifest: |-
+                {
+                  "budget_duration": "30d",
+                  "description": "Development environment",
+                  "max_budget": 50,
+                  "models": [
+                    "gpt-4o-mini"
+                  ],
+                  "name": "development",
+                  "rpm_limit": 100
+                }
+            - name: prod
+              manifest: |-
+                {
+                  "budget_duration": "30d",
+                  "description": "Production environment",
+                  "max_budget": 1000,
+                  "max_parallel_requests": 20,
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini"
+                  ],
+                  "name": "production",
+                  "rpm_limit": 1000,
+                  "soft_budget": 800,
+                  "tpm_limit": 100000
+                }
+        argumentDocs:
+            budget_duration: '- (Optional) Duration for the budget period (e.g., "30d", "7d", "1h").'
+            budget_id: '- (Optional) The budget ID to associate with this tag.'
+            description: '- (Optional) Description of the tag''s purpose.'
+            id: '- The identifier of the tag.'
+            max_budget: '- (Optional) Maximum budget (in USD) allowed for this tag.'
+            max_parallel_requests: '- (Optional) Maximum number of parallel requests allowed.'
+            model_max_budget: '- (Optional) JSON string specifying per-model maximum budgets. Use jsonencode() to set this value.'
+            models: '- (Optional, Computed) List of model names associated with this tag.'
+            name: '- (Required, ForceNew) Name of the tag. Must be unique. Changing this forces creation of a new resource.'
+            rpm_limit: '- (Optional) Requests per minute rate limit.'
+            soft_budget: '- (Optional) Soft budget threshold (in USD). Triggers alerts but does not block requests.'
+            tpm_limit: '- (Optional) Tokens per minute rate limit.'
+        importStatements:
+            - terraform import litellm_tag.example <tag-name>
+    litellm_team:
+        subCategory: ""
+        description: Manages a team in LiteLLM. Teams allow you to group users and apply shared budgets, rate limits, and model access controls.
+        name: litellm_team
+        title: litellm_team
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "team_alias": "test-team-minimal"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "blocked": false,
+                  "budget_duration": "30d",
+                  "guardrails": [],
+                  "max_budget": 500,
+                  "metadata": {
+                    "environment": "testing"
+                  },
+                  "model_aliases": {
+                    "fast": "gpt-4o-mini"
+                  },
+                  "model_rpm_limit": {
+                    "gpt-4o": 500
+                  },
+                  "model_tpm_limit": {
+                    "gpt-4o": 50000
+                  },
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini"
+                  ],
+                  "prompts": [],
+                  "rpm_limit": 1000,
+                  "rpm_limit_type": "guaranteed_throughput",
+                  "team_alias": "ai-research-team",
+                  "team_member_budget": 50,
+                  "team_member_permissions": [],
+                  "team_member_rpm_limit": 100,
+                  "team_member_tpm_limit": 10000,
+                  "tpm_limit": 100000,
+                  "tpm_limit_type": "guaranteed_throughput"
+                }
+            - name: with_fallbacks
+              manifest: |-
+                {
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini",
+                    "gpt-3.5-turbo",
+                    "claude-3-haiku"
+                  ],
+                  "router_settings": {
+                    "context_window_fallbacks": [
                       {
-                        "inline": [
-                          "bootstrap-cluster.sh ${join(\" \",\n      aws_instance.cluster[*].private_ip)}"
-                        ]
+                        "fallback_models": [
+                          "gpt-4o"
+                        ],
+                        "model": "gpt-3.5-turbo"
+                      }
+                    ],
+                    "fallbacks": [
+                      {
+                        "fallback_models": [
+                          "gpt-4o-mini",
+                          "claude-3-haiku"
+                        ],
+                        "model": "gpt-4o"
+                      },
+                      {
+                        "fallback_models": [
+                          "gpt-4o-mini"
+                        ],
+                        "model": "gpt-3.5-turbo"
                       }
                     ]
                   },
-                  "triggers": {
-                    "cluster_instance_ids": "${join(\",\", aws_instance.cluster[*].id)}"
-                  }
+                  "team_alias": "resilient-team"
                 }
+        argumentDocs:
+            blocked: '- (Optional) Whether the team is blocked from making requests.'
+            budget_duration: '- (Optional) Duration for the budget cycle (e.g., "30d", "7d", "1h").'
+            context_window_fallbacks: '- (Optional) List of fallback model chains triggered when a context window exceeded error occurs. Each entry has the same structure as fallbacks.'
+            fallback_models: '- (Required) Ordered list of fallback model names.'
+            fallbacks: '- (Optional) List of fallback model chains triggered when a model call fails after retries. Each entry contains:'
+            guardrails: '- (Optional) List of guardrail identifiers applied to the team.'
+            id: '- The unique identifier of the team.'
+            litellm_team_member: resource. See the litellm_team_member resource documentation for details on managing team membership.
+            max_budget: '- (Optional) Maximum budget allocated to the team.'
+            metadata: '- (Optional) A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.'
+            model: '- (Required) The primary model name to configure fallbacks for.'
+            model_aliases: '- (Optional) A map of alias names to model names.'
+            model_rpm_limit: '- (Optional) A map of model names to per-model RPM limits.'
+            model_tpm_limit: '- (Optional) A map of model names to per-model TPM limits.'
+            models: '- (Optional) List of model names the team is allowed to use.'
+            organization_id: '- (Optional) The ID of the organization this team belongs to.'
+            prompts: '- (Optional) List of prompt identifiers associated with the team.'
+            router_settings: '- (Optional) Router settings for the team, including fallback configurations. These override global fallback settings for requests made with this team''s keys. Resolution order: Key > Team > Global. Contains the following nested attributes:'
+            rpm_limit: '- (Optional) Requests per minute limit for the team.'
+            rpm_limit_type: '- (Optional) Type of RPM limit (e.g., "guaranteed_throughput").'
+            tags: '- (Optional) List of tags for the team. Requires LiteLLM Enterprise license.'
+            team_alias: '- (Required) A human-readable alias for the team.'
+            team_member_budget: '- (Optional) Default budget for each team member.'
+            team_member_permissions: '- (Optional) List of permissions granted to team members.'
+            team_member_rpm_limit: '- (Optional) Default requests per minute limit for each team member.'
+            team_member_tpm_limit: '- (Optional) Default tokens per minute limit for each team member.'
+            tpm_limit: '- (Optional) Tokens per minute limit for the team.'
+            tpm_limit_type: '- (Optional) Type of TPM limit (e.g., "guaranteed_throughput").'
+        importStatements:
+            - terraform import litellm_team.example <team-id>
+    litellm_team_block:
+        subCategory: ""
+        description: Manages the blocked state of a LiteLLM team. Creating this resource blocks the team and all its associated keys. Destroying it unblocks the team.
+        name: litellm_team_block
+        title: litellm_team_block
+        examples:
+            - name: block_team
+              manifest: |-
+                {
+                  "team_id": "${litellm_team.example.id}"
+                }
+              references:
+                team_id: litellm_team.example.id
               dependencies:
-                aws_instance.cluster: |-
+                litellm_team.example: |-
                     {
-                      "ami": "ami-0dcc1e21636832c5d",
-                      "count": 3,
-                      "instance_type": "m5.large"
+                      "team_alias": "my-team"
                     }
         argumentDocs:
-            id: (String) This is set to a random value at create time.
-            triggers: (Map of String) A map of arbitrary strings that, when changed, will force the null resource to be replaced, re-running any associated provisioners.
-        importStatements: []
+            blocked: '- Whether the team is currently blocked.'
+            id: '- The ID of this resource.'
+            team_id: '- (Required, ForceNew) The ID of the team to block. Changing this forces creation of a new resource.'
+        importStatements:
+            - terraform import litellm_team_block.example <team-id>
+    litellm_team_member:
+        subCategory: ""
+        description: Manages an individual member within a LiteLLM team.
+        name: litellm_team_member
+        title: litellm_team_member
+        examples:
+            - name: developer
+              manifest: |-
+                {
+                  "role": "user",
+                  "team_id": "${litellm_team.engineering.id}",
+                  "user_email": "developer@example.com",
+                  "user_id": "developer-1"
+                }
+              references:
+                team_id: litellm_team.engineering.id
+              dependencies:
+                litellm_team.engineering: |-
+                    {
+                      "team_alias": "engineering"
+                    }
+        argumentDocs:
+            id: '- A composite ID in the format team_id:user_id.'
+            max_budget_in_team: '- (Optional) The maximum budget allocated to this user within the team.'
+            role: '- (Required) The role of the user within the team. Valid values: org_admin, internal_user, internal_user_viewer, admin, user.'
+            team_id: '- (Required) The ID of the team.'
+            user_email: '- (Required) The email address of the user.'
+            user_id: '- (Required) The ID of the user to add to the team.'
+        importStatements:
+            - terraform import litellm_team_member.example <team_id>:<user_id>
+    litellm_team_member_add:
+        subCategory: ""
+        description: Manages a batch of members within a LiteLLM team. Adding or removing
+        name: litellm_team_member_add
+        title: litellm_team_member_add
+        examples:
+            - name: batch
+              manifest: |-
+                {
+                  "max_budget_in_team": 100,
+                  "member": [
+                    {
+                      "role": "user",
+                      "user_email": "dev1@example.com"
+                    },
+                    {
+                      "role": "admin",
+                      "user_email": "lead@example.com"
+                    }
+                  ],
+                  "team_id": "${litellm_team.engineering.id}"
+                }
+              references:
+                team_id: litellm_team.engineering.id
+              dependencies:
+                litellm_team.engineering: |-
+                    {
+                      "team_alias": "engineering"
+                    }
+        argumentDocs:
+            id: '- The ID of this resource.'
+            max_budget_in_team: '- (Optional) The maximum budget allocated to members within the team.'
+            member.role: '- (Required) The role of the user within the team. Valid values: admin, user.'
+            member.user_email: '- (Optional) The email address of the user to add.'
+            member.user_id: '- (Optional) The ID of the user to add.'
+            team_id: '- (Required, ForceNew) The ID of the team. Changing this forces creation of a new resource.'
+        importStatements:
+            - terraform import litellm_team_member_add.example <team-id>
+    litellm_unified_access_group:
+        subCategory: ""
+        description: Manages a LiteLLM Access Group using the current
+        name: litellm_unified_access_group
+        title: litellm_unified_access_group
+        examples:
+            - name: engineering
+              manifest: |-
+                {
+                  "access_agent_ids": [],
+                  "access_group_name": "Engineering",
+                  "access_mcp_server_ids": [],
+                  "access_model_names": [
+                    "gpt-4o",
+                    "claude-sonnet-4.5"
+                  ],
+                  "assigned_key_ids": [],
+                  "assigned_team_ids": [
+                    "${litellm_team.engineering.team_id}"
+                  ],
+                  "description": "Engineering access group"
+                }
+              references:
+                assigned_team_ids: litellm_team.engineering.team_id
+        argumentDocs:
+            access_agent_ids: '- (Optional) Agent IDs this access group grants access to.'
+            access_group_id: '- Access group ID.'
+            access_group_name: '- (Required) Display/name of the access group.'
+            access_mcp_server_ids: '- (Optional) MCP server IDs this access group grants access to.'
+            access_model_names: '- (Optional) Model names this access group grants access to.'
+            assigned_key_ids: '- (Optional) Key IDs assigned to this access group.'
+            assigned_team_ids: '- (Optional) Team IDs assigned to this access group.'
+            created_at: '- Timestamp when the access group was created.'
+            created_by: '- User who created the access group.'
+            description: '- (Optional) Description of the access group.'
+            id: '- Access group ID.'
+            updated_at: '- Timestamp when the access group was last updated.'
+            updated_by: '- User who last updated the access group.'
+        importStatements:
+            - terraform import litellm_unified_access_group.engineering <access_group_id>
+    litellm_user:
+        subCategory: ""
+        description: Manages a user in LiteLLM. Users can be assigned roles, budgets, rate limits, and model access controls.
+        name: litellm_user
+        title: litellm_user
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "auto_create_key": false
+                }
+            - name: full
+              manifest: |-
+                {
+                  "auto_create_key": true,
+                  "budget_duration": "30d",
+                  "max_budget": 200,
+                  "metadata": {
+                    "department": "engineering"
+                  },
+                  "models": [
+                    "gpt-4o",
+                    "gpt-4o-mini"
+                  ],
+                  "rpm_limit": 500,
+                  "teams": [],
+                  "tpm_limit": 50000,
+                  "user_alias": "Test User Full",
+                  "user_email": "testuser@example.com",
+                  "user_id": "test-user-full",
+                  "user_role": "internal_user"
+                }
+        argumentDocs:
+            auto_create_key: '- (Optional) Whether to automatically create an API key when the user is created. Defaults to true.'
+            budget_duration: '- (Optional) Duration for the budget cycle (e.g., "30d", "7d", "1h").'
+            id: '- The unique identifier of the user (same as user_id).'
+            key: '- (Sensitive) The API key generated for the user. Only populated when auto_create_key is true.'
+            max_budget: '- (Optional) Maximum budget allocated to the user.'
+            metadata: '- (Optional) A map of key-value metadata pairs for the user.'
+            models: '- (Optional) List of model names the user is allowed to use.'
+            rpm_limit: '- (Optional) Requests per minute limit for the user.'
+            teams: '- (Optional) List of team IDs the user belongs to.'
+            tpm_limit: '- (Optional) Tokens per minute limit for the user.'
+            user_alias: '- (Optional) A human-readable alias for the user.'
+            user_email: '- (Optional) The email address of the user.'
+            user_id: '- (Optional, ForceNew) A unique identifier for the user. If omitted, a UUID is generated by LiteLLM. Changing this value forces the resource to be recreated.'
+            user_role: '- (Optional) The role assigned to the user. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.'
+        importStatements:
+            - terraform import litellm_user.example <user-id>
+    litellm_vector_store:
+        subCategory: ""
+        description: Manages a vector store in LiteLLM. Vector stores provide storage for embeddings used in retrieval-augmented generation (RAG) and semantic search workflows.
+        name: litellm_vector_store
+        title: litellm_vector_store
+        examples:
+            - name: minimal
+              manifest: |-
+                {
+                  "custom_llm_provider": "openai",
+                  "vector_store_name": "my-vector-store"
+                }
+            - name: full
+              manifest: |-
+                {
+                  "custom_llm_provider": "openai",
+                  "litellm_credential_name": "my-openai-cred",
+                  "litellm_params": {
+                    "embedding_model": "text-embedding-3-small"
+                  },
+                  "vector_store_description": "Production vector store",
+                  "vector_store_metadata": {
+                    "environment": "production",
+                    "version": "1"
+                  },
+                  "vector_store_name": "embeddings-store"
+                }
+        argumentDocs:
+            created_at: '- The timestamp when the vector store was created.'
+            custom_llm_provider: '- (Required) The LLM provider for the vector store. Supported values: bedrock, openai, azure, vertex_ai, pgvector.'
+            id: '- The internal resource identifier.'
+            litellm_credential_name: '- (Optional) The name of the LiteLLM credential to use for authenticating with the provider.'
+            litellm_params: '- (Optional) A map of string key-value pairs containing additional LiteLLM-specific parameters for the vector store.'
+            vector_store_description: '- (Optional) A human-readable description of the vector store.'
+            vector_store_id: '- The unique identifier assigned to the vector store by LiteLLM.'
+            vector_store_metadata: '- (Optional) A map of string key-value pairs containing metadata for the vector store.'
+            vector_store_name: '- (Required) The name of the vector store.'
+        importStatements:
+            - terraform import litellm_vector_store.example <vector-store-id>

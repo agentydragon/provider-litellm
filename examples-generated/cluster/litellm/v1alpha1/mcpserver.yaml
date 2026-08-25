@@ -1,0 +1,13 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: MCPServer
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/mcpserver
+  labels:
+    testing.upbound.io/example-name: minimal
+  name: minimal
+spec:
+  forProvider:
+    serverName: my_mcp_server
+    transport: sse
+    url: https://example.com/mcp

@@ -1,0 +1,12 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Team
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/team
+  labels:
+    testing.upbound.io/example-name: minimal
+  name: minimal
+  namespace: crossplane-system
+spec:
+  forProvider:
+    teamAlias: test-team-minimal

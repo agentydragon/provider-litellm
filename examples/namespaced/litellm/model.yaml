@@ -1,0 +1,20 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Model
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/model
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-model
+  namespace: crossplane-system
+spec:
+  forProvider:
+    modelName: gpt-4o-mini-proxy
+    customLlmProvider: openai
+    baseModel: gpt-4o-mini
+    mode: chat
+    inputCostPerMillionTokens: 0.15
+    outputCostPerMillionTokens: 0.6
+    # Reuse the stored credential rather than inlining an API key.
+    litellmCredentialNameRef:
+      name: example-credential

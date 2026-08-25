@@ -194,8 +194,12 @@ func main() {
 			},
 		},
 		Provider: config.GetProvider(),
-		// use the following WorkspaceStoreOption to enable the shared gRPC mode
-		// terraform.WithProviderRunner(terraform.NewSharedProvider(log, os.Getenv("TERRAFORM_NATIVE_PROVIDER_PATH"), terraform.WithNativeProviderArgs("-debuggable")))
+		// use the following WorkspaceStoreOption to enable the shared gRPC mode.
+		// ncecere/litellm is a terraform-plugin-framework provider and speaks
+		// protocol 6, so terraform.WithProtocolVersion(6) is required here --
+		// NewSharedProvider otherwise advertises upjet's default of 5 in the
+		// reattach configuration and terraform fails to connect.
+		// terraform.WithProviderRunner(terraform.NewSharedProvider(log, os.Getenv("TERRAFORM_NATIVE_PROVIDER_PATH"), terraform.WithNativeProviderArgs("-debuggable"), terraform.WithProtocolVersion(6)))
 		WorkspaceStore: terraform.NewWorkspaceStore(log),
 		SetupFn:        clients.TerraformSetupBuilder(*terraformVersion, *providerSource, *providerVersion),
 		StartWebhooks:  *certsDir != "",
@@ -215,8 +219,12 @@ func main() {
 			},
 		},
 		Provider: config.GetProviderNamespaced(),
-		// use the following WorkspaceStoreOption to enable the shared gRPC mode
-		// terraform.WithProviderRunner(terraform.NewSharedProvider(log, os.Getenv("TERRAFORM_NATIVE_PROVIDER_PATH"), terraform.WithNativeProviderArgs("-debuggable")))
+		// use the following WorkspaceStoreOption to enable the shared gRPC mode.
+		// ncecere/litellm is a terraform-plugin-framework provider and speaks
+		// protocol 6, so terraform.WithProtocolVersion(6) is required here --
+		// NewSharedProvider otherwise advertises upjet's default of 5 in the
+		// reattach configuration and terraform fails to connect.
+		// terraform.WithProviderRunner(terraform.NewSharedProvider(log, os.Getenv("TERRAFORM_NATIVE_PROVIDER_PATH"), terraform.WithNativeProviderArgs("-debuggable"), terraform.WithProtocolVersion(6)))
 		WorkspaceStore: terraform.NewWorkspaceStore(log),
 		SetupFn:        clients.TerraformSetupBuilder(*terraformVersion, *providerSource, *providerVersion),
 		StartWebhooks:  *certsDir != "",

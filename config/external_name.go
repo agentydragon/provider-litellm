@@ -6,18 +6,43 @@ import (
 
 // ExternalNameConfigs contains all external name configurations for this
 // provider.
+//
+// This map doubles as the provider's include list — only the resources listed
+// here are code generated. See ExternalNameConfigured.
+//
+// Each entry mirrors the "## Import" section of the corresponding page under
+// docs/resources in the ncecere/terraform-provider-litellm repository, which is
+// what determines the shape of the Terraform ID.
 var ExternalNameConfigs = map[string]config.ExternalName{
-	// Import requires using a randomly generated ID from provider: nl-2e21sda
-	"null_resource": idWithStub(),
-}
+	// LiteLLM generates the model ID on creation and it is distinct from
+	// model_name: `terraform import litellm_model.example <model-id>`.
+	"litellm_model": config.IdentifierFromProvider,
 
-func idWithStub() config.ExternalName {
-	e := config.IdentifierFromProvider
-	e.GetExternalNameFn = func(tfstate map[string]any) (string, error) {
-		en, _ := config.IDAsExternalName(tfstate)
-		return en, nil
-	}
-	return e
+	// The ID is the credential name, a ForceNew argument:
+	// `terraform import litellm_credential.example "<credential-name>"`.
+	"litellm_credential": config.ParameterAsIdentifier("credential_name"),
+
+	// LiteLLM generates the team ID; the resource exposes no settable
+	// team_id argument: `terraform import litellm_team.example <team-id>`.
+	"litellm_team": config.IdentifierFromProvider,
+
+	// Composite identifier built by the provider from two required arguments:
+	// `terraform import litellm_team_member.example <team_id>:<user_id>`.
+	"litellm_team_member": config.IdentifierFromProvider,
+
+	// The ID is a SHA256 hash of the key token LiteLLM issues on creation, so
+	// it cannot be supplied up front.
+	"litellm_key": config.IdentifierFromProvider,
+
+	// organization_id is a ForceNew argument that LiteLLM only generates when
+	// it is omitted, and the resource ID is the same value.
+	"litellm_organization": config.ParameterAsIdentifier("organization_id"),
+
+	// user_id behaves exactly as organization_id above.
+	"litellm_user": config.ParameterAsIdentifier("user_id"),
+
+	// server_id is computed only; LiteLLM always generates it.
+	"litellm_mcp_server": config.IdentifierFromProvider,
 }
 
 // ExternalNameConfigurations applies all external name configs listed in the

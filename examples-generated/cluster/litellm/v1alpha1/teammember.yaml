@@ -1,0 +1,32 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: TeamMember
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/teammember
+  labels:
+    testing.upbound.io/example-name: developer
+  name: developer
+spec:
+  forProvider:
+    role: user
+    teamIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: engineering
+    userEmail: developer@example.com
+    userIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+
+---
+
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Team
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/teammember
+  labels:
+    testing.upbound.io/example-name: engineering
+  name: engineering
+spec:
+  forProvider:
+    teamAlias: engineering

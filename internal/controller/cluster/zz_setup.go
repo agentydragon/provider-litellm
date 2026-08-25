@@ -9,7 +9,14 @@ import (
 
 	"github.com/crossplane/upjet/v2/pkg/controller"
 
-	resource "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/null/resource"
+	credential "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/credential"
+	key "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/key"
+	mcpserver "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/mcpserver"
+	model "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/model"
+	organization "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/organization"
+	team "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/team"
+	teammember "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/teammember"
+	user "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/litellm/user"
 	providerconfig "github.com/thecodingsheikh/provider-litellm/internal/controller/cluster/providerconfig"
 )
 
@@ -17,7 +24,14 @@ import (
 // the supplied manager.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
-		resource.Setup,
+		credential.Setup,
+		key.Setup,
+		mcpserver.Setup,
+		model.Setup,
+		organization.Setup,
+		team.Setup,
+		teammember.Setup,
+		user.Setup,
 		providerconfig.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
@@ -31,7 +45,14 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 // the supplied manager gated.
 func SetupGated(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
-		resource.SetupGated,
+		credential.SetupGated,
+		key.SetupGated,
+		mcpserver.SetupGated,
+		model.SetupGated,
+		organization.SetupGated,
+		team.SetupGated,
+		teammember.SetupGated,
+		user.SetupGated,
 		providerconfig.SetupGated,
 	} {
 		if err := setup(mgr, o); err != nil {
@@ -44,7 +65,14 @@ func SetupGated(mgr ctrl.Manager, o controller.Options) error {
 // SetupWebhookWithManager registers conversion webhooks for all resource kinds in the group.
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
 	for _, setup := range []func(ctrl.Manager) error{
-		resource.SetupWebhookWithManager,
+		credential.SetupWebhookWithManager,
+		key.SetupWebhookWithManager,
+		mcpserver.SetupWebhookWithManager,
+		model.SetupWebhookWithManager,
+		organization.SetupWebhookWithManager,
+		team.SetupWebhookWithManager,
+		teammember.SetupWebhookWithManager,
+		user.SetupWebhookWithManager,
 		providerconfig.SetupWebhookWithManager,
 	} {
 		if err := setup(mgr); err != nil {

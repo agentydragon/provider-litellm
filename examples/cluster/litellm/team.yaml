@@ -1,0 +1,14 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Team
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/team
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-team
+spec:
+  forProvider:
+    teamAlias: crossplane-example-team
+    maxBudget: 50
+    organizationIdRef:
+      name: example-org

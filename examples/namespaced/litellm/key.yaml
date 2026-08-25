@@ -1,0 +1,21 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Key
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/key
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-key
+  namespace: crossplane-system
+spec:
+  forProvider:
+    keyAlias: crossplane-example-key
+    maxBudget: 10
+    models:
+      - gpt-4o-mini-proxy
+    teamIdRef:
+      name: example-team
+  # The issued token is sensitive and only returned on creation, so publish it
+  # to a Secret for consumers.
+  writeConnectionSecretToRef:
+    name: example-key-connection

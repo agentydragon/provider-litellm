@@ -1,0 +1,17 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: User
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/user
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-user
+spec:
+  # user_id carries the external name, so the LiteLLM user is created with the
+  # id "example-user". Omit metadata.name control by setting the
+  # crossplane.io/external-name annotation instead.
+  forProvider:
+    userAlias: crossplane-example-user
+    userEmail: crossplane-example@example.com
+    userRole: internal_user
+    autoCreateKey: false

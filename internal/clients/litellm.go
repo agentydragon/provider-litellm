@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/crossplane/crossplane-runtime/v2/pkg/resource"
 	"github.com/pkg/errors"
@@ -22,6 +23,18 @@ const (
 	errTrackUsage           = "cannot track ProviderConfig usage"
 	errExtractCredentials   = "cannot extract credentials"
 	errUnmarshalCredentials = "cannot unmarshal litellm credentials as JSON"
+
+	errFmtMissingCredentialKey = "%q is missing from the ProviderConfig credentials"
+	errFmtInvalidBool          = "%q must be a boolean"
+)
+
+// Keys of the LiteLLM provider configuration block, as defined by the
+// ncecere/litellm Terraform provider schema.
+const (
+	keyAPIBase            = "api_base"
+	keyAPIKey             = "api_key"
+	keyInsecureSkipVerify = "insecure_skip_verify"
+	keyChangedBy          = "litellm_changed_by"
 )
 
 // TerraformSetupBuilder builds Terraform a terraform.SetupFn function which
@@ -50,11 +63,30 @@ func TerraformSetupBuilder(version, providerSource, providerVersion string) terr
 			return ps, errors.Wrap(err, errUnmarshalCredentials)
 		}
 
-		// Set credentials in Terraform provider configuration.
-		/*ps.Configuration = map[string]any{
-			"username": creds["username"],
-			"password": creds["password"],
-		}*/
+		// Set credentials in Terraform provider configuration. The upstream schema
+		// marks every provider argument optional because it also accepts LITELLM_*
+		// environment variables, but a Crossplane provider has no such ambient
+		// environment, so both are required here.
+		if creds[keyAPIBase] == "" {
+			return ps, errors.Errorf(errFmtMissingCredentialKey, keyAPIBase)
+		}
+		if creds[keyAPIKey] == "" {
+			return ps, errors.Errorf(errFmtMissingCredentialKey, keyAPIKey)
+		}
+		ps.Configuration = map[string]any{
+			keyAPIBase: creds[keyAPIBase],
+			keyAPIKey:  creds[keyAPIKey],
+		}
+		if v := creds[keyInsecureSkipVerify]; v != "" {
+			b, err := strconv.ParseBool(v)
+			if err != nil {
+				return ps, errors.Wrapf(err, errFmtInvalidBool, keyInsecureSkipVerify)
+			}
+			ps.Configuration[keyInsecureSkipVerify] = b
+		}
+		if v := creds[keyChangedBy]; v != "" {
+			ps.Configuration[keyChangedBy] = v
+		}
 		return ps, nil
 	}
 }

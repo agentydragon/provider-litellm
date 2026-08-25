@@ -10,13 +10,17 @@ export TERRAFORM_VERSION ?= 1.5.7
 # licensed under BSL, which is not permitted.
 TERRAFORM_VERSION_VALID := $(shell [ "$(TERRAFORM_VERSION)" = "`printf "$(TERRAFORM_VERSION)\n1.6" | sort -V | head -n1`" ] && echo 1 || echo 0)
 
-export TERRAFORM_PROVIDER_SOURCE ?= ncecere/terraform-provider-litellm
+export TERRAFORM_PROVIDER_SOURCE ?= ncecere/litellm
 export TERRAFORM_PROVIDER_REPO ?= https://github.com/ncecere/terraform-provider-litellm
 export TERRAFORM_PROVIDER_VERSION ?= 2.0.1
 export TERRAFORM_PROVIDER_DOWNLOAD_NAME ?= terraform-provider-litellm
-export TERRAFORM_PROVIDER_DOWNLOAD_URL_PREFIX ?= https://releases.hashicorp.com/$(TERRAFORM_PROVIDER_DOWNLOAD_NAME)/$(TERRAFORM_PROVIDER_VERSION)
-export TERRAFORM_NATIVE_PROVIDER_BINARY ?= terraform-provider-litellm_v2.0.1
+export TERRAFORM_PROVIDER_DOWNLOAD_URL_PREFIX ?= $(TERRAFORM_PROVIDER_REPO)/releases/download/v$(TERRAFORM_PROVIDER_VERSION)
+export TERRAFORM_NATIVE_PROVIDER_BINARY ?= terraform-provider-litellm_v$(TERRAFORM_PROVIDER_VERSION)
 export TERRAFORM_DOCS_PATH ?= docs/resources
+# The upstream docs are hand-written and carry none of the tfplugindocs
+# frontmatter upjet's scraper requires, so pull-docs stages an annotated copy
+# here and the scraper reads that instead. See hack/prepare-docs.sh.
+export TERRAFORM_SCRAPE_DOCS_PATH ?= .scrape/resources
 
 
 PLATFORMS ?= linux_amd64 linux_arm64
@@ -65,17 +69,17 @@ CROSSPLANE_VERSION = 2.2.1
 # ====================================================================================
 # Setup Images
 
-REGISTRY_ORGS ?= ghcr.io/crossplane-contrib
+REGISTRY_ORGS ?= ghcr.io/thecodingsheikh
 IMAGES = $(PROJECT_NAME)
 -include build/makelib/imagelight.mk
 
 # ====================================================================================
 # Setup XPKG
 
-XPKG_REG_ORGS ?= ghcr.io/crossplane-contrib
+XPKG_REG_ORGS ?= ghcr.io/thecodingsheikh
 # NOTE(hasheddan): skip promoting on xpkg.crossplane.io as channel tags are
 # inferred.
-XPKG_REG_ORGS_NO_PROMOTE ?= ghcr.io/crossplane-contrib
+XPKG_REG_ORGS_NO_PROMOTE ?= ghcr.io/thecodingsheikh
 XPKGS = $(PROJECT_NAME)
 -include build/makelib/xpkg.mk
 
@@ -135,6 +139,7 @@ pull-docs:
 		git clone -c advice.detachedHead=false --depth 1 --filter=blob:none --branch "v$(TERRAFORM_PROVIDER_VERSION)" --sparse "$(TERRAFORM_PROVIDER_REPO)" "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)"; \
 	fi
 	@git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" sparse-checkout set "$(TERRAFORM_DOCS_PATH)"
+	@./hack/prepare-docs.sh "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)/$(TERRAFORM_DOCS_PATH)" "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)/$(TERRAFORM_SCRAPE_DOCS_PATH)" "$(shell echo $(TERRAFORM_PROVIDER_DOWNLOAD_NAME) | sed 's/^terraform-provider-//')"
 
 generate.init: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs
 

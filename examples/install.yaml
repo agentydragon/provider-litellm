@@ -3,4 +3,4 @@ kind: Provider
 metadata:
   name: provider-litellm
 spec:
-  package: xpkg.crossplane.io/thecodingsheikh/provider-litellm:v0.1.0
+  package: ghcr.io/thecodingsheikh/provider-litellm:v0.1.0

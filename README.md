@@ -1,21 +1,36 @@
 # Provider LiteLLM
 
-`provider-litellm` is a [Crossplane](https://crossplane.io/) provider
-litellm that is built using [Upjet](https://github.com/crossplane/upjet) code
-generation tools and exposes XRM-conformant managed resources for the LiteLLM
-API.
+`provider-litellm` is a [Crossplane](https://crossplane.io/) provider that is
+built using [Upjet](https://github.com/crossplane/upjet) code generation tools
+and exposes XRM-conformant managed resources for the
+[LiteLLM](https://docs.litellm.ai/) proxy API.
+
+It wraps the [`ncecere/litellm`](https://registry.terraform.io/providers/ncecere/litellm/latest)
+Terraform provider, letting you manage LiteLLM models, teams, keys, credentials
+and organizations as Kubernetes resources.
 
 ## Getting Started
 
-This litellm serves as a starting point for generating a new [Crossplane Provider](https://docs.crossplane.io/latest/packages/providers/) using the [`upjet`](https://github.com/crossplane/upjet) tooling. Please follow the guide linked below to generate a new Provider:
+Install the provider by using the following command after changing the image tag
+to the [latest release](https://github.com/thecodingsheikh/provider-litellm/releases):
 
-https://github.com/crossplane/upjet/blob/main/docs/generating-a-provider.md
+```console
+kubectl apply -f examples/install.yaml
+```
+
+Then create a `ProviderConfig` pointing at a Secret holding your LiteLLM
+endpoint and API key:
+
+```console
+kubectl apply -f examples/cluster/providerconfig/
+```
 
 ## Developing
 
 Run code-generation pipeline:
+
 ```console
-go run cmd/generator/main.go "$PWD"
+make generate
 ```
 
 Run against a Kubernetes cluster:

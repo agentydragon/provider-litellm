@@ -1,0 +1,15 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: MCPServer
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/mcpserver
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-mcp-server
+spec:
+  forProvider:
+    # LiteLLM requires underscores rather than hyphens in MCP server names.
+    serverName: crossplane_example
+    description: Example MCP server managed by Crossplane
+    transport: http
+    url: https://mcp.example.com/mcp
