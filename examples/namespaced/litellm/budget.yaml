@@ -1,0 +1,13 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Budget
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/budget
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-budget
+  namespace: crossplane-system
+spec:
+  forProvider:
+    maxBudget: 100
+    budgetDuration: 30d

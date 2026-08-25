@@ -1,0 +1,35 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: TeamMemberAdd
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/teammemberadd
+  labels:
+    testing.upbound.io/example-name: batch
+  name: batch
+  namespace: crossplane-system
+spec:
+  forProvider:
+    maxBudgetInTeam: 100
+    member:
+    - role: user
+      userEmail: dev1@example.com
+    - role: admin
+      userEmail: lead@example.com
+    teamIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: engineering
+
+---
+
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Team
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/teammemberadd
+  labels:
+    testing.upbound.io/example-name: engineering
+  name: engineering
+  namespace: crossplane-system
+spec:
+  forProvider:
+    teamAlias: engineering

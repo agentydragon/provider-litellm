@@ -20,7 +20,7 @@ type CredentialInitParameters struct {
 	// +mapType=granular
 	CredentialInfo map[string]*string `json:"credentialInfo,omitempty" tf:"credential_info,omitempty"`
 
-	CredentialValues map[string]*string `json:"credentialValuesSecretRef" tf:"-"`
+	CredentialValues map[string]*string `json:"credentialValuesSecretRef,omitempty" tf:"-"`
 
 	// Model ID of an existing model registered in LiteLLM to associate with this credential.
 	// Model ID associated with this credential.

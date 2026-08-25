@@ -42,7 +42,16 @@ type KeyInitParameters struct {
 
 	// Budget ID to associate with this key.
 	// Budget ID to associate with this key.
+	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Budget
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
+
+	// Reference to a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDRef *v2.Reference `json:"budgetIdRef,omitempty" tf:"-"`
+
+	// Selector for a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDSelector *v2.Selector `json:"budgetIdSelector,omitempty" tf:"-"`
 
 	// Map of configuration options.
 	// Key-specific configuration.
@@ -121,7 +130,16 @@ type KeyInitParameters struct {
 
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
+	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Project
 	ProjectID *string `json:"projectId,omitempty" tf:"project_id,omitempty"`
+
+	// Reference to a Project in litellm to populate projectId.
+	// +kubebuilder:validation:Optional
+	ProjectIDRef *v2.Reference `json:"projectIdRef,omitempty" tf:"-"`
+
+	// Selector for a Project in litellm to populate projectId.
+	// +kubebuilder:validation:Optional
+	ProjectIDSelector *v2.Selector `json:"projectIdSelector,omitempty" tf:"-"`
 
 	// List of prompt IDs associated with this key.
 	// List of prompt IDs this key can access.
@@ -358,8 +376,17 @@ type KeyParameters struct {
 
 	// Budget ID to associate with this key.
 	// Budget ID to associate with this key.
+	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Budget
 	// +kubebuilder:validation:Optional
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
+
+	// Reference to a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDRef *v2.Reference `json:"budgetIdRef,omitempty" tf:"-"`
+
+	// Selector for a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDSelector *v2.Selector `json:"budgetIdSelector,omitempty" tf:"-"`
 
 	// Map of configuration options.
 	// Key-specific configuration.
@@ -453,8 +480,17 @@ type KeyParameters struct {
 
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
+	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Project
 	// +kubebuilder:validation:Optional
 	ProjectID *string `json:"projectId,omitempty" tf:"project_id,omitempty"`
+
+	// Reference to a Project in litellm to populate projectId.
+	// +kubebuilder:validation:Optional
+	ProjectIDRef *v2.Reference `json:"projectIdRef,omitempty" tf:"-"`
+
+	// Selector for a Project in litellm to populate projectId.
+	// +kubebuilder:validation:Optional
+	ProjectIDSelector *v2.Selector `json:"projectIdSelector,omitempty" tf:"-"`
 
 	// List of prompt IDs associated with this key.
 	// List of prompt IDs this key can access.

@@ -1,0 +1,15 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: OrganizationMember
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/organizationmember
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-org-member
+spec:
+  forProvider:
+    role: internal_user
+    organizationIdRef:
+      name: example-org
+    userIdRef:
+      name: example-user

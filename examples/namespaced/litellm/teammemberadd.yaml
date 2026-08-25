@@ -1,0 +1,16 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: TeamMemberAdd
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/teammemberadd
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-team-member-add
+  namespace: crossplane-system
+spec:
+  forProvider:
+    teamIdRef:
+      name: example-team
+    member:
+      - role: user
+        userEmail: crossplane-example@example.com

@@ -1,0 +1,13 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Tag
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/tag
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-tag
+  namespace: crossplane-system
+spec:
+  forProvider:
+    models:
+      - gpt-4o-mini-proxy

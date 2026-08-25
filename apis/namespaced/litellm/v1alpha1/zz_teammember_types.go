@@ -23,35 +23,9 @@ type TeamMemberInitParameters struct {
 	// Role in the team (org_admin, internal_user, internal_user_viewer, admin, user).
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The ID of the team.
-	// Team ID.
-	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Team
-	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
-
-	// Reference to a Team in litellm to populate teamId.
-	// +kubebuilder:validation:Optional
-	TeamIDRef *v2.NamespacedReference `json:"teamIdRef,omitempty" tf:"-"`
-
-	// Selector for a Team in litellm to populate teamId.
-	// +kubebuilder:validation:Optional
-	TeamIDSelector *v2.NamespacedSelector `json:"teamIdSelector,omitempty" tf:"-"`
-
 	// The email address of the user.
 	// User email.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
-
-	// The ID of the user to add to the team.
-	// User ID.
-	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.User
-	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
-
-	// Reference to a User in litellm to populate userId.
-	// +kubebuilder:validation:Optional
-	UserIDRef *v2.NamespacedReference `json:"userIdRef,omitempty" tf:"-"`
-
-	// Selector for a User in litellm to populate userId.
-	// +kubebuilder:validation:Optional
-	UserIDSelector *v2.NamespacedSelector `json:"userIdSelector,omitempty" tf:"-"`
 }
 
 type TeamMemberObservation struct {

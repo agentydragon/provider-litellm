@@ -1,0 +1,16 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: KeyBlock
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/keyblock
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-key-block
+  namespace: crossplane-system
+spec:
+  forProvider:
+    # The token of an existing LiteLLM key. A Key publishes its token to the
+    # Secret named by writeConnectionSecretToRef, under the "key" entry.
+    keySecretRef:
+      name: example-key-connection
+      key: attribute.key

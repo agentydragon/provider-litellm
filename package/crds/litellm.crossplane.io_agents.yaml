@@ -1,0 +1,978 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: agents.litellm.crossplane.io
+spec:
+  group: litellm.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - litellm
+    kind: Agent
+    listKind: AgentList
+    plural: agents
+    singular: agent
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: EXTERNAL-NAME
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Agent is the Schema for the Agents API. Manages a LiteLLM Agent
+          (A2A). Agents are AI-powered entities that can be discovered, invoked, and
+          composed using the Agent-to-Agent protocol.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AgentSpec defines the desired state of Agent
+            properties:
+              deletionPolicy:
+                default: Delete
+                description: |-
+                  DeletionPolicy specifies what will happen to the underlying external
+                  when this managed resource is deleted - either "Delete" or "Orphan" the
+                  external resource.
+                  This field is planned to be deprecated in favor of the ManagementPolicies
+                  field in a future release. Currently, both could be set independently and
+                  non-default values would be honored if the feature flag is enabled.
+                  See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              forProvider:
+                properties:
+                  agentCard:
+                    description: The A2A agent card — a self-describing manifest for
+                      the agent.
+                    properties:
+                      capabilities:
+                        description: Capabilities supported by the agent.
+                        items:
+                          properties:
+                            pushNotifications:
+                              description: |-
+                                Whether the agent supports push notifications.
+                                Whether the agent supports push notifications.
+                              type: boolean
+                            stateTransitionHistory:
+                              description: |-
+                                Whether the agent supports state transition history.
+                                Whether the agent supports state transition history.
+                              type: boolean
+                            streaming:
+                              description: |-
+                                Whether the agent supports streaming responses.
+                                Whether the agent supports streaming responses.
+                              type: boolean
+                          type: object
+                        type: array
+                      defaultInputModes:
+                        description: |-
+                          List of default input MIME types.
+                          Default input MIME types (e.g. ['application/json', 'text/plain']).
+                        items:
+                          type: string
+                        type: array
+                      defaultOutputModes:
+                        description: |-
+                          List of default output MIME types.
+                          Default output MIME types.
+                        items:
+                          type: string
+                        type: array
+                      description:
+                        description: |-
+                          Human-readable description of the agent.
+                          Human-readable description of the agent.
+                        type: string
+                      documentationUrl:
+                        description: |-
+                          URL for the agent's documentation.
+                          URL for the agent's documentation.
+                        type: string
+                      iconUrl:
+                        description: |-
+                          URL for the agent's icon.
+                          URL for the agent's icon.
+                        type: string
+                      name:
+                        description: |-
+                          Display name of the agent.
+                          Display name of the agent.
+                        type: string
+                      preferredTransport:
+                        description: |-
+                          Preferred transport protocol (e.g. httpsse, websocket).
+                          Preferred transport protocol (e.g. 'httpsse', 'websocket').
+                        type: string
+                      protocolVersion:
+                        description: |-
+                          A2A protocol version (e.g. 0.2.6).
+                          A2A protocol version (e.g. '0.2.6').
+                        type: string
+                      provider:
+                        description: The service provider of the agent.
+                        items:
+                          properties:
+                            organization:
+                              description: |-
+                                Organization name of the agent provider.
+                                Organization name of the agent provider.
+                              type: string
+                            url:
+                              description: |-
+                                The URL endpoint for the agent.
+                                URL of the agent provider.
+                              type: string
+                          type: object
+                        type: array
+                      skills:
+                        description: Skills the agent can perform.
+                        items:
+                          properties:
+                            description:
+                              description: |-
+                                Human-readable description of the agent.
+                                Description of what the skill does.
+                              type: string
+                            examples:
+                              description: |-
+                                List of example inputs.
+                                Example inputs for the skill.
+                              items:
+                                type: string
+                              type: array
+                            id:
+                              description: |-
+                                Unique identifier for the skill.
+                                Unique identifier for the skill.
+                              type: string
+                            inputModes:
+                              description: |-
+                                List of supported input MIME types.
+                                Supported input MIME types.
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: |-
+                                Display name of the agent.
+                                Display name of the skill.
+                              type: string
+                            outputModes:
+                              description: |-
+                                List of supported output MIME types.
+                                Supported output MIME types.
+                              items:
+                                type: string
+                              type: array
+                            tags:
+                              description: |-
+                                List of tags for categorizing the skill.
+                                Tags for categorizing the skill.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        type: array
+                      url:
+                        description: |-
+                          The URL endpoint for the agent.
+                          The URL endpoint for the agent.
+                        type: string
+                      version:
+                        description: |-
+                          Version of the agent.
+                          Version of the agent.
+                        type: string
+                    type: object
+                  agentName:
+                    description: |-
+                      The name of the agent.
+                      The name of the agent.
+                    type: string
+                  extraHeaders:
+                    description: |-
+                      List of extra header names to forward from incoming requests.
+                      Extra header names to forward from the incoming request.
+                    items:
+                      type: string
+                    type: array
+                  litellmParams:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Map of LiteLLM-specific parameters (e.g. model, api_key).
+                      LiteLLM-specific parameters for the agent (e.g. model, api_key).
+                    type: object
+                    x-kubernetes-map-type: granular
+                  objectPermission:
+                    description: Access control permissions for the agent.
+                    properties:
+                      agents:
+                        description: |-
+                          List of other agent IDs this agent can invoke.
+                          Other agent IDs this agent can invoke.
+                        items:
+                          type: string
+                        type: array
+                      mcpAccessGroups:
+                        description: |-
+                          List of MCP access groups the agent belongs to.
+                          MCP access groups the agent belongs to.
+                        items:
+                          type: string
+                        type: array
+                      mcpServers:
+                        description: |-
+                          List of MCP server IDs the agent can access.
+                          MCP server IDs the agent can access.
+                        items:
+                          type: string
+                        type: array
+                      mcpToolPermissions:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of MCP server ID to allowed tools (JSON-encoded).
+                          Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+                        type: object
+                        x-kubernetes-map-type: granular
+                      models:
+                        description: |-
+                          List of model IDs the agent can use.
+                          Model IDs the agent can use.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  rpmLimit:
+                    description: |-
+                      Requests per minute limit for the agent.
+                      Requests per minute limit for the agent.
+                    type: number
+                  sessionRpmLimit:
+                    description: |-
+                      Per-session requests per minute limit.
+                      Per-session requests per minute limit.
+                    type: number
+                  sessionTpmLimit:
+                    description: |-
+                      Per-session tokens per minute limit.
+                      Per-session tokens per minute limit.
+                    type: number
+                  staticHeaders:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Map of static headers to send with agent requests.
+                      Static headers to send with agent requests.
+                    type: object
+                    x-kubernetes-map-type: granular
+                  tpmLimit:
+                    description: |-
+                      Tokens per minute limit for the agent.
+                      Tokens per minute limit for the agent.
+                    type: number
+                type: object
+              initProvider:
+                description: |-
+                  THIS IS A BETA FIELD. It will be honored
+                  unless the Management Policies feature flag is disabled.
+                  InitProvider holds the same fields as ForProvider, with the exception
+                  of Identifier and other resource reference fields. The fields that are
+                  in InitProvider are merged into ForProvider when the resource is created.
+                  The same fields are also added to the terraform ignore_changes hook, to
+                  avoid updating them after creation. This is useful for fields that are
+                  required on creation, but we do not desire to update them after creation,
+                  for example because of an external controller is managing them, like an
+                  autoscaler.
+                properties:
+                  agentCard:
+                    description: The A2A agent card — a self-describing manifest for
+                      the agent.
+                    properties:
+                      capabilities:
+                        description: Capabilities supported by the agent.
+                        items:
+                          properties:
+                            pushNotifications:
+                              description: |-
+                                Whether the agent supports push notifications.
+                                Whether the agent supports push notifications.
+                              type: boolean
+                            stateTransitionHistory:
+                              description: |-
+                                Whether the agent supports state transition history.
+                                Whether the agent supports state transition history.
+                              type: boolean
+                            streaming:
+                              description: |-
+                                Whether the agent supports streaming responses.
+                                Whether the agent supports streaming responses.
+                              type: boolean
+                          type: object
+                        type: array
+                      defaultInputModes:
+                        description: |-
+                          List of default input MIME types.
+                          Default input MIME types (e.g. ['application/json', 'text/plain']).
+                        items:
+                          type: string
+                        type: array
+                      defaultOutputModes:
+                        description: |-
+                          List of default output MIME types.
+                          Default output MIME types.
+                        items:
+                          type: string
+                        type: array
+                      description:
+                        description: |-
+                          Human-readable description of the agent.
+                          Human-readable description of the agent.
+                        type: string
+                      documentationUrl:
+                        description: |-
+                          URL for the agent's documentation.
+                          URL for the agent's documentation.
+                        type: string
+                      iconUrl:
+                        description: |-
+                          URL for the agent's icon.
+                          URL for the agent's icon.
+                        type: string
+                      name:
+                        description: |-
+                          Display name of the agent.
+                          Display name of the agent.
+                        type: string
+                      preferredTransport:
+                        description: |-
+                          Preferred transport protocol (e.g. httpsse, websocket).
+                          Preferred transport protocol (e.g. 'httpsse', 'websocket').
+                        type: string
+                      protocolVersion:
+                        description: |-
+                          A2A protocol version (e.g. 0.2.6).
+                          A2A protocol version (e.g. '0.2.6').
+                        type: string
+                      provider:
+                        description: The service provider of the agent.
+                        items:
+                          properties:
+                            organization:
+                              description: |-
+                                Organization name of the agent provider.
+                                Organization name of the agent provider.
+                              type: string
+                            url:
+                              description: |-
+                                The URL endpoint for the agent.
+                                URL of the agent provider.
+                              type: string
+                          type: object
+                        type: array
+                      skills:
+                        description: Skills the agent can perform.
+                        items:
+                          properties:
+                            description:
+                              description: |-
+                                Human-readable description of the agent.
+                                Description of what the skill does.
+                              type: string
+                            examples:
+                              description: |-
+                                List of example inputs.
+                                Example inputs for the skill.
+                              items:
+                                type: string
+                              type: array
+                            id:
+                              description: |-
+                                Unique identifier for the skill.
+                                Unique identifier for the skill.
+                              type: string
+                            inputModes:
+                              description: |-
+                                List of supported input MIME types.
+                                Supported input MIME types.
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: |-
+                                Display name of the agent.
+                                Display name of the skill.
+                              type: string
+                            outputModes:
+                              description: |-
+                                List of supported output MIME types.
+                                Supported output MIME types.
+                              items:
+                                type: string
+                              type: array
+                            tags:
+                              description: |-
+                                List of tags for categorizing the skill.
+                                Tags for categorizing the skill.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        type: array
+                      url:
+                        description: |-
+                          The URL endpoint for the agent.
+                          The URL endpoint for the agent.
+                        type: string
+                      version:
+                        description: |-
+                          Version of the agent.
+                          Version of the agent.
+                        type: string
+                    type: object
+                  agentName:
+                    description: |-
+                      The name of the agent.
+                      The name of the agent.
+                    type: string
+                  extraHeaders:
+                    description: |-
+                      List of extra header names to forward from incoming requests.
+                      Extra header names to forward from the incoming request.
+                    items:
+                      type: string
+                    type: array
+                  litellmParams:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Map of LiteLLM-specific parameters (e.g. model, api_key).
+                      LiteLLM-specific parameters for the agent (e.g. model, api_key).
+                    type: object
+                    x-kubernetes-map-type: granular
+                  objectPermission:
+                    description: Access control permissions for the agent.
+                    properties:
+                      agents:
+                        description: |-
+                          List of other agent IDs this agent can invoke.
+                          Other agent IDs this agent can invoke.
+                        items:
+                          type: string
+                        type: array
+                      mcpAccessGroups:
+                        description: |-
+                          List of MCP access groups the agent belongs to.
+                          MCP access groups the agent belongs to.
+                        items:
+                          type: string
+                        type: array
+                      mcpServers:
+                        description: |-
+                          List of MCP server IDs the agent can access.
+                          MCP server IDs the agent can access.
+                        items:
+                          type: string
+                        type: array
+                      mcpToolPermissions:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of MCP server ID to allowed tools (JSON-encoded).
+                          Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+                        type: object
+                        x-kubernetes-map-type: granular
+                      models:
+                        description: |-
+                          List of model IDs the agent can use.
+                          Model IDs the agent can use.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  rpmLimit:
+                    description: |-
+                      Requests per minute limit for the agent.
+                      Requests per minute limit for the agent.
+                    type: number
+                  sessionRpmLimit:
+                    description: |-
+                      Per-session requests per minute limit.
+                      Per-session requests per minute limit.
+                    type: number
+                  sessionTpmLimit:
+                    description: |-
+                      Per-session tokens per minute limit.
+                      Per-session tokens per minute limit.
+                    type: number
+                  staticHeaders:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Map of static headers to send with agent requests.
+                      Static headers to send with agent requests.
+                    type: object
+                    x-kubernetes-map-type: granular
+                  tpmLimit:
+                    description: |-
+                      Tokens per minute limit for the agent.
+                      Tokens per minute limit for the agent.
+                    type: number
+                type: object
+              managementPolicies:
+                default:
+                - '*'
+                description: |-
+                  THIS IS A BETA FIELD. It is on by default but can be opted out
+                  through a Crossplane feature flag.
+                  ManagementPolicies specify the array of actions Crossplane is allowed to
+                  take on the managed and external resources.
+                  This field is planned to replace the DeletionPolicy field in a future
+                  release. Currently, both could be set independently and non-default
+                  values would be honored if the feature flag is enabled. If both are
+                  custom, the DeletionPolicy field will be ignored.
+                  See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+                  and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+                items:
+                  description: |-
+                    A ManagementAction represents an action that the Crossplane controllers
+                    can take on an external resource.
+                  enum:
+                  - Observe
+                  - Create
+                  - Update
+                  - Delete
+                  - LateInitialize
+                  - '*'
+                  type: string
+                type: array
+              providerConfigRef:
+                default:
+                  name: default
+                description: |-
+                  ProviderConfigReference specifies how the provider that will be used to
+                  create, observe, update, and delete this managed resource should be
+                  configured.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  policy:
+                    description: Policies for referencing.
+                    properties:
+                      resolution:
+                        default: Required
+                        description: |-
+                          Resolution specifies whether resolution of this reference is required.
+                          The default is 'Required', which means the reconcile will fail if the
+                          reference cannot be resolved. 'Optional' means this reference will be
+                          a no-op if it cannot be resolved.
+                        enum:
+                        - Required
+                        - Optional
+                        type: string
+                      resolve:
+                        description: |-
+                          Resolve specifies when this reference should be resolved. The default
+                          is 'IfNotPresent', which will attempt to resolve the reference only when
+                          the corresponding field is not present. Use 'Always' to resolve the
+                          reference on every reconcile.
+                        enum:
+                        - Always
+                        - IfNotPresent
+                        type: string
+                    type: object
+                required:
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: |-
+                  WriteConnectionSecretToReference specifies the namespace and name of a
+                  Secret to which any connection details for this managed resource should
+                  be written. Connection details frequently include the endpoint, username,
+                  and password required to connect to the managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: Namespace of the secret.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - forProvider
+            type: object
+            x-kubernetes-validations:
+            - message: spec.forProvider.agentName is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.agentName)
+                || (has(self.initProvider) && has(self.initProvider.agentName))'
+          status:
+            description: AgentStatus defines the observed state of Agent.
+            properties:
+              atProvider:
+                properties:
+                  agentCard:
+                    description: The A2A agent card — a self-describing manifest for
+                      the agent.
+                    properties:
+                      capabilities:
+                        description: Capabilities supported by the agent.
+                        items:
+                          properties:
+                            pushNotifications:
+                              description: |-
+                                Whether the agent supports push notifications.
+                                Whether the agent supports push notifications.
+                              type: boolean
+                            stateTransitionHistory:
+                              description: |-
+                                Whether the agent supports state transition history.
+                                Whether the agent supports state transition history.
+                              type: boolean
+                            streaming:
+                              description: |-
+                                Whether the agent supports streaming responses.
+                                Whether the agent supports streaming responses.
+                              type: boolean
+                          type: object
+                        type: array
+                      defaultInputModes:
+                        description: |-
+                          List of default input MIME types.
+                          Default input MIME types (e.g. ['application/json', 'text/plain']).
+                        items:
+                          type: string
+                        type: array
+                      defaultOutputModes:
+                        description: |-
+                          List of default output MIME types.
+                          Default output MIME types.
+                        items:
+                          type: string
+                        type: array
+                      description:
+                        description: |-
+                          Human-readable description of the agent.
+                          Human-readable description of the agent.
+                        type: string
+                      documentationUrl:
+                        description: |-
+                          URL for the agent's documentation.
+                          URL for the agent's documentation.
+                        type: string
+                      iconUrl:
+                        description: |-
+                          URL for the agent's icon.
+                          URL for the agent's icon.
+                        type: string
+                      name:
+                        description: |-
+                          Display name of the agent.
+                          Display name of the agent.
+                        type: string
+                      preferredTransport:
+                        description: |-
+                          Preferred transport protocol (e.g. httpsse, websocket).
+                          Preferred transport protocol (e.g. 'httpsse', 'websocket').
+                        type: string
+                      protocolVersion:
+                        description: |-
+                          A2A protocol version (e.g. 0.2.6).
+                          A2A protocol version (e.g. '0.2.6').
+                        type: string
+                      provider:
+                        description: The service provider of the agent.
+                        items:
+                          properties:
+                            organization:
+                              description: |-
+                                Organization name of the agent provider.
+                                Organization name of the agent provider.
+                              type: string
+                            url:
+                              description: |-
+                                The URL endpoint for the agent.
+                                URL of the agent provider.
+                              type: string
+                          type: object
+                        type: array
+                      skills:
+                        description: Skills the agent can perform.
+                        items:
+                          properties:
+                            description:
+                              description: |-
+                                Human-readable description of the agent.
+                                Description of what the skill does.
+                              type: string
+                            examples:
+                              description: |-
+                                List of example inputs.
+                                Example inputs for the skill.
+                              items:
+                                type: string
+                              type: array
+                            id:
+                              description: |-
+                                Unique identifier for the skill.
+                                Unique identifier for the skill.
+                              type: string
+                            inputModes:
+                              description: |-
+                                List of supported input MIME types.
+                                Supported input MIME types.
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: |-
+                                Display name of the agent.
+                                Display name of the skill.
+                              type: string
+                            outputModes:
+                              description: |-
+                                List of supported output MIME types.
+                                Supported output MIME types.
+                              items:
+                                type: string
+                              type: array
+                            tags:
+                              description: |-
+                                List of tags for categorizing the skill.
+                                Tags for categorizing the skill.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        type: array
+                      url:
+                        description: |-
+                          The URL endpoint for the agent.
+                          The URL endpoint for the agent.
+                        type: string
+                      version:
+                        description: |-
+                          Version of the agent.
+                          Version of the agent.
+                        type: string
+                    type: object
+                  agentName:
+                    description: |-
+                      The name of the agent.
+                      The name of the agent.
+                    type: string
+                  createdAt:
+                    description: |-
+                      Timestamp when the agent was created.
+                      Timestamp when the agent was created.
+                    type: string
+                  createdBy:
+                    description: |-
+                      User who created the agent.
+                      User who created the agent.
+                    type: string
+                  extraHeaders:
+                    description: |-
+                      List of extra header names to forward from incoming requests.
+                      Extra header names to forward from the incoming request.
+                    items:
+                      type: string
+                    type: array
+                  id:
+                    description: Unique identifier for the skill.
+                    type: string
+                  litellmParams:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Map of LiteLLM-specific parameters (e.g. model, api_key).
+                      LiteLLM-specific parameters for the agent (e.g. model, api_key).
+                    type: object
+                    x-kubernetes-map-type: granular
+                  objectPermission:
+                    description: Access control permissions for the agent.
+                    properties:
+                      agents:
+                        description: |-
+                          List of other agent IDs this agent can invoke.
+                          Other agent IDs this agent can invoke.
+                        items:
+                          type: string
+                        type: array
+                      mcpAccessGroups:
+                        description: |-
+                          List of MCP access groups the agent belongs to.
+                          MCP access groups the agent belongs to.
+                        items:
+                          type: string
+                        type: array
+                      mcpServers:
+                        description: |-
+                          List of MCP server IDs the agent can access.
+                          MCP server IDs the agent can access.
+                        items:
+                          type: string
+                        type: array
+                      mcpToolPermissions:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of MCP server ID to allowed tools (JSON-encoded).
+                          Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+                        type: object
+                        x-kubernetes-map-type: granular
+                      models:
+                        description: |-
+                          List of model IDs the agent can use.
+                          Model IDs the agent can use.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  rpmLimit:
+                    description: |-
+                      Requests per minute limit for the agent.
+                      Requests per minute limit for the agent.
+                    type: number
+                  sessionRpmLimit:
+                    description: |-
+                      Per-session requests per minute limit.
+                      Per-session requests per minute limit.
+                    type: number
+                  sessionTpmLimit:
+                    description: |-
+                      Per-session tokens per minute limit.
+                      Per-session tokens per minute limit.
+                    type: number
+                  staticHeaders:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Map of static headers to send with agent requests.
+                      Static headers to send with agent requests.
+                    type: object
+                    x-kubernetes-map-type: granular
+                  tpmLimit:
+                    description: |-
+                      Tokens per minute limit for the agent.
+                      Tokens per minute limit for the agent.
+                    type: number
+                  updatedAt:
+                    description: |-
+                      Timestamp when the agent was last updated.
+                      Timestamp when the agent was last updated.
+                    type: string
+                  updatedBy:
+                    description: |-
+                      User who last updated the agent.
+                      User who last updated the agent.
+                    type: string
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        LastTransitionTime is the last time this condition transitioned from one
+                        status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A Message containing details about this condition's last transition from
+                        one status to another, if any.
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        ObservedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      type: integer
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: |-
+                        Type of this condition. At most one of each condition type may apply to
+                        a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastHandledReconcileAt:
+                description: |-
+                  LastHandledReconcileAt holds the value of the most recent
+                  reconcile-requested-at annotation token that the controller has
+                  processed. Users can compare this to the annotation to determine
+                  whether a reconcile request has been handled.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the latest metadata.generation
+                  which resulted in either a ready state, or stalled due to error
+                  it can not recover from without human intervention.
+                format: int64
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

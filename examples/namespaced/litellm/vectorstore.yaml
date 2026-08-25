@@ -1,0 +1,13 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: VectorStore
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/vectorstore
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-vector-store
+  namespace: crossplane-system
+spec:
+  forProvider:
+    customLlmProvider: bedrock
+    vectorStoreName: crossplane-example-store

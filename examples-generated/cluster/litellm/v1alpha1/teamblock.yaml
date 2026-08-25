@@ -1,0 +1,27 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: TeamBlock
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/teamblock
+  labels:
+    testing.upbound.io/example-name: block_team
+  name: block-team
+spec:
+  forProvider:
+    teamIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+
+---
+
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Team
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/teamblock
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+spec:
+  forProvider:
+    teamAlias: my-team

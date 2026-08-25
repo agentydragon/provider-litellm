@@ -1,0 +1,11 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Prompt
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/prompt
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-prompt
+spec:
+  forProvider:
+    promptIntegration: dotprompt

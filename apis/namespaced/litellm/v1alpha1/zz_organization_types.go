@@ -25,7 +25,16 @@ type OrganizationInitParameters struct {
 
 	// (String) The ID of an existing budget to associate with this organization.
 	// The ID for a budget (tpm/rpm/max budget) for the organization.
+	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Budget
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
+
+	// Reference to a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDRef *v2.NamespacedReference `json:"budgetIdRef,omitempty" tf:"-"`
+
+	// Selector for a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDSelector *v2.NamespacedSelector `json:"budgetIdSelector,omitempty" tf:"-"`
 
 	// (Float64) Maximum budget allowed for the organization.
 	// Max budget for the organization.
@@ -142,8 +151,17 @@ type OrganizationParameters struct {
 
 	// (String) The ID of an existing budget to associate with this organization.
 	// The ID for a budget (tpm/rpm/max budget) for the organization.
+	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Budget
 	// +kubebuilder:validation:Optional
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
+
+	// Reference to a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDRef *v2.NamespacedReference `json:"budgetIdRef,omitempty" tf:"-"`
+
+	// Selector for a Budget in litellm to populate budgetId.
+	// +kubebuilder:validation:Optional
+	BudgetIDSelector *v2.NamespacedSelector `json:"budgetIdSelector,omitempty" tf:"-"`
 
 	// (Float64) Maximum budget allowed for the organization.
 	// Max budget for the organization.

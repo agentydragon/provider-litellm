@@ -3,4 +3,4 @@ kind: Provider
 metadata:
   name: provider-litellm
 spec:
-  package: ghcr.io/thecodingsheikh/provider-litellm:v0.1.0
+  package: xpkg.upbound.io/thecodingsheikh/provider-litellm:v2.0.1

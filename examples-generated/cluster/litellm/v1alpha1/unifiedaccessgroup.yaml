@@ -1,0 +1,20 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: UnifiedAccessGroup
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/unifiedaccessgroup
+  labels:
+    testing.upbound.io/example-name: engineering
+  name: engineering
+spec:
+  forProvider:
+    accessAgentIdsRefs: []
+    accessGroupName: Engineering
+    accessMcpServerIdsRefs: []
+    accessModelNames:
+    - gpt-4o
+    - claude-sonnet-4.5
+    assignedKeyIds: []
+    assignedTeamIdsRefs:
+    - name: engineering
+    description: Engineering access group

@@ -1,0 +1,12 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Project
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/project
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-project
+spec:
+  forProvider:
+    teamIdRef:
+      name: example-team

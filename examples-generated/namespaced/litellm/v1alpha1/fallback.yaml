@@ -1,0 +1,49 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Fallback
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/fallback
+  labels:
+    testing.upbound.io/example-name: general
+  name: general
+  namespace: crossplane-system
+spec:
+  forProvider:
+    fallbackModels:
+    - ${litellm_model.fallback.model_name}
+    fallbackType: general
+    model: ${litellm_model.primary.model_name}
+
+---
+
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Model
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/fallback
+  labels:
+    testing.upbound.io/example-name: fallback
+  name: fallback
+  namespace: crossplane-system
+spec:
+  forProvider:
+    baseModel: gpt-4o-mini
+    customLlmProvider: openai
+    modelName: gpt-4o-mini
+
+---
+
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Model
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/fallback
+  labels:
+    testing.upbound.io/example-name: primary
+  name: primary
+  namespace: crossplane-system
+spec:
+  forProvider:
+    baseModel: gpt-3.5-turbo
+    customLlmProvider: openai
+    modelName: gpt-3.5-turbo

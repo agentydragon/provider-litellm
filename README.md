@@ -11,12 +11,19 @@ and organizations as Kubernetes resources.
 
 ## Getting Started
 
-Install the provider by using the following command after changing the image tag
-to the [latest release](https://github.com/thecodingsheikh/provider-litellm/releases):
+Install the provider:
 
 ```console
 kubectl apply -f examples/install.yaml
 ```
+
+That installs `xpkg.upbound.io/thecodingsheikh/provider-litellm:v2.0.1`. Check
+the [releases](https://github.com/thecodingsheikh/provider-litellm/releases) for
+newer versions.
+
+The package version tracks the upstream `ncecere/litellm` Terraform provider
+version it wraps, so `v2.0.1` of this provider is built against
+`ncecere/litellm` v2.0.1.
 
 Then create a `ProviderConfig` pointing at a Secret holding your LiteLLM
 endpoint and API key:

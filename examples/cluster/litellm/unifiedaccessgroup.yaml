@@ -1,0 +1,15 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: UnifiedAccessGroup
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/unifiedaccessgroup
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-unified-access-group
+spec:
+  forProvider:
+    accessGroupName: crossplane-example
+    accessModelNames:
+      - gpt-4o-mini-proxy
+    assignedTeamIdsRefs:
+      - name: example-team

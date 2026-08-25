@@ -1,0 +1,27 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: KeyBlock
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/keyblock
+  labels:
+    testing.upbound.io/example-name: block_key
+  name: block-key
+spec:
+  forProvider:
+    keySecretRef:
+      key: attribute.key
+      name: example-key
+      namespace: upbound-system
+
+---
+
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Key
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/keyblock
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+spec:
+  forProvider: {}

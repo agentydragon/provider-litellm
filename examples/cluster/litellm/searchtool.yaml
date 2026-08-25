@@ -1,0 +1,12 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: SearchTool
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/searchtool
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-search-tool
+spec:
+  forProvider:
+    searchProvider: tavily
+    searchToolName: crossplane-example-search

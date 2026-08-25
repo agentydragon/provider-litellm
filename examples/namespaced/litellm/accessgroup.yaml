@@ -1,0 +1,14 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: AccessGroup
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/accessgroup
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-access-group
+  namespace: crossplane-system
+spec:
+  forProvider:
+    # Model names, not Model external names: LiteLLM matches on model_name.
+    modelNames:
+      - gpt-4o-mini-proxy

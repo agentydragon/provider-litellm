@@ -10,6 +10,9 @@ echo "Creating the model credential secret referenced by the Credential example.
 # value passed to LiteLLM.
 ${KUBECTL} -n crossplane-system create secret generic model-credentials --from-literal=api_key="${UPTEST_MODEL_API_KEY:-placeholder}" --dry-run=client -o yaml | ${KUBECTL} apply -f -
 
+echo "Creating the key token secret referenced by the KeyBlock example..."
+${KUBECTL} -n crossplane-system create secret generic example-key-connection --from-literal=attribute.key="${UPTEST_LITELLM_KEY_TOKEN:-sk-placeholder}" --dry-run=client -o yaml | ${KUBECTL} apply -f -
+
 echo "Waiting until provider is healthy..."
 ${KUBECTL} wait provider.pkg --all --for condition=Healthy --timeout 5m
 

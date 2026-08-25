@@ -1,0 +1,14 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Guardrail
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/guardrail
+  labels:
+    testing.upbound.io/example-name: minimal
+  name: minimal
+  namespace: crossplane-system
+spec:
+  forProvider:
+    guardrail: aporia
+    guardrailName: content-safety
+    mode: pre_call

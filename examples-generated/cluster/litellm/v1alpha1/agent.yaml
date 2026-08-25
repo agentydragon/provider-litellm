@@ -1,0 +1,14 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Agent
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/agent
+  labels:
+    testing.upbound.io/example-name: simple
+  name: simple
+spec:
+  forProvider:
+    agentCard:
+    - name: My Agent
+      url: https://agent.example.com/a2a
+    agentName: my-agent

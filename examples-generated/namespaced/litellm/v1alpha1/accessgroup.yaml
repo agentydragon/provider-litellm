@@ -1,0 +1,30 @@
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: AccessGroup
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/accessgroup
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: crossplane-system
+spec:
+  forProvider:
+    modelNames:
+    - ${litellm_model.gpt4.model_name}
+
+---
+
+apiVersion: litellm.m.crossplane.io/v1alpha1
+kind: Model
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/accessgroup
+  labels:
+    testing.upbound.io/example-name: gpt4
+  name: gpt4
+  namespace: crossplane-system
+spec:
+  forProvider:
+    baseModel: gpt-4o-mini
+    customLlmProvider: openai
+    modelName: gpt-4o-mini

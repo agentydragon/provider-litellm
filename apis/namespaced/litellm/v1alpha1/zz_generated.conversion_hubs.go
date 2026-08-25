@@ -7,10 +7,28 @@
 package v1alpha1
 
 // Hub marks this type as a conversion hub.
+func (tr *AccessGroup) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *Agent) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *Budget) Hub() {}
+
+// Hub marks this type as a conversion hub.
 func (tr *Credential) Hub() {}
 
 // Hub marks this type as a conversion hub.
+func (tr *Fallback) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *Guardrail) Hub() {}
+
+// Hub marks this type as a conversion hub.
 func (tr *Key) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *KeyBlock) Hub() {}
 
 // Hub marks this type as a conversion hub.
 func (tr *MCPServer) Hub() {}
@@ -22,10 +40,37 @@ func (tr *Model) Hub() {}
 func (tr *Organization) Hub() {}
 
 // Hub marks this type as a conversion hub.
+func (tr *OrganizationMember) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *Project) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *Prompt) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *SearchTool) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *Tag) Hub() {}
+
+// Hub marks this type as a conversion hub.
 func (tr *Team) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *TeamBlock) Hub() {}
 
 // Hub marks this type as a conversion hub.
 func (tr *TeamMember) Hub() {}
 
 // Hub marks this type as a conversion hub.
+func (tr *TeamMemberAdd) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *UnifiedAccessGroup) Hub() {}
+
+// Hub marks this type as a conversion hub.
 func (tr *User) Hub() {}
+
+// Hub marks this type as a conversion hub.
+func (tr *VectorStore) Hub() {}

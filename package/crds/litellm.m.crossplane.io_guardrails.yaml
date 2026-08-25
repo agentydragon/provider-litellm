@@ -1,0 +1,336 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: guardrails.litellm.m.crossplane.io
+spec:
+  group: litellm.m.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - litellm
+    kind: Guardrail
+    listKind: GuardrailList
+    plural: guardrails
+    singular: guardrail
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: EXTERNAL-NAME
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Guardrail is the Schema for the Guardrails API. Manages guardrails
+          in LiteLLM. Guardrails allow you to enforce content safety and validation
+          policies on LLM requests and responses using various provider integrations.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: GuardrailSpec defines the desired state of Guardrail
+            properties:
+              forProvider:
+                properties:
+                  defaultOn:
+                    description: |-
+                      (Bool) Whether this guardrail is enabled by default for all requests.
+                      Whether the guardrail is enabled by default for all requests.
+                    type: boolean
+                  guardrail:
+                    description: |-
+                      (String) The guardrail provider to use. Supported values include aporia, bedrock, lakera, and others supported by LiteLLM.
+                      The guardrail integration type (e.g., 'aporia', 'bedrock', 'lakera', 'presidio', 'openai_moderation', 'hide_secrets').
+                    type: string
+                  guardrailId:
+                    description: |-
+                      (String, ForceNew) The unique identifier for the guardrail. If not provided, one will be generated automatically. Changing this forces creation of a new resource.
+                      The unique guardrail ID. Generated if not specified.
+                    type: string
+                  guardrailInfo:
+                    description: |-
+                      (String) A JSON-encoded string containing additional metadata or information about the guardrail.
+                      JSON string containing additional metadata for the guardrail.
+                    type: string
+                  guardrailName:
+                    description: |-
+                      (String) A unique name for the guardrail.
+                      Human-readable name for the guardrail.
+                    type: string
+                  litellmParams:
+                    description: |-
+                      (String) A JSON-encoded string containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). When reading back from the API, only the keys originally configured by the user are preserved, preventing the API's default values from appearing in state.
+                      JSON string containing additional provider-specific parameters for the guardrail.
+                    type: string
+                  mode:
+                    description: |-
+                      (String) When the guardrail is applied. Must be one of:
+                      When to apply the guardrail. Can be a single value or JSON array (e.g., 'pre_call', 'post_call', 'during_call', '["pre_call", "post_call"]').
+                    type: string
+                type: object
+              initProvider:
+                description: |-
+                  THIS IS A BETA FIELD. It will be honored
+                  unless the Management Policies feature flag is disabled.
+                  InitProvider holds the same fields as ForProvider, with the exception
+                  of Identifier and other resource reference fields. The fields that are
+                  in InitProvider are merged into ForProvider when the resource is created.
+                  The same fields are also added to the terraform ignore_changes hook, to
+                  avoid updating them after creation. This is useful for fields that are
+                  required on creation, but we do not desire to update them after creation,
+                  for example because of an external controller is managing them, like an
+                  autoscaler.
+                properties:
+                  defaultOn:
+                    description: |-
+                      (Bool) Whether this guardrail is enabled by default for all requests.
+                      Whether the guardrail is enabled by default for all requests.
+                    type: boolean
+                  guardrail:
+                    description: |-
+                      (String) The guardrail provider to use. Supported values include aporia, bedrock, lakera, and others supported by LiteLLM.
+                      The guardrail integration type (e.g., 'aporia', 'bedrock', 'lakera', 'presidio', 'openai_moderation', 'hide_secrets').
+                    type: string
+                  guardrailId:
+                    description: |-
+                      (String, ForceNew) The unique identifier for the guardrail. If not provided, one will be generated automatically. Changing this forces creation of a new resource.
+                      The unique guardrail ID. Generated if not specified.
+                    type: string
+                  guardrailInfo:
+                    description: |-
+                      (String) A JSON-encoded string containing additional metadata or information about the guardrail.
+                      JSON string containing additional metadata for the guardrail.
+                    type: string
+                  guardrailName:
+                    description: |-
+                      (String) A unique name for the guardrail.
+                      Human-readable name for the guardrail.
+                    type: string
+                  litellmParams:
+                    description: |-
+                      (String) A JSON-encoded string containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). When reading back from the API, only the keys originally configured by the user are preserved, preventing the API's default values from appearing in state.
+                      JSON string containing additional provider-specific parameters for the guardrail.
+                    type: string
+                  mode:
+                    description: |-
+                      (String) When the guardrail is applied. Must be one of:
+                      When to apply the guardrail. Can be a single value or JSON array (e.g., 'pre_call', 'post_call', 'during_call', '["pre_call", "post_call"]').
+                    type: string
+                type: object
+              managementPolicies:
+                default:
+                - '*'
+                description: |-
+                  THIS IS A BETA FIELD. It is on by default but can be opted out
+                  through a Crossplane feature flag.
+                  ManagementPolicies specify the array of actions Crossplane is allowed to
+                  take on the managed and external resources.
+                  See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+                  and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+                items:
+                  description: |-
+                    A ManagementAction represents an action that the Crossplane controllers
+                    can take on an external resource.
+                  enum:
+                  - Observe
+                  - Create
+                  - Update
+                  - Delete
+                  - LateInitialize
+                  - '*'
+                  type: string
+                type: array
+              providerConfigRef:
+                default:
+                  kind: ClusterProviderConfig
+                  name: default
+                description: |-
+                  ProviderConfigReference specifies how the provider that will be used to
+                  create, observe, update, and delete this managed resource should be
+                  configured.
+                properties:
+                  kind:
+                    description: Kind of the referenced object.
+                    type: string
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: |-
+                  WriteConnectionSecretToReference specifies the namespace and name of a
+                  Secret to which any connection details for this managed resource should
+                  be written. Connection details frequently include the endpoint, username,
+                  and password required to connect to the managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - forProvider
+            type: object
+            x-kubernetes-validations:
+            - message: spec.forProvider.guardrail is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.guardrail)
+                || (has(self.initProvider) && has(self.initProvider.guardrail))'
+            - message: spec.forProvider.guardrailName is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.guardrailName)
+                || (has(self.initProvider) && has(self.initProvider.guardrailName))'
+            - message: spec.forProvider.mode is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.mode)
+                || (has(self.initProvider) && has(self.initProvider.mode))'
+          status:
+            description: GuardrailStatus defines the observed state of Guardrail.
+            properties:
+              atProvider:
+                properties:
+                  createdAt:
+                    description: |-
+                      Timestamp of when the guardrail was created.
+                      Timestamp when the guardrail was created.
+                    type: string
+                  defaultOn:
+                    description: |-
+                      (Bool) Whether this guardrail is enabled by default for all requests.
+                      Whether the guardrail is enabled by default for all requests.
+                    type: boolean
+                  guardrail:
+                    description: |-
+                      (String) The guardrail provider to use. Supported values include aporia, bedrock, lakera, and others supported by LiteLLM.
+                      The guardrail integration type (e.g., 'aporia', 'bedrock', 'lakera', 'presidio', 'openai_moderation', 'hide_secrets').
+                    type: string
+                  guardrailId:
+                    description: |-
+                      (String, ForceNew) The unique identifier for the guardrail. If not provided, one will be generated automatically. Changing this forces creation of a new resource.
+                      The unique guardrail ID. Generated if not specified.
+                    type: string
+                  guardrailInfo:
+                    description: |-
+                      (String) A JSON-encoded string containing additional metadata or information about the guardrail.
+                      JSON string containing additional metadata for the guardrail.
+                    type: string
+                  guardrailName:
+                    description: |-
+                      (String) A unique name for the guardrail.
+                      Human-readable name for the guardrail.
+                    type: string
+                  id:
+                    description: The unique identifier for the guardrail (same as
+                      guardrail_id).
+                    type: string
+                  litellmParams:
+                    description: |-
+                      (String) A JSON-encoded string containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). When reading back from the API, only the keys originally configured by the user are preserved, preventing the API's default values from appearing in state.
+                      JSON string containing additional provider-specific parameters for the guardrail.
+                    type: string
+                  mode:
+                    description: |-
+                      (String) When the guardrail is applied. Must be one of:
+                      When to apply the guardrail. Can be a single value or JSON array (e.g., 'pre_call', 'post_call', 'during_call', '["pre_call", "post_call"]').
+                    type: string
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        LastTransitionTime is the last time this condition transitioned from one
+                        status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A Message containing details about this condition's last transition from
+                        one status to another, if any.
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        ObservedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      type: integer
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: |-
+                        Type of this condition. At most one of each condition type may apply to
+                        a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastHandledReconcileAt:
+                description: |-
+                  LastHandledReconcileAt holds the value of the most recent
+                  reconcile-requested-at annotation token that the controller has
+                  processed. Users can compare this to the annotation to determine
+                  whether a reconcile request has been handled.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the latest metadata.generation
+                  which resulted in either a ready state, or stalled due to error
+                  it can not recover from without human intervention.
+                format: int64
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

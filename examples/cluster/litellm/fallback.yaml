@@ -1,0 +1,14 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Fallback
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/fallback
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-fallback
+spec:
+  forProvider:
+    model: gpt-4o-mini-proxy
+    fallbackType: general
+    fallbackModels:
+      - gpt-4o-mini-proxy
