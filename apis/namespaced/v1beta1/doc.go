@@ -1,5 +1,5 @@
-// Package v1beta1 contains the core resources of the template upjet provider.
+// Package v1beta1 contains the core resources of the litellm upjet provider.
 // +kubebuilder:object:generate=true
-// +groupName=template.m.crossplane.io
+// +groupName=litellm.m.
 // +versionName=v1beta1
 package v1beta1

@@ -1,4 +1,4 @@
-module github.com/crossplane/upjet-provider-template
+module github.com/thecodingsheikh/provider-litellm
 
 go 1.26.7
 
