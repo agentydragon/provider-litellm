@@ -1,40 +1,240 @@
-# Provider LiteLLM
+# provider-litellm
 
-`provider-litellm` is a [Crossplane](https://crossplane.io/) provider that is
-built using [Upjet](https://github.com/crossplane/upjet) code generation tools
-and exposes XRM-conformant managed resources for the
-[LiteLLM](https://docs.litellm.ai/) proxy API.
+**Crossplane provider for [LiteLLM](https://docs.litellm.ai/).** Manage your LiteLLM
+proxy — models, credentials, virtual keys, teams, organizations, budgets, guardrails,
+MCP servers and more — as declarative Kubernetes resources.
 
-It wraps the [`ncecere/litellm`](https://registry.terraform.io/providers/ncecere/litellm/latest)
-Terraform provider, letting you manage LiteLLM models, teams, keys, credentials
-and organizations as Kubernetes resources.
+[![Release](https://img.shields.io/github/v/tag/TheCodingSheikh/provider-litellm?label=release&sort=semver)](https://github.com/TheCodingSheikh/provider-litellm/releases)
+[![Upbound Marketplace](https://img.shields.io/badge/marketplace-provider--litellm-blue)](https://marketplace.upbound.io/providers/thecodingsheikh/provider-litellm)
+[![CI](https://github.com/TheCodingSheikh/provider-litellm/actions/workflows/ci.yml/badge.svg)](https://github.com/TheCodingSheikh/provider-litellm/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Crossplane](https://img.shields.io/badge/crossplane-v1%20%7C%20v2-informational)](https://crossplane.io/)
 
-## Getting Started
+`provider-litellm` turns the [LiteLLM](https://docs.litellm.ai/) proxy management API
+into Kubernetes CRDs. Instead of clicking through the LiteLLM Admin UI or POSTing to
+`/model/new` from a script, you write YAML, `kubectl apply` it, and Crossplane keeps
+LiteLLM converged on that state — the same GitOps loop you already run for the rest of
+your platform. It is built with [Upjet](https://github.com/crossplane/upjet) on top of
+the [`ncecere/litellm`](https://registry.terraform.io/providers/ncecere/litellm/latest)
+Terraform provider.
 
-Install the provider:
+Both API groups are served, so it works on either Crossplane generation:
+
+| Crossplane | API group | Scope |
+| --- | --- | --- |
+| v1 | `litellm.crossplane.io` | Cluster-scoped managed resources |
+| v2 | `litellm.m.crossplane.io` | Namespaced managed resources |
+
+## Why manage LiteLLM with Crossplane
+
+- **GitOps for the AI gateway.** Argo CD or Flux reconciles your LiteLLM models, teams
+  and budgets from Git, with the same review and rollback story as everything else in
+  the cluster. No drift between what is in the repo and what is on the proxy.
+- **Self-service through Compositions.** Bundle a `Team`, a `Budget` and a `Key` into a
+  single XR so application teams can request LLM access without touching the LiteLLM
+  admin console or holding the master key.
+- **Kubernetes-native secrets.** Upstream provider API keys come from Kubernetes
+  Secrets, and generated key tokens are written back to Secrets your workloads can
+  mount directly.
+- **Continuous drift correction.** If somebody edits a model in the Admin UI, the
+  provider notices and puts it back.
+- **No Terraform state to babysit.** The reconciler is the state; the cluster is the
+  source of truth.
+
+## Quick start
+
+### 1. Install Crossplane
 
 ```console
-kubectl apply -f examples/install.yaml
+helm install crossplane --namespace crossplane-system --create-namespace \
+  crossplane-stable/crossplane
 ```
 
-That installs `xpkg.upbound.io/thecodingsheikh/provider-litellm:v2.0.1`. Check
-the [releases](https://github.com/thecodingsheikh/provider-litellm/releases) for
-newer versions.
-
-The package version tracks the upstream `ncecere/litellm` Terraform provider
-version it wraps, so `v2.0.1` of this provider is built against
-`ncecere/litellm` v2.0.1.
-
-Then create a `ProviderConfig` pointing at a Secret holding your LiteLLM
-endpoint and API key:
+### 2. Install the provider
 
 ```console
-kubectl apply -f examples/cluster/providerconfig/
+kubectl apply -f https://raw.githubusercontent.com/TheCodingSheikh/provider-litellm/main/examples/install.yaml
 ```
+
+Or inline:
+
+```yaml
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-litellm
+spec:
+  package: xpkg.upbound.io/thecodingsheikh/provider-litellm:v2.0.1
+```
+
+The package is published on the
+[Upbound Marketplace](https://marketplace.upbound.io/providers/thecodingsheikh/provider-litellm);
+check [releases](https://github.com/TheCodingSheikh/provider-litellm/releases) for newer
+versions.
+
+### 3. Point it at your LiteLLM proxy
+
+Credentials are a JSON document in a Secret:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: litellm-creds
+  namespace: crossplane-system
+type: Opaque
+stringData:
+  credentials: |
+    {
+      "api_base": "https://litellm.example.com",
+      "api_key": "sk-1234567890"
+    }
+---
+apiVersion: litellm.crossplane.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      name: litellm-creds
+      namespace: crossplane-system
+      key: credentials
+```
+
+`api_base` and `api_key` are required. `insecure_skip_verify` and `litellm_changed_by`
+are optional. On Crossplane v2 use `litellm.m.crossplane.io/v1beta1` with either
+`ProviderConfig` (namespaced) or `ClusterProviderConfig`.
+
+### 4. Declare a model
+
+```yaml
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Model
+metadata:
+  name: gpt-4o-mini
+spec:
+  forProvider:
+    modelName: gpt-4o-mini-proxy
+    customLlmProvider: openai
+    baseModel: gpt-4o-mini
+    mode: chat
+    inputCostPerMillionTokens: 0.15
+    outputCostPerMillionTokens: 0.6
+    litellmCredentialNameRef:
+      name: openai-credential
+```
+
+```console
+kubectl get models.litellm.crossplane.io
+NAME           READY   SYNCED   EXTERNAL-NAME
+gpt-4o-mini    True    True     8f2c1e6a-...
+```
+
+Resources reference each other by name, so a `Team` can point at an `Organization` and a
+`Model` at a `Credential` without you hardcoding the UUIDs LiteLLM generates:
+
+```yaml
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Team
+metadata:
+  name: platform-team
+spec:
+  forProvider:
+    teamAlias: platform
+    maxBudget: 50
+    organizationIdRef:
+      name: acme
+```
+
+More examples for every resource live in [`examples/`](examples/) (cluster-scoped) and
+[`examples/namespaced/`](examples/namespaced/).
+
+## Managed resources
+
+23 LiteLLM resources are exposed as CRDs, in both the cluster-scoped and namespaced API
+groups.
+
+| Kind | What it manages | Status |
+| --- | --- | --- |
+| `Model` | An LLM deployment on the proxy: upstream provider, base model, mode, per-token pricing | Verified |
+| `Credential` | A reusable upstream provider credential that models reference by name | Verified |
+| `Team` | A team, its budget, and the models it may call | Verified |
+| `TeamMember` | Membership of a user in a team, with a role | Verified |
+| `TeamMemberAdd` | Bulk membership management for a team | Verified |
+| `TeamBlock` | Blocks a team from issuing requests | Verified |
+| `Organization` | An organization grouping teams and budgets | Verified |
+| `OrganizationMember` | Membership of a user in an organization | Verified |
+| `User` | An end user, their budget and model access | Verified |
+| `Budget` | A reusable budget: max spend, reset duration, TPM/RPM limits | Verified |
+| `Tag` | A request tag used for routing, tracking and spend attribution | Verified |
+| `AccessGroup` | A named group of models used for access control | Verified |
+| `Guardrail` | A guardrail applied to requests passing through the proxy | Verified |
+| `Prompt` | A managed prompt template | Verified |
+| `Fallback` | A fallback chain for a model (general, context window, content policy) | Verified |
+| `VectorStore` | A vector store registered with the proxy | Verified |
+| `Key` | A virtual API key with its own budget and model scope | Blocked upstream |
+| `KeyBlock` | Blocks a virtual key | Blocked upstream |
+| `MCPServer` | An MCP server registered on the gateway | Blocked upstream |
+| `UnifiedAccessGroup` | A unified access group across models and MCP servers | Blocked upstream |
+| `SearchTool` | A web search tool available to the proxy | Blocked upstream |
+| `Agent` | A managed agent | Blocked upstream |
+| `Project` | A project grouping resources | Blocked upstream |
+
+Full schema reference for every field is on the
+[Upbound Marketplace listing](https://marketplace.upbound.io/providers/thecodingsheikh/provider-litellm).
+
+### Known limitations
+
+All 23 resources are configured and generated. 16 were verified `Ready` against a live
+LiteLLM 1.99.0 proxy. The other 7 are blocked by defects in the upstream
+`ncecere/litellm` Terraform provider rather than by this provider's configuration, and
+need an upstream fix:
+
+- `Key`, `Project` and `Agent` error on an empty ID during read, so creation never
+  completes (`<X> ID is empty, cannot read <X>`).
+- `MCPServer` and `UnifiedAccessGroup` hit a response shape mismatch on LiteLLM 1.99.0
+  (`cannot unmarshal array into Go value of type map[string]interface {}`).
+- `SearchTool` gets a 405 from the endpoint on LiteLLM 1.99.0.
+- `KeyBlock` needs a working `Key` to test against.
+
+## Versioning
+
+The provider version tracks the upstream `ncecere/litellm` Terraform provider version it
+wraps: `v2.0.1` of this provider is built against `ncecere/litellm` v2.0.1.
+
+## FAQ
+
+**How is this different from the LiteLLM Terraform provider?**
+Same idea, different control plane. The Terraform provider needs a plan/apply run and a
+state file; this reconciles continuously from inside Kubernetes, corrects drift, and
+composes with the rest of Crossplane. If your platform is already Kubernetes and Argo CD,
+this fits without adding a Terraform runner.
+
+**Does it work with Crossplane v2 namespaced resources?**
+Yes. Every resource is served in both `litellm.crossplane.io` (cluster-scoped, Crossplane
+v1 style) and `litellm.m.crossplane.io` (namespaced, Crossplane v2).
+
+**Does it work with Argo CD or Flux?**
+Yes. Managed resources are plain Kubernetes objects, so any GitOps controller can apply
+them. Crossplane does the reconciliation against LiteLLM.
+
+**Does it manage the LiteLLM deployment itself?**
+No. It configures a running LiteLLM proxy through its management API. Deploy the proxy
+with the [LiteLLM Helm chart](https://docs.litellm.ai/docs/proxy/deploy) or the official
+Terraform modules, then point a `ProviderConfig` at it.
+
+**Which LiteLLM versions are supported?**
+Verified against LiteLLM 1.99.0. Anything exposing the same management API should work.
+
+**Can I self-host the package?**
+Yes. `make build` produces an xpkg you can push to any OCI registry, and
+`spec.package` accepts any reference.
 
 ## Developing
 
-Run code-generation pipeline:
+Run the code-generation pipeline:
 
 ```console
 make generate
@@ -58,7 +258,14 @@ Build binary:
 make build
 ```
 
-## Report a Bug
+Adding or changing a resource means an entry in `config/external_name.go`, a configurator
+in `config/litellm/config.go`, then `make generate`.
 
-For filing bugs, suggesting improvements, or requesting new features, please
-open an [issue](https://github.com/thecodingsheikh/provider-litellm/issues).
+## Report a bug
+
+For filing bugs, suggesting improvements, or requesting new features, please open an
+[issue](https://github.com/TheCodingSheikh/provider-litellm/issues).
+
+## License
+
+Apache 2.0. See [LICENSE](LICENSE).

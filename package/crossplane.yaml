@@ -8,25 +8,48 @@ metadata:
     meta.crossplane.io/license: Apache-2.0
     friendly-name.meta.crossplane.io: Provider LiteLLM
     meta.crossplane.io/description: |
-      The Crossplane LiteLLM provider manages LiteLLM proxy resources such as
-      models, credentials, teams, keys and organizations.
+      Crossplane provider for LiteLLM. Manage LiteLLM proxy models, credentials,
+      virtual keys, teams, organizations, budgets, guardrails and MCP servers as
+      declarative Kubernetes resources.
     meta.crossplane.io/readme: |
-      `provider-litellm` is a Crossplane provider built with
+      `provider-litellm` turns the [LiteLLM](https://docs.litellm.ai/) proxy
+      management API into Kubernetes CRDs, so an AI gateway can be configured
+      declaratively and kept in sync by Crossplane instead of by clicks in the
+      LiteLLM Admin UI or ad-hoc calls to `/model/new`. It is built with
       [Upjet](https://github.com/crossplane/upjet) on top of the
       [`ncecere/litellm`](https://registry.terraform.io/providers/ncecere/litellm/latest)
-      Terraform provider. It exposes XRM-conformant managed resources for the
-      [LiteLLM](https://docs.litellm.ai/) proxy API, so a LiteLLM deployment can
-      be configured declaratively from Kubernetes.
+      Terraform provider.
 
-      Managed resources cover the LiteLLM control plane: `Model`, `Credential`,
-      `Team`, `TeamMember`, `Key`, `Organization`, `OrganizationMember`, `User`,
-      `Budget`, `Tag`, `AccessGroup`, `Guardrail`, `Prompt`, `Fallback`,
-      `VectorStore`, `MCPServer` and more. Both the cluster-scoped
-      (`litellm.crossplane.io`) and the namespaced Crossplane v2
-      (`litellm.m.crossplane.io`) API groups are served.
+      ### Why manage LiteLLM with Crossplane
 
-      Configure the provider with a `ProviderConfig` referencing a Secret that
-      holds the LiteLLM endpoint and API key:
+      * GitOps for the AI gateway: Argo CD or Flux reconciles models, teams and
+        budgets straight from Git, with the same review and rollback story as the
+        rest of the platform.
+      * Self-service through Compositions: bundle a `Team`, a `Budget` and a
+        `Key` into one XR so application teams get LLM access without the LiteLLM
+        master key.
+      * Kubernetes-native secrets: upstream provider API keys come from Secrets,
+        and generated key tokens are written back to Secrets that workloads mount.
+      * Continuous drift correction: an out-of-band edit in the Admin UI is put
+        back on the next reconcile.
+
+      ### Managed resources
+
+      23 LiteLLM resources are exposed: `Model`, `Credential`, `Team`,
+      `TeamMember`, `TeamMemberAdd`, `TeamBlock`, `Organization`,
+      `OrganizationMember`, `User`, `Budget`, `Tag`, `AccessGroup`, `Guardrail`,
+      `Prompt`, `Fallback`, `VectorStore`, `Key`, `KeyBlock`, `MCPServer`,
+      `UnifiedAccessGroup`, `SearchTool`, `Agent` and `Project`.
+
+      Each one is served in both API groups, so the provider works on either
+      Crossplane generation: `litellm.crossplane.io` for cluster-scoped managed
+      resources (Crossplane v1) and `litellm.m.crossplane.io` for namespaced ones
+      (Crossplane v2).
+
+      ### Configuration
+
+      Point a `ProviderConfig` at a Secret holding the LiteLLM endpoint and API
+      key:
 
       ```json
       {
@@ -37,6 +60,28 @@ metadata:
 
       The optional `insecure_skip_verify` and `litellm_changed_by` keys are also
       accepted.
+
+      Then declare a model:
+
+      ```yaml
+      apiVersion: litellm.crossplane.io/v1alpha1
+      kind: Model
+      metadata:
+        name: gpt-4o-mini
+      spec:
+        forProvider:
+          modelName: gpt-4o-mini-proxy
+          customLlmProvider: openai
+          baseModel: gpt-4o-mini
+          mode: chat
+          inputCostPerMillionTokens: 0.15
+          outputCostPerMillionTokens: 0.6
+          litellmCredentialNameRef:
+            name: openai-credential
+      ```
+
+      Examples for every resource, plus known limitations, are in the
+      [GitHub repository](https://github.com/thecodingsheikh/provider-litellm).
 spec:
   capabilities:
     - SafeStart
