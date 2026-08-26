@@ -40,8 +40,12 @@ type UserInitParameters struct {
 	// Requests per minute limit for the user.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// List of team IDs the user belongs to.
-	// List of team IDs the user belongs to.
+	// Requests an asynchronous invitation for each successful user Create request. Requires a syntactically valid user_email. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement can request another invitation.11+ when configured.
+	// Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.
+	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
+
+	// Unique team IDs the user belongs to. Membership order is not significant. Updates reconcile additions and removals through LiteLLM's team-member endpoints.
+	// List of team IDs the user belongs to. Membership order is not significant.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Team
 	Teams []*string `json:"teams,omitempty" tf:"teams,omitempty"`
 
@@ -65,8 +69,8 @@ type UserInitParameters struct {
 	// The user's email address.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The role assigned to the user. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
-	// The user's role: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
+	// The role assigned to the internal user. LiteLLM v1.98 /user/new and /user/update accept exactly proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
+	// The user's role. LiteLLM v1.98 user create/update accepts proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
 	UserRole *string `json:"userRole,omitempty" tf:"user_role,omitempty"`
 }
 
@@ -100,8 +104,12 @@ type UserObservation struct {
 	// Requests per minute limit for the user.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// List of team IDs the user belongs to.
-	// List of team IDs the user belongs to.
+	// Requests an asynchronous invitation for each successful user Create request. Requires a syntactically valid user_email. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement can request another invitation.11+ when configured.
+	// Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.
+	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
+
+	// Unique team IDs the user belongs to. Membership order is not significant. Updates reconcile additions and removals through LiteLLM's team-member endpoints.
+	// List of team IDs the user belongs to. Membership order is not significant.
 	Teams []*string `json:"teams,omitempty" tf:"teams,omitempty"`
 
 	// Tokens per minute limit for the user.
@@ -116,8 +124,8 @@ type UserObservation struct {
 	// The user's email address.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The role assigned to the user. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
-	// The user's role: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
+	// The role assigned to the internal user. LiteLLM v1.98 /user/new and /user/update accept exactly proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
+	// The user's role. LiteLLM v1.98 user create/update accepts proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
 	UserRole *string `json:"userRole,omitempty" tf:"user_role,omitempty"`
 }
 
@@ -154,8 +162,13 @@ type UserParameters struct {
 	// +kubebuilder:validation:Optional
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// List of team IDs the user belongs to.
-	// List of team IDs the user belongs to.
+	// Requests an asynchronous invitation for each successful user Create request. Requires a syntactically valid user_email. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement can request another invitation.11+ when configured.
+	// Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.
+	// +kubebuilder:validation:Optional
+	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
+
+	// Unique team IDs the user belongs to. Membership order is not significant. Updates reconcile additions and removals through LiteLLM's team-member endpoints.
+	// List of team IDs the user belongs to. Membership order is not significant.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Team
 	// +kubebuilder:validation:Optional
 	Teams []*string `json:"teams,omitempty" tf:"teams,omitempty"`
@@ -183,8 +196,8 @@ type UserParameters struct {
 	// +kubebuilder:validation:Optional
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The role assigned to the user. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
-	// The user's role: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
+	// The role assigned to the internal user. LiteLLM v1.98 /user/new and /user/update accept exactly proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
+	// The user's role. LiteLLM v1.98 user create/update accepts proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
 	// +kubebuilder:validation:Optional
 	UserRole *string `json:"userRole,omitempty" tf:"user_role,omitempty"`
 }

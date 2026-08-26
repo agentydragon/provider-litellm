@@ -16,3 +16,5 @@ spec:
     userEmail: crossplane-example@example.com
     userRole: internal_user
     autoCreateKey: false
+    teamsRefs:
+      - name: example-team

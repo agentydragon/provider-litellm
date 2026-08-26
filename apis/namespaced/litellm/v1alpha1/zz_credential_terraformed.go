@@ -21,7 +21,7 @@ func (mg *Credential) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this Credential
 func (tr *Credential) GetConnectionDetailsMapping() map[string]string {
-	return map[string]string{"credential_values": "credentialValuesSecretRef"}
+	return map[string]string{"credential_values": "credentialValuesSecretRef", "credential_values_json": "credentialValuesJsonSecretRef"}
 }
 
 // GetObservation of this Credential

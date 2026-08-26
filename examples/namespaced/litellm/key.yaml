@@ -15,6 +15,10 @@ spec:
       - gpt-4o-mini-proxy
     teamIdRef:
       name: example-team
+    budgetIdRef:
+      name: example-budget
+    userIdRef:
+      name: example-user
   # The issued token is sensitive and only returned on creation, so publish it
   # to a Secret for consumers.
   writeConnectionSecretToRef:

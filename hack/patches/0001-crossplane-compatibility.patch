@@ -1,0 +1,735 @@
+Upstream fixes required for the observe-before-create model that generated
+consumers (upjet/Crossplane) use. Each hunk carries an inline comment
+explaining the failure it prevents. Drop a hunk once it lands upstream.
+
+1. Reads guarded against an empty identifier, so a resource that does not
+   exist yet is reported absent instead of issuing a degenerate request
+   (empty query parameter, or a URL collapsing to a trailing slash that
+   LiteLLM answers with a 307 the provider refuses to follow).
+2. Budget and Tag absence classified as not-found rather than a hard error,
+   including LiteLLM's 404-inside-a-500 tag response.
+3. litellm_key.organization_id marked Computed, since LiteLLM derives it
+   from the team and returns it even when the configuration is null.
+4. Nested agent_card fields (signatures, skills[].security_json) no longer
+   marked sensitive: they are published agent-card content rather than key
+   material, and a sensitive path nested under agent_card cannot be resolved
+   once that block is represented as an embedded object.
+
+diff --git a/internal/provider/resource_access_group.go b/internal/provider/resource_access_group.go
+index c9073d5..6892038 100644
+--- a/internal/provider/resource_access_group.go
++++ b/internal/provider/resource_access_group.go
+@@ -124,6 +124,21 @@ func (r *AccessGroupResource) Read(ctx context.Context, req resource.ReadRequest
+ 	var data AccessGroupResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_agent.go b/internal/provider/resource_agent.go
+index 31ffb5a..27ed8f8 100644
+--- a/internal/provider/resource_agent.go
++++ b/internal/provider/resource_agent.go
+@@ -276,11 +276,18 @@ func (r *AgentResource) Schema(ctx context.Context, req resource.SchemaRequest,
+ 					},
+ 					"signatures": schema.ListNestedBlock{
+ 						Description: "Ordered JWS signatures. Duplicate entries are preserved. An empty list explicitly clears signatures.",
++						// Not marked Sensitive: a JWS protected header, signature
++						// and header are published as part of the agent card and
++						// carry no key material, so treating them as secrets buys
++						// nothing. It also breaks generated consumers, which build
++						// a sensitive field path of agent_card[*].signatures[*].*
++						// that cannot be resolved once agent_card is represented
++						// as an embedded object rather than a singleton list.
+ 						NestedObject: schema.NestedBlockObject{Attributes: map[string]schema.Attribute{
+-							"protected":   schema.StringAttribute{Description: "JWS protected header.", Required: true, Sensitive: true},
+-							"signature":   schema.StringAttribute{Description: "JWS signature.", Required: true, Sensitive: true},
+-							"header":      schema.StringAttribute{Description: "Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.", Optional: true, Sensitive: true, Validators: []validator.String{agentJSONObjectValidator{}}},
+-							"header_json": schema.StringAttribute{Description: "Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.", Optional: true, Sensitive: true, Validators: []validator.String{agentJSONNullOrObjectValidator{}}},
++							"protected":   schema.StringAttribute{Description: "JWS protected header.", Required: true},
++							"signature":   schema.StringAttribute{Description: "JWS signature.", Required: true},
++							"header":      schema.StringAttribute{Description: "Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.", Optional: true, Validators: []validator.String{agentJSONObjectValidator{}}},
++							"header_json": schema.StringAttribute{Description: "Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.", Optional: true, Validators: []validator.String{agentJSONNullOrObjectValidator{}}},
+ 						}},
+ 					},
+ 					"skills": schema.ListNestedBlock{
+@@ -327,8 +334,13 @@ func (r *AgentResource) Schema(ctx context.Context, req resource.SchemaRequest,
+ 								"security_json": schema.StringAttribute{
+ 									Description: "Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.",
+ 									Optional:    true,
+-									Sensitive:   true,
+-									Validators:  []validator.String{agentJSONNullOrSecurityValidator{}},
++									// Not Sensitive, for the same reason as the
++									// signatures block above: A2A security
++									// requirements name schemes and scopes that are
++									// published in the agent card, and the sibling
++									// non-JSON `security` attribute is not marked
++									// sensitive either.
++									Validators: []validator.String{agentJSONNullOrSecurityValidator{}},
+ 								},
+ 							},
+ 						},
+@@ -458,6 +470,21 @@ func setAgentIdentityOnlyCreateState(ctx context.Context, resp *resource.CreateR
+ func (r *AgentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data AgentResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	bundle, ownershipDiags := readAgentOwnershipBundle(ctx, req.Private)
+diff --git a/internal/provider/resource_budget.go b/internal/provider/resource_budget.go
+index b653b32..d03e35e 100644
+--- a/internal/provider/resource_budget.go
++++ b/internal/provider/resource_budget.go
+@@ -3,6 +3,7 @@ package provider
+ import (
+ 	"context"
+ 	"fmt"
++	"net/http"
+ 
+ 	"github.com/hashicorp/terraform-plugin-framework/path"
+ 	"github.com/hashicorp/terraform-plugin-framework/resource"
+@@ -186,6 +187,21 @@ func (r *BudgetResource) Read(ctx context.Context, req resource.ReadRequest, res
+ 	var data BudgetResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	if resp.Diagnostics.HasError() {
+@@ -343,7 +359,9 @@ func (r *BudgetResource) readBudgetWithNumericOwnership(ctx context.Context, dat
+ 			return fmt.Errorf("budget import read response did not contain exactly one budget")
+ 		}
+ 		if len(results) == 0 {
+-			return fmt.Errorf("budget not found: %s", budgetID)
++			// Absence must be reported as not-found so Terraform plans a create
++			// rather than failing the refresh outright.
++			return &APIError{StatusCode: http.StatusNotFound, Detail: fmt.Sprintf("budget not found: %s", budgetID)}
+ 		}
+ 		return fmt.Errorf("budget read response did not contain exactly one budget")
+ 	}
+diff --git a/internal/provider/resource_credential.go b/internal/provider/resource_credential.go
+index b199bec..69ef175 100644
+--- a/internal/provider/resource_credential.go
++++ b/internal/provider/resource_credential.go
+@@ -513,6 +513,21 @@ func buildCredentialCreateRequest(ctx context.Context, data CredentialResourceMo
+ func (r *CredentialResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data CredentialResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_fallback.go b/internal/provider/resource_fallback.go
+index 237e53a..300d739 100644
+--- a/internal/provider/resource_fallback.go
++++ b/internal/provider/resource_fallback.go
+@@ -134,6 +134,21 @@ func (r *FallbackResource) Create(ctx context.Context, req resource.CreateReques
+ func (r *FallbackResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data FallbackResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_guardrail.go b/internal/provider/resource_guardrail.go
+index 2d47ae3..c62a411 100644
+--- a/internal/provider/resource_guardrail.go
++++ b/internal/provider/resource_guardrail.go
+@@ -171,6 +171,21 @@ func (r *GuardrailResource) Read(ctx context.Context, req resource.ReadRequest,
+ 	var data GuardrailResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_jwt_key_mapping.go b/internal/provider/resource_jwt_key_mapping.go
+index 208ad3a..490e8d9 100644
+--- a/internal/provider/resource_jwt_key_mapping.go
++++ b/internal/provider/resource_jwt_key_mapping.go
+@@ -378,6 +378,21 @@ func confirmedJWTKeyMappingID(raw json.RawMessage) string {
+ func (r *JWTKeyMappingResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data JWTKeyMappingResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_key.go b/internal/provider/resource_key.go
+index 531e9be..49c63b7 100644
+--- a/internal/provider/resource_key.go
++++ b/internal/provider/resource_key.go
+@@ -220,6 +220,13 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
+ 			"organization_id": schema.StringAttribute{
+ 				Description: "Organization ID associated with this key.",
+ 				Optional:    true,
++				// LiteLLM derives the organization from the key's team and
++				// returns it even when the configuration leaves it null, so the
++				// attribute must be Computed. Without this, Terraform rejects the
++				// apply with "produced an unexpected new value: .organization_id:
++				// was null" and taints the key, which then forces a replacement
++				// that prevent_destroy blocks -- leaving the key unusable.
++				Computed: true,
+ 			},
+ 			"project_id": schema.StringAttribute{
+ 				Description: "Project ID associated with this key. When set, models and budget are validated against the project's limits.",
+@@ -480,6 +487,21 @@ func (r *KeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *
+ 	var data KeyResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	if resp.Diagnostics.HasError() {
+diff --git a/internal/provider/resource_key_block.go b/internal/provider/resource_key_block.go
+index ad22e92..19d5da4 100644
+--- a/internal/provider/resource_key_block.go
++++ b/internal/provider/resource_key_block.go
+@@ -286,6 +286,21 @@ func (r *KeyBlockResource) Read(ctx context.Context, req resource.ReadRequest, r
+ 	var data KeyBlockResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_mcp_server.go b/internal/provider/resource_mcp_server.go
+index e6a5d7d..1acacca 100644
+--- a/internal/provider/resource_mcp_server.go
++++ b/internal/provider/resource_mcp_server.go
+@@ -671,6 +671,21 @@ func (r *MCPServerResource) Read(ctx context.Context, req resource.ReadRequest,
+ 	var data MCPServerResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	ownership, ownershipDiags := readMCPInfoProvenance(ctx, req.Private)
+diff --git a/internal/provider/resource_model.go b/internal/provider/resource_model.go
+index 77f4f5a..82c6a0c 100644
+--- a/internal/provider/resource_model.go
++++ b/internal/provider/resource_model.go
+@@ -604,6 +604,21 @@ func (r *ModelResource) Read(ctx context.Context, req resource.ReadRequest, resp
+ 	var data ModelResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_organization.go b/internal/provider/resource_organization.go
+index 09deae2..35cd295 100644
+--- a/internal/provider/resource_organization.go
++++ b/internal/provider/resource_organization.go
+@@ -195,6 +195,21 @@ func (r *OrganizationResource) Create(ctx context.Context, req resource.CreateRe
+ func (r *OrganizationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data OrganizationResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	marker, privateDiagnostics := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiagnostics...)
+ 	if resp.Diagnostics.HasError() {
+diff --git a/internal/provider/resource_organization_member.go b/internal/provider/resource_organization_member.go
+index 43c7d7e..de278ec 100644
+--- a/internal/provider/resource_organization_member.go
++++ b/internal/provider/resource_organization_member.go
+@@ -695,6 +695,21 @@ func (r *OrganizationMemberResource) Create(ctx context.Context, req resource.Cr
+ func (r *OrganizationMemberResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data OrganizationMemberResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	if resp.Diagnostics.HasError() {
+diff --git a/internal/provider/resource_project.go b/internal/provider/resource_project.go
+index d2a5b6a..6c1f285 100644
+--- a/internal/provider/resource_project.go
++++ b/internal/provider/resource_project.go
+@@ -258,6 +258,21 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
+ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data ProjectResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	marker, privateDiagnostics := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiagnostics...)
+ 	if resp.Diagnostics.HasError() {
+diff --git a/internal/provider/resource_prompt.go b/internal/provider/resource_prompt.go
+index 1654dc4..66a6666 100644
+--- a/internal/provider/resource_prompt.go
++++ b/internal/provider/resource_prompt.go
+@@ -203,6 +203,21 @@ func (r *PromptResource) Read(ctx context.Context, req resource.ReadRequest, res
+ 	var data PromptResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_search_tool.go b/internal/provider/resource_search_tool.go
+index 368e0d7..c1cbf3f 100644
+--- a/internal/provider/resource_search_tool.go
++++ b/internal/provider/resource_search_tool.go
+@@ -160,6 +160,21 @@ func (r *SearchToolResource) Read(ctx context.Context, req resource.ReadRequest,
+ 	var data SearchToolResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	if resp.Diagnostics.HasError() {
+diff --git a/internal/provider/resource_tag.go b/internal/provider/resource_tag.go
+index f7a49c5..1b46a03 100644
+--- a/internal/provider/resource_tag.go
++++ b/internal/provider/resource_tag.go
+@@ -2,7 +2,10 @@ package provider
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"fmt"
++	"net/http"
++	"strings"
+ 
+ 	"github.com/hashicorp/terraform-plugin-framework/attr"
+ 	"github.com/hashicorp/terraform-plugin-framework/path"
+@@ -359,6 +362,21 @@ func (r *TagResource) Create(ctx context.Context, req resource.CreateRequest, re
+ func (r *TagResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data TagResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	marker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	uncertain, privateDiags := req.Private.GetKey(ctx, tagUncertainCreatePrivateKey)
+@@ -666,6 +684,12 @@ func (r *TagResource) tagNameVisibleInList(ctx context.Context, tagName string)
+ func (r *TagResource) fetchTagInfo(ctx context.Context, tagName string) (interface{}, error) {
+ 	var raw interface{}
+ 	err := r.client.DoRequestWithResponse(ctx, "POST", "/tag/info", map[string]interface{}{"names": []string{tagName}}, &raw)
++	// LiteLLM reports an unknown tag as a 500 whose body embeds its own 404
++	// ("404: Tags not found: [...]"), which would otherwise surface as a hard
++	// error and stop the tag ever being created.
++	if err != nil && isTagAbsentError(err) {
++		return nil, &APIError{StatusCode: http.StatusNotFound, Detail: fmt.Sprintf("tag not found: %s", tagName)}
++	}
+ 	return raw, err
+ }
+ 
+@@ -683,7 +707,7 @@ func selectTagInfoObject(raw interface{}, tagName string, requireKeyed bool) (ma
+ 			return nil, fmt.Errorf("tag import read response is missing the authoritative keyed envelope")
+ 		}
+ 		if len(value) == 0 {
+-			return nil, fmt.Errorf("tag not found: %s", tagName)
++			return nil, &APIError{StatusCode: http.StatusNotFound, Detail: fmt.Sprintf("tag not found: %s", tagName)}
+ 		}
+ 		return value, nil
+ 	case []interface{}:
+@@ -1007,3 +1031,14 @@ func tagChangedFieldMismatch(desired, prior, actual *TagResourceModel) (string,
+ 	}
+ 	return "", false
+ }
++
++// isTagAbsentError reports whether err is LiteLLM's mis-statused "tag not
++// found" response.
++func isTagAbsentError(err error) bool {
++	var apiErr *APIError
++	if !errors.As(err, &apiErr) {
++		return false
++	}
++	text := strings.ToLower(apiErr.Detail + " " + apiErr.Body)
++	return strings.Contains(text, "tags not found")
++}
+diff --git a/internal/provider/resource_team.go b/internal/provider/resource_team.go
+index 4f5df3c..e07b120 100644
+--- a/internal/provider/resource_team.go
++++ b/internal/provider/resource_team.go
+@@ -388,6 +388,21 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp
+ 	var data TeamResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	if resp.Diagnostics.HasError() {
+diff --git a/internal/provider/resource_team_block.go b/internal/provider/resource_team_block.go
+index 7ff56ea..9ce651c 100644
+--- a/internal/provider/resource_team_block.go
++++ b/internal/provider/resource_team_block.go
+@@ -110,6 +110,21 @@ func (r *TeamBlockResource) Read(ctx context.Context, req resource.ReadRequest,
+ 	var data TeamBlockResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_team_member.go b/internal/provider/resource_team_member.go
+index 9a557ae..b6d9c40 100644
+--- a/internal/provider/resource_team_member.go
++++ b/internal/provider/resource_team_member.go
+@@ -933,6 +933,21 @@ func (r *TeamMemberResource) Create(ctx context.Context, req resource.CreateRequ
+ func (r *TeamMemberResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data TeamMemberResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_unified_access_group.go b/internal/provider/resource_unified_access_group.go
+index f576ce0..40f64df 100644
+--- a/internal/provider/resource_unified_access_group.go
++++ b/internal/provider/resource_unified_access_group.go
+@@ -356,6 +356,21 @@ func (r *UnifiedAccessGroupResource) recoverUnifiedAccessGroupCreate(
+ func (r *UnifiedAccessGroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+ 	var data UnifiedAccessGroupResourceModel
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}
+diff --git a/internal/provider/resource_user.go b/internal/provider/resource_user.go
+index 5256ec5..0a7136a 100644
+--- a/internal/provider/resource_user.go
++++ b/internal/provider/resource_user.go
+@@ -242,6 +242,21 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp
+ 	var data UserResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
+ 	resp.Diagnostics.Append(privateDiags...)
+ 	if resp.Diagnostics.HasError() {
+diff --git a/internal/provider/resource_vector_store.go b/internal/provider/resource_vector_store.go
+index 16b64c0..0bf10d0 100644
+--- a/internal/provider/resource_vector_store.go
++++ b/internal/provider/resource_vector_store.go
+@@ -267,6 +267,21 @@ func (r *VectorStoreResource) Read(ctx context.Context, req resource.ReadRequest
+ 	var data VectorStoreResourceModel
+ 
+ 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
++
++	// A resource whose state carries no identifier does not exist remotely.
++	// Terraform never produces such state itself, but a generated consumer
++	// (upjet) observes before create using synthesized state with an empty id.
++	// Without this guard each resource issues a degenerate request -- an empty
++	// query parameter or a URL that collapses to a trailing slash -- and reports
++	// the resulting 4xx/redirect as a hard error, so the resource can never be
++	// created.
++	if resp.Diagnostics.HasError() {
++		return
++	}
++	if data.ID.ValueString() == "" {
++		resp.State.RemoveResource(ctx)
++		return
++	}
+ 	if resp.Diagnostics.HasError() {
+ 		return
+ 	}

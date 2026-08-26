@@ -94,10 +94,15 @@ spec:
                       Requests per minute limit for the user.
                       Requests per minute limit for the user.
                     type: number
+                  sendInviteEmail:
+                    description: |-
+                      Requests an asynchronous invitation for each successful user Create request. Requires a syntactically valid user_email. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement can request another invitation.11+ when configured.
+                      Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.
+                    type: boolean
                   teams:
                     description: |-
-                      List of team IDs the user belongs to.
-                      List of team IDs the user belongs to.
+                      Unique team IDs the user belongs to. Membership order is not significant. Updates reconcile additions and removals through LiteLLM's team-member endpoints.
+                      List of team IDs the user belongs to. Membership order is not significant.
                     items:
                       type: string
                     type: array
@@ -202,8 +207,8 @@ spec:
                     type: string
                   userRole:
                     description: |-
-                      The role assigned to the user. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
-                      The user's role: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
+                      The role assigned to the internal user. LiteLLM v1.98 /user/new and /user/update accept exactly proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
+                      The user's role. LiteLLM v1.98 user create/update accepts proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
                     type: string
                 type: object
               initProvider:
@@ -254,10 +259,15 @@ spec:
                       Requests per minute limit for the user.
                       Requests per minute limit for the user.
                     type: number
+                  sendInviteEmail:
+                    description: |-
+                      Requests an asynchronous invitation for each successful user Create request. Requires a syntactically valid user_email. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement can request another invitation.11+ when configured.
+                      Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.
+                    type: boolean
                   teams:
                     description: |-
-                      List of team IDs the user belongs to.
-                      List of team IDs the user belongs to.
+                      Unique team IDs the user belongs to. Membership order is not significant. Updates reconcile additions and removals through LiteLLM's team-member endpoints.
+                      List of team IDs the user belongs to. Membership order is not significant.
                     items:
                       type: string
                     type: array
@@ -362,8 +372,8 @@ spec:
                     type: string
                   userRole:
                     description: |-
-                      The role assigned to the user. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
-                      The user's role: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
+                      The role assigned to the internal user. LiteLLM v1.98 /user/new and /user/update accept exactly proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
+                      The user's role. LiteLLM v1.98 user create/update accepts proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
                     type: string
                 type: object
               managementPolicies:
@@ -467,10 +477,15 @@ spec:
                       Requests per minute limit for the user.
                       Requests per minute limit for the user.
                     type: number
+                  sendInviteEmail:
+                    description: |-
+                      Requests an asynchronous invitation for each successful user Create request. Requires a syntactically valid user_email. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement can request another invitation.11+ when configured.
+                      Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.
+                    type: boolean
                   teams:
                     description: |-
-                      List of team IDs the user belongs to.
-                      List of team IDs the user belongs to.
+                      Unique team IDs the user belongs to. Membership order is not significant. Updates reconcile additions and removals through LiteLLM's team-member endpoints.
+                      List of team IDs the user belongs to. Membership order is not significant.
                     items:
                       type: string
                     type: array
@@ -491,8 +506,8 @@ spec:
                     type: string
                   userRole:
                     description: |-
-                      The role assigned to the user. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
-                      The user's role: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, team, customer.
+                      The role assigned to the internal user. LiteLLM v1.98 /user/new and /user/update accept exactly proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
+                      The user's role. LiteLLM v1.98 user create/update accepts proxy_admin, proxy_admin_viewer, internal_user, or internal_user_viewer.
                     type: string
                 type: object
               conditions:

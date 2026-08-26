@@ -27,8 +27,8 @@ type BudgetInitParameters struct {
 	// Max concurrent requests allowed for this budget.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// A JSON string defining per-model budget limits. The API expects a specific nested object format per model. This feature may require a LiteLLM Enterprise license.
-	// JSON string for per-model budget configuration (e.g., '{"gpt-4o": {"max_budget": 0.01, "budget_duration": "1d"}}').
+	// A JSON object string mapping model names to LiteLLM BudgetConfig objects. Supported nested fields are max_budget (alias budget_limit), budget_duration (alias time_period), tpm_limit, and rpm_limit. Unknown fields, conflicting aliases, non-object model values, malformed JSON, and wrong root shapes are rejected before mutation. API canonicalization of aliases, key order, whitespace, or equivalent exact number notation does not cause drift. This feature may require a LiteLLM Enterprise license.
+	// JSON object mapping model names to validated LiteLLM BudgetConfig objects. Supports canonical max_budget/budget_duration and budget_limit/time_period aliases.
 	ModelMaxBudget *string `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 
 	// Requests per minute limit.
@@ -61,8 +61,8 @@ type BudgetObservation struct {
 	// Max concurrent requests allowed for this budget.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// A JSON string defining per-model budget limits. The API expects a specific nested object format per model. This feature may require a LiteLLM Enterprise license.
-	// JSON string for per-model budget configuration (e.g., '{"gpt-4o": {"max_budget": 0.01, "budget_duration": "1d"}}').
+	// A JSON object string mapping model names to LiteLLM BudgetConfig objects. Supported nested fields are max_budget (alias budget_limit), budget_duration (alias time_period), tpm_limit, and rpm_limit. Unknown fields, conflicting aliases, non-object model values, malformed JSON, and wrong root shapes are rejected before mutation. API canonicalization of aliases, key order, whitespace, or equivalent exact number notation does not cause drift. This feature may require a LiteLLM Enterprise license.
+	// JSON object mapping model names to validated LiteLLM BudgetConfig objects. Supports canonical max_budget/budget_duration and budget_limit/time_period aliases.
 	ModelMaxBudget *string `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 
 	// Requests per minute limit.
@@ -95,8 +95,8 @@ type BudgetParameters struct {
 	// +kubebuilder:validation:Optional
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// A JSON string defining per-model budget limits. The API expects a specific nested object format per model. This feature may require a LiteLLM Enterprise license.
-	// JSON string for per-model budget configuration (e.g., '{"gpt-4o": {"max_budget": 0.01, "budget_duration": "1d"}}').
+	// A JSON object string mapping model names to LiteLLM BudgetConfig objects. Supported nested fields are max_budget (alias budget_limit), budget_duration (alias time_period), tpm_limit, and rpm_limit. Unknown fields, conflicting aliases, non-object model values, malformed JSON, and wrong root shapes are rejected before mutation. API canonicalization of aliases, key order, whitespace, or equivalent exact number notation does not cause drift. This feature may require a LiteLLM Enterprise license.
+	// JSON object mapping model names to validated LiteLLM BudgetConfig objects. Supports canonical max_budget/budget_duration and budget_limit/time_period aliases.
 	// +kubebuilder:validation:Optional
 	ModelMaxBudget *string `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 

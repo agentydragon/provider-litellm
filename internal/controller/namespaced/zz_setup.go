@@ -15,6 +15,7 @@ import (
 	credential "github.com/thecodingsheikh/provider-litellm/internal/controller/namespaced/litellm/credential"
 	fallback "github.com/thecodingsheikh/provider-litellm/internal/controller/namespaced/litellm/fallback"
 	guardrail "github.com/thecodingsheikh/provider-litellm/internal/controller/namespaced/litellm/guardrail"
+	jwtkeymapping "github.com/thecodingsheikh/provider-litellm/internal/controller/namespaced/litellm/jwtkeymapping"
 	key "github.com/thecodingsheikh/provider-litellm/internal/controller/namespaced/litellm/key"
 	keyblock "github.com/thecodingsheikh/provider-litellm/internal/controller/namespaced/litellm/keyblock"
 	mcpserver "github.com/thecodingsheikh/provider-litellm/internal/controller/namespaced/litellm/mcpserver"
@@ -45,6 +46,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		credential.Setup,
 		fallback.Setup,
 		guardrail.Setup,
+		jwtkeymapping.Setup,
 		key.Setup,
 		keyblock.Setup,
 		mcpserver.Setup,
@@ -81,6 +83,7 @@ func SetupGated(mgr ctrl.Manager, o controller.Options) error {
 		credential.SetupGated,
 		fallback.SetupGated,
 		guardrail.SetupGated,
+		jwtkeymapping.SetupGated,
 		key.SetupGated,
 		keyblock.SetupGated,
 		mcpserver.SetupGated,
@@ -116,6 +119,7 @@ func SetupWebhookWithManager(mgr ctrl.Manager) error {
 		credential.SetupWebhookWithManager,
 		fallback.SetupWebhookWithManager,
 		guardrail.SetupWebhookWithManager,
+		jwtkeymapping.SetupWebhookWithManager,
 		key.SetupWebhookWithManager,
 		keyblock.SetupWebhookWithManager,
 		mcpserver.SetupWebhookWithManager,

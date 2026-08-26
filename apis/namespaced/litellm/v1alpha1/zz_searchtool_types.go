@@ -31,8 +31,8 @@ type SearchToolInitParameters struct {
 	// The search provider to use (e.g., 'tavily', 'serper', 'bing', 'google').
 	SearchProvider *string `json:"searchProvider,omitempty" tf:"search_provider,omitempty"`
 
-	// A JSON string containing additional search tool configuration. Use jsonencode() to construct this value. The provider automatically parses it into a JSON object when sending to the API.
-	// Additional search tool configuration as a JSON string.
+	// A JSON object string containing additional search tool configuration. Use jsonencode() to construct this value. Invalid syntax, JSON null, arrays, and scalar roots are rejected before mutation. Authoritative object read-back preserves semantically equivalent configured key order, whitespace, and exact number notation. Imports initially adopt the authoritative object, which can then be kept configured or deliberately omitted.
+	// Additional search tool configuration as a validated JSON object string.
 	SearchToolInfo *string `json:"searchToolInfo,omitempty" tf:"search_tool_info,omitempty"`
 
 	// The name of the search tool.
@@ -65,8 +65,8 @@ type SearchToolObservation struct {
 	// Unique identifier for the search tool.
 	SearchToolID *string `json:"searchToolId,omitempty" tf:"search_tool_id,omitempty"`
 
-	// A JSON string containing additional search tool configuration. Use jsonencode() to construct this value. The provider automatically parses it into a JSON object when sending to the API.
-	// Additional search tool configuration as a JSON string.
+	// A JSON object string containing additional search tool configuration. Use jsonencode() to construct this value. Invalid syntax, JSON null, arrays, and scalar roots are rejected before mutation. Authoritative object read-back preserves semantically equivalent configured key order, whitespace, and exact number notation. Imports initially adopt the authoritative object, which can then be kept configured or deliberately omitted.
+	// Additional search tool configuration as a validated JSON object string.
 	SearchToolInfo *string `json:"searchToolInfo,omitempty" tf:"search_tool_info,omitempty"`
 
 	// The name of the search tool.
@@ -100,8 +100,8 @@ type SearchToolParameters struct {
 	// +kubebuilder:validation:Optional
 	SearchProvider *string `json:"searchProvider,omitempty" tf:"search_provider,omitempty"`
 
-	// A JSON string containing additional search tool configuration. Use jsonencode() to construct this value. The provider automatically parses it into a JSON object when sending to the API.
-	// Additional search tool configuration as a JSON string.
+	// A JSON object string containing additional search tool configuration. Use jsonencode() to construct this value. Invalid syntax, JSON null, arrays, and scalar roots are rejected before mutation. Authoritative object read-back preserves semantically equivalent configured key order, whitespace, and exact number notation. Imports initially adopt the authoritative object, which can then be kept configured or deliberately omitted.
+	// Additional search tool configuration as a validated JSON object string.
 	// +kubebuilder:validation:Optional
 	SearchToolInfo *string `json:"searchToolInfo,omitempty" tf:"search_tool_info,omitempty"`
 

@@ -19,20 +19,17 @@ type VectorStoreInitParameters struct {
 	// Custom LLM provider for the vector store.
 	CustomLlmProvider *string `json:"customLlmProvider,omitempty" tf:"custom_llm_provider,omitempty"`
 
-	// The name of the LiteLLM credential to use for authenticating with the provider.
-	// Name of the LiteLLM credential to use.
+	// The name of the LiteLLM credential to use for authenticating with the provider. LiteLLM v1.98 does not accept this field on update, so changing or removing an owned value replaces the vector store.
+	// Name of the LiteLLM credential to use. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
 	LitellmCredentialName *string `json:"litellmCredentialName,omitempty" tf:"litellm_credential_name,omitempty"`
 
-	// A map of string key-value pairs containing additional LiteLLM-specific parameters for the vector store.
-	// Additional LiteLLM parameters.
-	// +mapType=granular
-	LitellmParams map[string]*string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
+	LitellmParams map[string]*string `json:"litellmParamsSecretRef,omitempty" tf:"-"`
 
-	// A human-readable description of the vector store.
+	// A human-readable description of the vector store. Removing it sends an explicit empty-string update.
 	// Description of the vector store.
 	VectorStoreDescription *string `json:"vectorStoreDescription,omitempty" tf:"vector_store_description,omitempty"`
 
-	// A map of string key-value pairs containing metadata for the vector store.
+	// A complete map of string key-value pairs containing metadata for the vector store. {} and removal of an owned map send an explicit empty-map update. Imported metadata remains unmanaged while omitted.
 	// Metadata associated with the vector store.
 	// +mapType=granular
 	VectorStoreMetadata map[string]*string `json:"vectorStoreMetadata,omitempty" tf:"vector_store_metadata,omitempty"`
@@ -55,27 +52,34 @@ type VectorStoreObservation struct {
 	// The internal resource identifier.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// The name of the LiteLLM credential to use for authenticating with the provider.
-	// Name of the LiteLLM credential to use.
+	// The name of the LiteLLM credential to use for authenticating with the provider. LiteLLM v1.98 does not accept this field on update, so changing or removing an owned value replaces the vector store.
+	// Name of the LiteLLM credential to use. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
 	LitellmCredentialName *string `json:"litellmCredentialName,omitempty" tf:"litellm_credential_name,omitempty"`
 
-	// A map of string key-value pairs containing additional LiteLLM-specific parameters for the vector store.
-	// Additional LiteLLM parameters.
-	// +mapType=granular
-	LitellmParams map[string]*string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
+	// Internal ownership marker for litellm_credential_name.
+	LitellmCredentialNameConfigured *bool `json:"litellmCredentialNameConfigured,omitempty" tf:"litellm_credential_name_configured,omitempty"`
 
-	// A human-readable description of the vector store.
+	// Internal ownership marker for litellm_params.
+	LitellmParamsConfigured *bool `json:"litellmParamsConfigured,omitempty" tf:"litellm_params_configured,omitempty"`
+
+	// A human-readable description of the vector store. Removing it sends an explicit empty-string update.
 	// Description of the vector store.
 	VectorStoreDescription *string `json:"vectorStoreDescription,omitempty" tf:"vector_store_description,omitempty"`
+
+	// Internal ownership marker for vector_store_description.
+	VectorStoreDescriptionConfigured *bool `json:"vectorStoreDescriptionConfigured,omitempty" tf:"vector_store_description_configured,omitempty"`
 
 	// The unique identifier assigned to the vector store by LiteLLM.
 	// Unique identifier for the vector store.
 	VectorStoreID *string `json:"vectorStoreId,omitempty" tf:"vector_store_id,omitempty"`
 
-	// A map of string key-value pairs containing metadata for the vector store.
+	// A complete map of string key-value pairs containing metadata for the vector store. {} and removal of an owned map send an explicit empty-map update. Imported metadata remains unmanaged while omitted.
 	// Metadata associated with the vector store.
 	// +mapType=granular
 	VectorStoreMetadata map[string]*string `json:"vectorStoreMetadata,omitempty" tf:"vector_store_metadata,omitempty"`
+
+	// Internal ownership marker for vector_store_metadata.
+	VectorStoreMetadataConfigured *bool `json:"vectorStoreMetadataConfigured,omitempty" tf:"vector_store_metadata_configured,omitempty"`
 
 	// The name of the vector store.
 	// Name of the vector store.
@@ -89,23 +93,22 @@ type VectorStoreParameters struct {
 	// +kubebuilder:validation:Optional
 	CustomLlmProvider *string `json:"customLlmProvider,omitempty" tf:"custom_llm_provider,omitempty"`
 
-	// The name of the LiteLLM credential to use for authenticating with the provider.
-	// Name of the LiteLLM credential to use.
+	// The name of the LiteLLM credential to use for authenticating with the provider. LiteLLM v1.98 does not accept this field on update, so changing or removing an owned value replaces the vector store.
+	// Name of the LiteLLM credential to use. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
 	// +kubebuilder:validation:Optional
 	LitellmCredentialName *string `json:"litellmCredentialName,omitempty" tf:"litellm_credential_name,omitempty"`
 
-	// A map of string key-value pairs containing additional LiteLLM-specific parameters for the vector store.
-	// Additional LiteLLM parameters.
+	// A map of string key-value pairs containing additional LiteLLM-specific parameters. Changing or removing this create-only map replaces the vector store.
+	// Additional LiteLLM parameters. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
 	// +kubebuilder:validation:Optional
-	// +mapType=granular
-	LitellmParams map[string]*string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
+	LitellmParamsSecretRef *v2.LocalSecretReference `json:"litellmParamsSecretRef,omitempty" tf:"-"`
 
-	// A human-readable description of the vector store.
+	// A human-readable description of the vector store. Removing it sends an explicit empty-string update.
 	// Description of the vector store.
 	// +kubebuilder:validation:Optional
 	VectorStoreDescription *string `json:"vectorStoreDescription,omitempty" tf:"vector_store_description,omitempty"`
 
-	// A map of string key-value pairs containing metadata for the vector store.
+	// A complete map of string key-value pairs containing metadata for the vector store. {} and removal of an owned map send an explicit empty-map update. Imported metadata remains unmanaged while omitted.
 	// Metadata associated with the vector store.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular

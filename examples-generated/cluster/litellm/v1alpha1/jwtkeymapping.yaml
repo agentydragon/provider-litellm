@@ -1,0 +1,35 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: JWTKeyMapping
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/jwtkeymapping
+  labels:
+    testing.upbound.io/example-name: application
+  name: application
+spec:
+  forProvider:
+    description: Application OIDC subject
+    isActive: true
+    jwtClaimName: sub
+    jwtClaimValueSecretRef:
+      key: example-key
+      name: example-secret
+      namespace: upbound-system
+    keyWoSecretRef:
+      key: attribute.key
+      name: example-key
+      namespace: upbound-system
+    keyWoVersion: "1"
+
+---
+
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: Key
+metadata:
+  annotations:
+    meta.upbound.io/example-id: /v1alpha1/jwtkeymapping
+  labels:
+    testing.upbound.io/example-name: application
+  name: application
+spec:
+  forProvider: {}

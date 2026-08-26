@@ -60,6 +60,14 @@ spec:
             properties:
               forProvider:
                 properties:
+                  accessGroupIds:
+                    description: |-
+                      Unordered set of access group IDs associated with the team. Use [] to detach all groups.
+                      Access group IDs associated with this team. Order is ignored. Set an empty collection to detach all access groups.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
                   blocked:
                     description: |-
                       Whether the team is blocked from making requests.
@@ -67,8 +75,8 @@ spec:
                     type: boolean
                   budgetDuration:
                     description: |-
-                      Duration for the budget cycle (e.g., "30d", "7d", "1h").
-                      Budget reset duration.
+                      Recurring team budget reset interval. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected.
+                      Recurring team budget reset interval. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo.
                     type: string
                   guardrails:
                     description: |-
@@ -268,8 +276,8 @@ spec:
                     type: number
                   rpmLimitType:
                     description: |-
-                      Type of RPM limit (e.g., "guaranteed_throughput").
-                      Type of RPM limit: 'key' or 'team'. If 'team', RPM is shared across all keys for the team.
+                      Create-only RPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+                      Create-only RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
                     type: string
                   tags:
                     description: |-
@@ -283,11 +291,21 @@ spec:
                       A human-readable alias for the team.
                       User-defined team alias.
                     type: string
+                  teamId:
+                    description: |-
+                      Stable LiteLLM team identifier. Supply a predetermined value for external identity or JWT group mapping, or omit it to let the provider generate a UUID.
+                      The LiteLLM team ID. If not specified, the provider generates one. Changing it replaces the team.
+                    type: string
                   teamMemberBudget:
                     description: |-
                       Default budget for each team member.
                       Default budget for team members.
                     type: number
+                  teamMemberBudgetDuration:
+                    description: |-
+                      Recurring reset interval for the default member budget. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected. LiteLLM applies it to new/default membership budgets and may backfill memberships without a budget; private member overrides are preserved. Configure litellm_team_member.budget_duration for per-member control.
+                      Default recurring budget reset interval for team memberships. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. LiteLLM applies it to new/default memberships and may backfill memberships without a budget; private member overrides are preserved.
+                    type: string
                   teamMemberPermissions:
                     description: |-
                       List of permissions granted to team members.
@@ -312,8 +330,8 @@ spec:
                     type: number
                   tpmLimitType:
                     description: |-
-                      Type of TPM limit (e.g., "guaranteed_throughput").
-                      Type of TPM limit: 'key' or 'team'. If 'team', TPM is shared across all keys for the team.
+                      Create-only TPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+                      Create-only TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
                     type: string
                 type: object
               initProvider:
@@ -329,6 +347,14 @@ spec:
                   for example because of an external controller is managing them, like an
                   autoscaler.
                 properties:
+                  accessGroupIds:
+                    description: |-
+                      Unordered set of access group IDs associated with the team. Use [] to detach all groups.
+                      Access group IDs associated with this team. Order is ignored. Set an empty collection to detach all access groups.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
                   blocked:
                     description: |-
                       Whether the team is blocked from making requests.
@@ -336,8 +362,8 @@ spec:
                     type: boolean
                   budgetDuration:
                     description: |-
-                      Duration for the budget cycle (e.g., "30d", "7d", "1h").
-                      Budget reset duration.
+                      Recurring team budget reset interval. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected.
+                      Recurring team budget reset interval. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo.
                     type: string
                   guardrails:
                     description: |-
@@ -537,8 +563,8 @@ spec:
                     type: number
                   rpmLimitType:
                     description: |-
-                      Type of RPM limit (e.g., "guaranteed_throughput").
-                      Type of RPM limit: 'key' or 'team'. If 'team', RPM is shared across all keys for the team.
+                      Create-only RPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+                      Create-only RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
                     type: string
                   tags:
                     description: |-
@@ -552,11 +578,21 @@ spec:
                       A human-readable alias for the team.
                       User-defined team alias.
                     type: string
+                  teamId:
+                    description: |-
+                      Stable LiteLLM team identifier. Supply a predetermined value for external identity or JWT group mapping, or omit it to let the provider generate a UUID.
+                      The LiteLLM team ID. If not specified, the provider generates one. Changing it replaces the team.
+                    type: string
                   teamMemberBudget:
                     description: |-
                       Default budget for each team member.
                       Default budget for team members.
                     type: number
+                  teamMemberBudgetDuration:
+                    description: |-
+                      Recurring reset interval for the default member budget. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected. LiteLLM applies it to new/default membership budgets and may backfill memberships without a budget; private member overrides are preserved. Configure litellm_team_member.budget_duration for per-member control.
+                      Default recurring budget reset interval for team memberships. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. LiteLLM applies it to new/default memberships and may backfill memberships without a budget; private member overrides are preserved.
+                    type: string
                   teamMemberPermissions:
                     description: |-
                       List of permissions granted to team members.
@@ -581,8 +617,8 @@ spec:
                     type: number
                   tpmLimitType:
                     description: |-
-                      Type of TPM limit (e.g., "guaranteed_throughput").
-                      Type of TPM limit: 'key' or 'team'. If 'team', TPM is shared across all keys for the team.
+                      Create-only TPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+                      Create-only TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
                     type: string
                 type: object
               managementPolicies:
@@ -653,6 +689,14 @@ spec:
             properties:
               atProvider:
                 properties:
+                  accessGroupIds:
+                    description: |-
+                      Unordered set of access group IDs associated with the team. Use [] to detach all groups.
+                      Access group IDs associated with this team. Order is ignored. Set an empty collection to detach all access groups.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
                   blocked:
                     description: |-
                       Whether the team is blocked from making requests.
@@ -660,8 +704,8 @@ spec:
                     type: boolean
                   budgetDuration:
                     description: |-
-                      Duration for the budget cycle (e.g., "30d", "7d", "1h").
-                      Budget reset duration.
+                      Recurring team budget reset interval. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected.
+                      Recurring team budget reset interval. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo.
                     type: string
                   guardrails:
                     description: |-
@@ -671,7 +715,7 @@ spec:
                       type: string
                     type: array
                   id:
-                    description: The unique identifier of the team.
+                    description: It always matches team_id.
                     type: string
                   maxBudget:
                     description: |-
@@ -782,8 +826,8 @@ spec:
                     type: number
                   rpmLimitType:
                     description: |-
-                      Type of RPM limit (e.g., "guaranteed_throughput").
-                      Type of RPM limit: 'key' or 'team'. If 'team', RPM is shared across all keys for the team.
+                      Create-only RPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+                      Create-only RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
                     type: string
                   tags:
                     description: |-
@@ -797,11 +841,21 @@ spec:
                       A human-readable alias for the team.
                       User-defined team alias.
                     type: string
+                  teamId:
+                    description: |-
+                      Stable LiteLLM team identifier. Supply a predetermined value for external identity or JWT group mapping, or omit it to let the provider generate a UUID.
+                      The LiteLLM team ID. If not specified, the provider generates one. Changing it replaces the team.
+                    type: string
                   teamMemberBudget:
                     description: |-
                       Default budget for each team member.
                       Default budget for team members.
                     type: number
+                  teamMemberBudgetDuration:
+                    description: |-
+                      Recurring reset interval for the default member budget. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected. LiteLLM applies it to new/default membership budgets and may backfill memberships without a budget; private member overrides are preserved. Configure litellm_team_member.budget_duration for per-member control.
+                      Default recurring budget reset interval for team memberships. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. LiteLLM applies it to new/default memberships and may backfill memberships without a budget; private member overrides are preserved.
+                    type: string
                   teamMemberPermissions:
                     description: |-
                       List of permissions granted to team members.
@@ -826,8 +880,8 @@ spec:
                     type: number
                   tpmLimitType:
                     description: |-
-                      Type of TPM limit (e.g., "guaranteed_throughput").
-                      Type of TPM limit: 'key' or 'team'. If 'team', TPM is shared across all keys for the team.
+                      Create-only TPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+                      Create-only TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
                     type: string
                 type: object
               conditions:

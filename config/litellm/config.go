@@ -4,7 +4,6 @@ package litellm
 
 import (
 	ujconfig "github.com/crossplane/upjet/v2/pkg/config"
-	"github.com/crossplane/upjet/v2/pkg/types/structtag"
 )
 
 // Terraform names of the resources referenced from more than one place.
@@ -48,7 +47,6 @@ func Configure(p *ujconfig.Provider) {
 		r.References["model_id"] = ujconfig.Reference{
 			TerraformName: "litellm_model",
 		}
-		fixRequiredSensitiveInitField(r, "credential_values", "credentialValuesSecretRef")
 	})
 
 	p.AddResourceConfigurator("litellm_team", func(r *ujconfig.Resource) {
@@ -109,7 +107,6 @@ func Configure(p *ujconfig.Provider) {
 	p.AddResourceConfigurator("litellm_key_block", func(r *ujconfig.Resource) {
 		r.ShortGroup = ""
 		r.Kind = "KeyBlock"
-		fixRequiredSensitiveInitField(r, "key", "keySecretRef")
 	})
 
 	p.AddResourceConfigurator("litellm_organization", func(r *ujconfig.Resource) {
@@ -223,37 +220,13 @@ func Configure(p *ujconfig.Provider) {
 		r.Kind = "Tag"
 	})
 
+	p.AddResourceConfigurator("litellm_jwt_key_mapping", func(r *ujconfig.Resource) {
+		r.ShortGroup = ""
+		r.Kind = "JWTKeyMapping"
+	})
+
 	p.AddResourceConfigurator("litellm_vector_store", func(r *ujconfig.Resource) {
 		r.ShortGroup = ""
 		r.Kind = "VectorStore"
 	})
-}
-
-// fixRequiredSensitiveInitField works around an upjet code generation bug that
-// makes a required *and* sensitive argument required in initProvider as well.
-//
-// upjet renders such an argument as a SecretRef whose JSON tag deliberately
-// carries no omitempty. forProvider survives that because it also receives a
-// +kubebuilder:validation:Optional marker, but the initProvider variant does
-// not: AddToResource registers the init comment under the SecretRef field name
-// while addInitField names the init field after the bare attribute, so the
-// marker never lands on it. controller-gen then infers the initProvider field
-// as required and the API server rejects every late-initialization write with
-// "spec.initProvider.<field>: Required value", leaving the resource permanently
-// unreconcilable.
-//
-// Overriding the init JSON tag restores omitempty, which is the one lever that
-// is applied to the init field itself rather than to its comment. forProvider
-// keeps its CEL requiredness check either way.
-func fixRequiredSensitiveInitField(r *ujconfig.Resource, tfField, jsonName string) {
-	r.SchemaElementOptions[tfField] = &ujconfig.SchemaElementOption{
-		InitProviderOverrides: &ujconfig.InitProviderOverrides{
-			TagOverrides: ujconfig.TagOverrides{
-				JSONTag: structtag.NewJSON(
-					structtag.WithName(jsonName),
-					structtag.WithOmit(structtag.OmitEmpty),
-				),
-			},
-		},
-	}
 }

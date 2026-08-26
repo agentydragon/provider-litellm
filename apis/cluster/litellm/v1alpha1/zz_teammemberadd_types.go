@@ -15,91 +15,91 @@ import (
 
 type MemberInitParameters struct {
 
-	// The role of the user within the team. Valid values: admin, user.
+	// Team role: admin or user.
 	// Role (admin, user).
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The email address of the user to add.
-	// User email.
+	// User email. At least one identity field must be non-empty.
+	// User email. At least one of user_id or user_email must be non-empty.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The ID of the user to add.
-	// User ID.
+	// User ID. At least one identity field must be non-empty. For an email-only block, the provider records LiteLLM's canonical ID in state after a successful add or authoritative roster read; it does not add the ID to configuration.
+	// User ID. At least one of user_id or user_email must be non-empty. For email-only ownership, the provider stores LiteLLM's canonical user ID after it resolves the roster entry.
 	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
 }
 
 type MemberObservation struct {
 
-	// The role of the user within the team. Valid values: admin, user.
+	// Team role: admin or user.
 	// Role (admin, user).
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The email address of the user to add.
-	// User email.
+	// User email. At least one identity field must be non-empty.
+	// User email. At least one of user_id or user_email must be non-empty.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The ID of the user to add.
-	// User ID.
+	// User ID. At least one identity field must be non-empty. For an email-only block, the provider records LiteLLM's canonical ID in state after a successful add or authoritative roster read; it does not add the ID to configuration.
+	// User ID. At least one of user_id or user_email must be non-empty. For email-only ownership, the provider stores LiteLLM's canonical user ID after it resolves the roster entry.
 	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
 }
 
 type MemberParameters struct {
 
-	// The role of the user within the team. Valid values: admin, user.
+	// Team role: admin or user.
 	// Role (admin, user).
 	// +kubebuilder:validation:Optional
 	Role *string `json:"role" tf:"role,omitempty"`
 
-	// The email address of the user to add.
-	// User email.
+	// User email. At least one identity field must be non-empty.
+	// User email. At least one of user_id or user_email must be non-empty.
 	// +kubebuilder:validation:Optional
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The ID of the user to add.
-	// User ID.
+	// User ID. At least one identity field must be non-empty. For an email-only block, the provider records LiteLLM's canonical ID in state after a successful add or authoritative roster read; it does not add the ID to configuration.
+	// User ID. At least one of user_id or user_email must be non-empty. For email-only ownership, the provider stores LiteLLM's canonical user ID after it resolves the roster entry.
 	// +kubebuilder:validation:Optional
 	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
 }
 
 type TeamMemberAddInitParameters struct {
 
-	// The maximum budget allocated to members within the team.
-	// Maximum budget for members in the team.
+	// Maximum budget applied to every member owned by this resource. Omission is the backward-compatible unmanaged mode; null does not detect drift or clear remote budgets.
+	// Maximum budget applied to every member owned by this batch. When omitted, member budgets are unmanaged and remote budget drift is not read into state.
 	MaxBudgetInTeam *float64 `json:"maxBudgetInTeam,omitempty" tf:"max_budget_in_team,omitempty"`
 
-	// Team members.
+	// One or more explicitly owned team members.
 	Member []MemberInitParameters `json:"member,omitempty" tf:"member,omitempty"`
 }
 
 type TeamMemberAddObservation struct {
 
-	// The ID of this resource.
+	// The historical resource ID, equal to team_id. It remains unchanged by this lifecycle implementation.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// The maximum budget allocated to members within the team.
-	// Maximum budget for members in the team.
+	// Maximum budget applied to every member owned by this resource. Omission is the backward-compatible unmanaged mode; null does not detect drift or clear remote budgets.
+	// Maximum budget applied to every member owned by this batch. When omitted, member budgets are unmanaged and remote budget drift is not read into state.
 	MaxBudgetInTeam *float64 `json:"maxBudgetInTeam,omitempty" tf:"max_budget_in_team,omitempty"`
 
-	// Team members.
+	// One or more explicitly owned team members.
 	Member []MemberObservation `json:"member,omitempty" tf:"member,omitempty"`
 
-	// The ID of the team. Changing this forces creation of a new resource.
+	// Team ID.
 	// Team ID.
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
 }
 
 type TeamMemberAddParameters struct {
 
-	// The maximum budget allocated to members within the team.
-	// Maximum budget for members in the team.
+	// Maximum budget applied to every member owned by this resource. Omission is the backward-compatible unmanaged mode; null does not detect drift or clear remote budgets.
+	// Maximum budget applied to every member owned by this batch. When omitted, member budgets are unmanaged and remote budget drift is not read into state.
 	// +kubebuilder:validation:Optional
 	MaxBudgetInTeam *float64 `json:"maxBudgetInTeam,omitempty" tf:"max_budget_in_team,omitempty"`
 
-	// Team members.
+	// One or more explicitly owned team members.
 	// +kubebuilder:validation:Optional
 	Member []MemberParameters `json:"member,omitempty" tf:"member,omitempty"`
 
-	// The ID of the team. Changing this forces creation of a new resource.
+	// Team ID.
 	// Team ID.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Team
 	// +kubebuilder:validation:Optional
@@ -141,7 +141,7 @@ type TeamMemberAddStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// TeamMemberAdd is the Schema for the TeamMemberAdds API. Manages a batch of members within a LiteLLM team. Adding or removing
+// TeamMemberAdd is the Schema for the TeamMemberAdds API. Manages an explicitly owned batch of members in a LiteLLM team.
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

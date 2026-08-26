@@ -35,7 +35,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: UnifiedAccessGroup is the Schema for the UnifiedAccessGroups
-          API. Manages a LiteLLM Access Group using the current
+          API. Manages a LiteLLM Access Group through the
         properties:
           apiVersion:
             description: |-
@@ -152,7 +152,7 @@ spec:
                     type: object
                   accessGroupName:
                     description: |-
-                      Display/name of the access group.
+                      Display name of the access group.
                       The display/name of the unified access group.
                     type: string
                   accessMcpServerIds:
@@ -255,8 +255,8 @@ spec:
                     type: array
                   assignedKeyIds:
                     description: |-
-                      Key IDs assigned to this access group.
-                      Key IDs assigned to this access group.
+                      Prefer litellm_key.<name>.id, which uses sha256:<64-hex>. Valid bare hashes, prefixed hashes, uppercase hexadecimal digits, and their historical representations remain accepted. Raw API keys and malformed values are rejected without being hashed.
+                      Key SHA256 management identifiers assigned to this access group. Values are sent as sorted, deduplicated bare hashes. An explicit empty list detaches every managed key.
                     items:
                       type: string
                     type: array
@@ -463,7 +463,7 @@ spec:
                     type: object
                   accessGroupName:
                     description: |-
-                      Display/name of the access group.
+                      Display name of the access group.
                       The display/name of the unified access group.
                     type: string
                   accessMcpServerIds:
@@ -566,8 +566,8 @@ spec:
                     type: array
                   assignedKeyIds:
                     description: |-
-                      Key IDs assigned to this access group.
-                      Key IDs assigned to this access group.
+                      Prefer litellm_key.<name>.id, which uses sha256:<64-hex>. Valid bare hashes, prefixed hashes, uppercase hexadecimal digits, and their historical representations remain accepted. Raw API keys and malformed values are rejected without being hashed.
+                      Key SHA256 management identifiers assigned to this access group. Values are sent as sorted, deduplicated bare hashes. An explicit empty list detaches every managed key.
                     items:
                       type: string
                     type: array
@@ -750,7 +750,7 @@ spec:
                     type: string
                   accessGroupName:
                     description: |-
-                      Display/name of the access group.
+                      Display name of the access group.
                       The display/name of the unified access group.
                     type: string
                   accessMcpServerIds:
@@ -769,8 +769,8 @@ spec:
                     type: array
                   assignedKeyIds:
                     description: |-
-                      Key IDs assigned to this access group.
-                      Key IDs assigned to this access group.
+                      Prefer litellm_key.<name>.id, which uses sha256:<64-hex>. Valid bare hashes, prefixed hashes, uppercase hexadecimal digits, and their historical representations remain accepted. Raw API keys and malformed values are rejected without being hashed.
+                      Key SHA256 management identifiers assigned to this access group. Values are sent as sorted, deduplicated bare hashes. An explicit empty list detaches every managed key.
                     items:
                       type: string
                     type: array
@@ -801,7 +801,7 @@ spec:
                     type: string
                   updatedAt:
                     description: |-
-                      Timestamp when the access group was last updated.
+                      Timestamp when the access group was updated.
                       Timestamp when the access group was last updated.
                     type: string
                   updatedBy:

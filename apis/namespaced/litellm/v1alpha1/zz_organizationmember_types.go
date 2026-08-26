@@ -15,53 +15,53 @@ import (
 
 type OrganizationMemberInitParameters struct {
 
-	// The maximum budget allocated to this user within the organization.
-	// Maximum budget for this user within the organization.
+	// Maximum spend for this user within the organization. LiteLLM v1.98.0 declares this field on the add request but does not persist it there, so the provider follows a successful add with /organization/member_update. Role and non-null budget changes are updated in place.
+	// Maximum spend for this user within the organization. LiteLLM v1.98.0 can set or change this value but cannot clear it in place; removing a previously configured value replaces the membership.
 	MaxBudgetInOrganization *float64 `json:"maxBudgetInOrganization,omitempty" tf:"max_budget_in_organization,omitempty"`
 
-	// The role of the user within the organization. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, org_admin.
-	// The role of the member in the organization.
+	// Organization-scoped role. LiteLLM v1.98.0 accepts exactly org_admin, internal_user, and internal_user_viewer. Global roles such as proxy_admin and proxy_admin_viewer are not valid organization membership roles.
+	// The member's organization role. LiteLLM v1.98.0 accepts org_admin, internal_user, or internal_user_viewer.
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The email address of the user. Changing this forces creation of a new resource.
-	// The user email to add to the organization. Either user_id or user_email must be provided.
+	// Email used to resolve or create the user. Once a user_id is resolved, this resource does not manage changes to the user's email.
+	// The user email used to resolve or create a user. Either user_id or user_email must be provided. This resource does not manage the user's email after LiteLLM resolves a user_id.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 }
 
 type OrganizationMemberObservation struct {
 
-	// A composite ID in the format organization_id:user_id.
+	// Canonical composite membership ID in organization_id:user_id form.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// The maximum budget allocated to this user within the organization.
-	// Maximum budget for this user within the organization.
+	// Maximum spend for this user within the organization. LiteLLM v1.98.0 declares this field on the add request but does not persist it there, so the provider follows a successful add with /organization/member_update. Role and non-null budget changes are updated in place.
+	// Maximum spend for this user within the organization. LiteLLM v1.98.0 can set or change this value but cannot clear it in place; removing a previously configured value replaces the membership.
 	MaxBudgetInOrganization *float64 `json:"maxBudgetInOrganization,omitempty" tf:"max_budget_in_organization,omitempty"`
 
-	// The ID of the organization. Changing this forces creation of a new resource.
+	// Organization ID.
 	// The organization ID.
 	OrganizationID *string `json:"organizationId,omitempty" tf:"organization_id,omitempty"`
 
-	// The role of the user within the organization. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, org_admin.
-	// The role of the member in the organization.
+	// Organization-scoped role. LiteLLM v1.98.0 accepts exactly org_admin, internal_user, and internal_user_viewer. Global roles such as proxy_admin and proxy_admin_viewer are not valid organization membership roles.
+	// The member's organization role. LiteLLM v1.98.0 accepts org_admin, internal_user, or internal_user_viewer.
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The email address of the user. Changing this forces creation of a new resource.
-	// The user email to add to the organization. Either user_id or user_email must be provided.
+	// Email used to resolve or create the user. Once a user_id is resolved, this resource does not manage changes to the user's email.
+	// The user email used to resolve or create a user. Either user_id or user_email must be provided. This resource does not manage the user's email after LiteLLM resolves a user_id.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The ID of the user to add to the organization. If not provided, it will be computed. Changing this forces creation of a new resource.
-	// The user ID to add to the organization. Either user_id or user_email must be provided.
+	// User ID to resolve or create. At least one of user_id and user_email must be a non-empty known value. When both are configured, LiteLLM looks up user_id first, then falls back to an existing user_email if that ID does not exist. If the fallback resolves a different canonical ID, the provider retains that membership in state and reports the mismatch rather than losing the created object.
+	// The user ID to add. Either user_id or user_email must be provided. When both are set, LiteLLM first looks up user_id and falls back to an existing user_email if that ID does not exist. Email-resolved creates are stored with the canonical user_id returned by LiteLLM.
 	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
 }
 
 type OrganizationMemberParameters struct {
 
-	// The maximum budget allocated to this user within the organization.
-	// Maximum budget for this user within the organization.
+	// Maximum spend for this user within the organization. LiteLLM v1.98.0 declares this field on the add request but does not persist it there, so the provider follows a successful add with /organization/member_update. Role and non-null budget changes are updated in place.
+	// Maximum spend for this user within the organization. LiteLLM v1.98.0 can set or change this value but cannot clear it in place; removing a previously configured value replaces the membership.
 	// +kubebuilder:validation:Optional
 	MaxBudgetInOrganization *float64 `json:"maxBudgetInOrganization,omitempty" tf:"max_budget_in_organization,omitempty"`
 
-	// The ID of the organization. Changing this forces creation of a new resource.
+	// Organization ID.
 	// The organization ID.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Organization
 	// +kubebuilder:validation:Optional
@@ -75,18 +75,18 @@ type OrganizationMemberParameters struct {
 	// +kubebuilder:validation:Optional
 	OrganizationIDSelector *v2.NamespacedSelector `json:"organizationIdSelector,omitempty" tf:"-"`
 
-	// The role of the user within the organization. Valid values: proxy_admin, proxy_admin_viewer, internal_user, internal_user_viewer, org_admin.
-	// The role of the member in the organization.
+	// Organization-scoped role. LiteLLM v1.98.0 accepts exactly org_admin, internal_user, and internal_user_viewer. Global roles such as proxy_admin and proxy_admin_viewer are not valid organization membership roles.
+	// The member's organization role. LiteLLM v1.98.0 accepts org_admin, internal_user, or internal_user_viewer.
 	// +kubebuilder:validation:Optional
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The email address of the user. Changing this forces creation of a new resource.
-	// The user email to add to the organization. Either user_id or user_email must be provided.
+	// Email used to resolve or create the user. Once a user_id is resolved, this resource does not manage changes to the user's email.
+	// The user email used to resolve or create a user. Either user_id or user_email must be provided. This resource does not manage the user's email after LiteLLM resolves a user_id.
 	// +kubebuilder:validation:Optional
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The ID of the user to add to the organization. If not provided, it will be computed. Changing this forces creation of a new resource.
-	// The user ID to add to the organization. Either user_id or user_email must be provided.
+	// User ID to resolve or create. At least one of user_id and user_email must be a non-empty known value. When both are configured, LiteLLM looks up user_id first, then falls back to an existing user_email if that ID does not exist. If the fallback resolves a different canonical ID, the provider retains that membership in state and reports the mismatch rather than losing the created object.
+	// The user ID to add. Either user_id or user_email must be provided. When both are set, LiteLLM first looks up user_id and falls back to an existing user_email if that ID does not exist. Email-resolved creates are stored with the canonical user_id returned by LiteLLM.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.User
 	// +kubebuilder:validation:Optional
 	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
@@ -127,7 +127,7 @@ type OrganizationMemberStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// OrganizationMember is the Schema for the OrganizationMembers API. Manages a member within a LiteLLM organization. Removing this resource removes the user from the organization but does not delete the user.
+// OrganizationMember is the Schema for the OrganizationMembers API. Manages one user membership in a LiteLLM organization. Removing this resource removes the membership but does not delete the LiteLLM user.
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

@@ -15,8 +15,8 @@ import (
 
 type AccessGroupInitParameters struct {
 
-	// A list of model names to include in the access group. Each model must exist in LiteLLM.
-	// List of model names (model_name from litellm_model) to include in this access group.
+	// A non-empty list of non-null model names to include in the access group. Duplicate values and "" are accepted for compatibility with LiteLLM v1.98; an empty name must correspond to an existing empty-named deployment. LiteLLM treats this as unordered, deduplicated membership: the provider sends sorted, deduplicated names and preserves the configured list—including its order and duplicates—when its unique membership matches read-back. Actual membership changes remain visible as a deterministic sorted, deduplicated list.
+	// Non-empty list of model names (model_name from litellm_model) to include in this access group. Membership order and duplicate entries are not significant.
 	ModelNames []*string `json:"modelNames,omitempty" tf:"model_names,omitempty"`
 }
 
@@ -25,15 +25,15 @@ type AccessGroupObservation struct {
 	// The internal resource identifier.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// A list of model names to include in the access group. Each model must exist in LiteLLM.
-	// List of model names (model_name from litellm_model) to include in this access group.
+	// A non-empty list of non-null model names to include in the access group. Duplicate values and "" are accepted for compatibility with LiteLLM v1.98; an empty name must correspond to an existing empty-named deployment. LiteLLM treats this as unordered, deduplicated membership: the provider sends sorted, deduplicated names and preserves the configured list—including its order and duplicates—when its unique membership matches read-back. Actual membership changes remain visible as a deterministic sorted, deduplicated list.
+	// Non-empty list of model names (model_name from litellm_model) to include in this access group. Membership order and duplicate entries are not significant.
 	ModelNames []*string `json:"modelNames,omitempty" tf:"model_names,omitempty"`
 }
 
 type AccessGroupParameters struct {
 
-	// A list of model names to include in the access group. Each model must exist in LiteLLM.
-	// List of model names (model_name from litellm_model) to include in this access group.
+	// A non-empty list of non-null model names to include in the access group. Duplicate values and "" are accepted for compatibility with LiteLLM v1.98; an empty name must correspond to an existing empty-named deployment. LiteLLM treats this as unordered, deduplicated membership: the provider sends sorted, deduplicated names and preserves the configured list—including its order and duplicates—when its unique membership matches read-back. Actual membership changes remain visible as a deterministic sorted, deduplicated list.
+	// Non-empty list of model names (model_name from litellm_model) to include in this access group. Membership order and duplicate entries are not significant.
 	// +kubebuilder:validation:Optional
 	ModelNames []*string `json:"modelNames,omitempty" tf:"model_names,omitempty"`
 }

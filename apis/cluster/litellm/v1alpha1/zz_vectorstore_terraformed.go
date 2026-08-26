@@ -21,7 +21,7 @@ func (mg *VectorStore) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this VectorStore
 func (tr *VectorStore) GetConnectionDetailsMapping() map[string]string {
-	return nil
+	return map[string]string{"litellm_params": "litellmParamsSecretRef"}
 }
 
 // GetObservation of this VectorStore

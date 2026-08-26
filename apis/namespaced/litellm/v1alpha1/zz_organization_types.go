@@ -15,16 +15,16 @@ import (
 
 type OrganizationInitParameters struct {
 
-	// (Bool) Whether the organization is blocked from making requests.
-	// Flag indicating if the org is blocked.
+	// (Bool, Deprecated) Compatibility-only. false is a no-op; new true configuration is rejected.
+	// Deprecated compatibility field. LiteLLM v1.98 has no persistent organization blocked column; false is accepted as a no-op and true is rejected.
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// (String) Duration of the budget window (e.g., "30d", "1h", "7d").
-	// Frequency of resetting org budget (e.g., '30d', '1mo').
+	// (String) Reset duration such as "30d", "1h", or "7d".
+	// Budget reset duration (for example, '30d' or '1h').
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// (String) The ID of an existing budget to associate with this organization.
-	// The ID for a budget (tpm/rpm/max budget) for the organization.
+	// (String) Existing budget to use during creation. Reassociating an existing organization is blocked because v1.98 has no safe convergent reassociation lifecycle.
+	// The ID for the organization's budget. Reassociating an existing organization is not supported safely by LiteLLM v1.98.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Budget
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
@@ -36,121 +36,137 @@ type OrganizationInitParameters struct {
 	// +kubebuilder:validation:Optional
 	BudgetIDSelector *v2.NamespacedSelector `json:"budgetIdSelector,omitempty" tf:"-"`
 
-	// (Float64) Maximum budget allowed for the organization.
-	// Max budget for the organization.
+	// (Float64) Hard budget limit.
+	// Maximum hard budget for the organization.
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// (Map of String) Metadata associated with the organization. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+	// (Int64) Concurrent request limit.
+	// Maximum parallel requests for the organization budget.
+	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
+
+	// (Map of String) Organization metadata. Use jsonencode() for complex values.
 	// Metadata for the organization.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
 
-	// (Map of Int64) Per-model requests per minute limits.
-	// The RPM (Requests Per Minute) limit per model for this organization.
+	// (Map of Int64) Per-model RPM limits stored in organization metadata.
+	// The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
 	// +mapType=granular
 	ModelRpmLimit map[string]*float64 `json:"modelRpmLimit,omitempty" tf:"model_rpm_limit,omitempty"`
 
-	// (Map of Int64) Per-model tokens per minute limits.
-	// The TPM (Tokens Per Minute) limit per model for this organization.
+	// (Map of Int64) Per-model TPM limits stored in organization metadata.
+	// The TPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
 	// +mapType=granular
 	ModelTpmLimit map[string]*float64 `json:"modelTpmLimit,omitempty" tf:"model_tpm_limit,omitempty"`
 
-	// (List of String) List of model names the organization is allowed to use.
+	// (List of String) Models the organization may use. Configure [] to clear the list.
 	// The models the organization has access to.
 	Models []*string `json:"models,omitempty" tf:"models,omitempty"`
 
-	// (String) A human-readable alias for the organization. Must be unique.
+	// (String) Human-readable organization alias.
 	// The name/alias of the organization.
 	OrganizationAlias *string `json:"organizationAlias,omitempty" tf:"organization_alias,omitempty"`
 
-	// (Int64) Requests per minute limit for the organization.
-	// Max RPM limit for the organization.
+	// (Int64) Requests-per-minute limit.
+	// Maximum requests per minute for the organization.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// (List of String) Tags associated with the organization.
-	// Tags for tracking spend and/or tag-based routing.
+	// (Float64) Budget alert threshold.
+	// Soft budget alert threshold for the organization.
+	SoftBudget *float64 `json:"softBudget,omitempty" tf:"soft_budget,omitempty"`
+
+	// (List of String, Deprecated) Compatibility-only. [] is a no-op; new non-empty configuration is rejected.
+	// Deprecated compatibility field. LiteLLM v1.98 has no persistent organization tags column; an empty list is accepted as a no-op and non-empty values are rejected.
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 
-	// (Int64) Tokens per minute limit for the organization.
-	// Max TPM limit for the organization.
+	// (Int64) Tokens-per-minute limit.
+	// Maximum tokens per minute for the organization.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 }
 
 type OrganizationObservation struct {
 
-	// (Bool) Whether the organization is blocked from making requests.
-	// Flag indicating if the org is blocked.
+	// (Bool, Deprecated) Compatibility-only. false is a no-op; new true configuration is rejected.
+	// Deprecated compatibility field. LiteLLM v1.98 has no persistent organization blocked column; false is accepted as a no-op and true is rejected.
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// (String) Duration of the budget window (e.g., "30d", "1h", "7d").
-	// Frequency of resetting org budget (e.g., '30d', '1mo').
+	// (String) Reset duration such as "30d", "1h", or "7d".
+	// Budget reset duration (for example, '30d' or '1h').
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// (String) The ID of an existing budget to associate with this organization.
-	// The ID for a budget (tpm/rpm/max budget) for the organization.
+	// (String) Existing budget to use during creation. Reassociating an existing organization is blocked because v1.98 has no safe convergent reassociation lifecycle.
+	// The ID for the organization's budget. Reassociating an existing organization is not supported safely by LiteLLM v1.98.
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
-	// Timestamp of when the organization was created.
+	// Creation timestamp.
 	// Timestamp when the organization was created.
 	CreatedAt *string `json:"createdAt,omitempty" tf:"created_at,omitempty"`
 
-	// The unique identifier for the organization (same as organization_id).
+	// Organization ID, equal to organization_id.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// (Float64) Maximum budget allowed for the organization.
-	// Max budget for the organization.
+	// (Float64) Hard budget limit.
+	// Maximum hard budget for the organization.
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// (Map of String) Metadata associated with the organization. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+	// (Int64) Concurrent request limit.
+	// Maximum parallel requests for the organization budget.
+	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
+
+	// (Map of String) Organization metadata. Use jsonencode() for complex values.
 	// Metadata for the organization.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
 
-	// (Map of Int64) Per-model requests per minute limits.
-	// The RPM (Requests Per Minute) limit per model for this organization.
+	// (Map of Int64) Per-model RPM limits stored in organization metadata.
+	// The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
 	// +mapType=granular
 	ModelRpmLimit map[string]*float64 `json:"modelRpmLimit,omitempty" tf:"model_rpm_limit,omitempty"`
 
-	// (Map of Int64) Per-model tokens per minute limits.
-	// The TPM (Tokens Per Minute) limit per model for this organization.
+	// (Map of Int64) Per-model TPM limits stored in organization metadata.
+	// The TPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
 	// +mapType=granular
 	ModelTpmLimit map[string]*float64 `json:"modelTpmLimit,omitempty" tf:"model_tpm_limit,omitempty"`
 
-	// (List of String) List of model names the organization is allowed to use.
+	// (List of String) Models the organization may use. Configure [] to clear the list.
 	// The models the organization has access to.
 	Models []*string `json:"models,omitempty" tf:"models,omitempty"`
 
-	// (String) A human-readable alias for the organization. Must be unique.
+	// (String) Human-readable organization alias.
 	// The name/alias of the organization.
 	OrganizationAlias *string `json:"organizationAlias,omitempty" tf:"organization_alias,omitempty"`
 
-	// (Int64) Requests per minute limit for the organization.
-	// Max RPM limit for the organization.
+	// (Int64) Requests-per-minute limit.
+	// Maximum requests per minute for the organization.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// (List of String) Tags associated with the organization.
-	// Tags for tracking spend and/or tag-based routing.
+	// (Float64) Budget alert threshold.
+	// Soft budget alert threshold for the organization.
+	SoftBudget *float64 `json:"softBudget,omitempty" tf:"soft_budget,omitempty"`
+
+	// (List of String, Deprecated) Compatibility-only. [] is a no-op; new non-empty configuration is rejected.
+	// Deprecated compatibility field. LiteLLM v1.98 has no persistent organization tags column; an empty list is accepted as a no-op and non-empty values are rejected.
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 
-	// (Int64) Tokens per minute limit for the organization.
-	// Max TPM limit for the organization.
+	// (Int64) Tokens-per-minute limit.
+	// Maximum tokens per minute for the organization.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 }
 
 type OrganizationParameters struct {
 
-	// (Bool) Whether the organization is blocked from making requests.
-	// Flag indicating if the org is blocked.
+	// (Bool, Deprecated) Compatibility-only. false is a no-op; new true configuration is rejected.
+	// Deprecated compatibility field. LiteLLM v1.98 has no persistent organization blocked column; false is accepted as a no-op and true is rejected.
 	// +kubebuilder:validation:Optional
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// (String) Duration of the budget window (e.g., "30d", "1h", "7d").
-	// Frequency of resetting org budget (e.g., '30d', '1mo').
+	// (String) Reset duration such as "30d", "1h", or "7d".
+	// Budget reset duration (for example, '30d' or '1h').
 	// +kubebuilder:validation:Optional
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// (String) The ID of an existing budget to associate with this organization.
-	// The ID for a budget (tpm/rpm/max budget) for the organization.
+	// (String) Existing budget to use during creation. Reassociating an existing organization is blocked because v1.98 has no safe convergent reassociation lifecycle.
+	// The ID for the organization's budget. Reassociating an existing organization is not supported safely by LiteLLM v1.98.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Budget
 	// +kubebuilder:validation:Optional
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
@@ -163,51 +179,61 @@ type OrganizationParameters struct {
 	// +kubebuilder:validation:Optional
 	BudgetIDSelector *v2.NamespacedSelector `json:"budgetIdSelector,omitempty" tf:"-"`
 
-	// (Float64) Maximum budget allowed for the organization.
-	// Max budget for the organization.
+	// (Float64) Hard budget limit.
+	// Maximum hard budget for the organization.
 	// +kubebuilder:validation:Optional
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// (Map of String) Metadata associated with the organization. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+	// (Int64) Concurrent request limit.
+	// Maximum parallel requests for the organization budget.
+	// +kubebuilder:validation:Optional
+	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
+
+	// (Map of String) Organization metadata. Use jsonencode() for complex values.
 	// Metadata for the organization.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
 
-	// (Map of Int64) Per-model requests per minute limits.
-	// The RPM (Requests Per Minute) limit per model for this organization.
+	// (Map of Int64) Per-model RPM limits stored in organization metadata.
+	// The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	ModelRpmLimit map[string]*float64 `json:"modelRpmLimit,omitempty" tf:"model_rpm_limit,omitempty"`
 
-	// (Map of Int64) Per-model tokens per minute limits.
-	// The TPM (Tokens Per Minute) limit per model for this organization.
+	// (Map of Int64) Per-model TPM limits stored in organization metadata.
+	// The TPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	ModelTpmLimit map[string]*float64 `json:"modelTpmLimit,omitempty" tf:"model_tpm_limit,omitempty"`
 
-	// (List of String) List of model names the organization is allowed to use.
+	// (List of String) Models the organization may use. Configure [] to clear the list.
 	// The models the organization has access to.
 	// +kubebuilder:validation:Optional
 	Models []*string `json:"models,omitempty" tf:"models,omitempty"`
 
-	// (String) A human-readable alias for the organization. Must be unique.
+	// (String) Human-readable organization alias.
 	// The name/alias of the organization.
 	// +kubebuilder:validation:Optional
 	OrganizationAlias *string `json:"organizationAlias,omitempty" tf:"organization_alias,omitempty"`
 
-	// (Int64) Requests per minute limit for the organization.
-	// Max RPM limit for the organization.
+	// (Int64) Requests-per-minute limit.
+	// Maximum requests per minute for the organization.
 	// +kubebuilder:validation:Optional
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// (List of String) Tags associated with the organization.
-	// Tags for tracking spend and/or tag-based routing.
+	// (Float64) Budget alert threshold.
+	// Soft budget alert threshold for the organization.
+	// +kubebuilder:validation:Optional
+	SoftBudget *float64 `json:"softBudget,omitempty" tf:"soft_budget,omitempty"`
+
+	// (List of String, Deprecated) Compatibility-only. [] is a no-op; new non-empty configuration is rejected.
+	// Deprecated compatibility field. LiteLLM v1.98 has no persistent organization tags column; an empty list is accepted as a no-op and non-empty values are rejected.
 	// +kubebuilder:validation:Optional
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 
-	// (Int64) Tokens per minute limit for the organization.
-	// Max TPM limit for the organization.
+	// (Int64) Tokens-per-minute limit.
+	// Maximum tokens per minute for the organization.
 	// +kubebuilder:validation:Optional
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 }
@@ -239,7 +265,7 @@ type OrganizationStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// Organization is the Schema for the Organizations API. Manages organizations in LiteLLM. Organizations provide a way to group teams and users together under a shared budget and set of permissions.
+// Organization is the Schema for the Organizations API. Manages a LiteLLM organization. Organizations group teams and users under shared model access and budget controls.
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

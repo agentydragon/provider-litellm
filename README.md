@@ -153,7 +153,7 @@ More examples for every resource live in [`examples/`](examples/) (cluster-scope
 
 ## Managed resources
 
-23 LiteLLM resources are exposed as CRDs, in both the cluster-scoped and namespaced API
+24 LiteLLM resources are exposed as CRDs, in both the cluster-scoped and namespaced API
 groups.
 
 | Kind | What it manages | Status |
@@ -174,30 +174,42 @@ groups.
 | `Prompt` | A managed prompt template | Verified |
 | `Fallback` | A fallback chain for a model (general, context window, content policy) | Verified |
 | `VectorStore` | A vector store registered with the proxy | Verified |
-| `Key` | A virtual API key with its own budget and model scope | Blocked upstream |
-| `KeyBlock` | Blocks a virtual key | Blocked upstream |
-| `MCPServer` | An MCP server registered on the gateway | Blocked upstream |
-| `UnifiedAccessGroup` | A unified access group across models and MCP servers | Blocked upstream |
-| `SearchTool` | A web search tool available to the proxy | Blocked upstream |
-| `Agent` | A managed agent | Blocked upstream |
-| `Project` | A project grouping resources | Blocked upstream |
+| `JWTKeyMapping` | Maps a JWT claim to an existing virtual key | Needs Terraform >= 1.11 |
+| `Key` | A virtual API key with its own budget and model scope | Verified |
+| `KeyBlock` | Blocks a virtual key | Verified |
+| `MCPServer` | An MCP server registered on the gateway | Verified |
+| `UnifiedAccessGroup` | A unified access group across models and MCP servers | Verified |
+| `SearchTool` | A web search tool available to the proxy | Verified |
+| `Agent` | A managed agent | Verified |
+| `Project` | A project grouping resources | Requires LiteLLM Enterprise |
 
 Full schema reference for every field is on the
 [Upbound Marketplace listing](https://marketplace.upbound.io/providers/thecodingsheikh/provider-litellm).
 
 ### Known limitations
 
-All 23 resources are configured and generated. 16 were verified `Ready` against a live
-LiteLLM 1.99.0 proxy. The other 7 are blocked by defects in the upstream
-`ncecere/litellm` Terraform provider rather than by this provider's configuration, and
-need an upstream fix:
+All 24 resources are configured and generated. 22 were verified `Ready` end to end
+against a live LiteLLM proxy, covering create, observe and delete, with every
+configured cross-resource reference resolving. Two cannot work here, for reasons
+outside this provider:
 
-- `Key`, `Project` and `Agent` error on an empty ID during read, so creation never
-  completes (`<X> ID is empty, cannot read <X>`).
-- `MCPServer` and `UnifiedAccessGroup` hit a response shape mismatch on LiteLLM 1.99.0
-  (`cannot unmarshal array into Go value of type map[string]interface {}`).
-- `SearchTool` gets a 405 from the endpoint on LiteLLM 1.99.0.
-- `KeyBlock` needs a working `Key` to test against.
+- **`Project`** — LiteLLM answers `/project/new` with
+  `403 Project management is an enterprise feature`. It works only against a
+  LiteLLM Enterprise deployment.
+- **`JWTKeyMapping`** — creating a mapping requires the write-only `key_wo`
+  argument, and write-only attributes need Terraform 1.11 or later. This provider
+  is pinned to Terraform 1.5.7 because 1.6 and later are BSL licensed and cannot be
+  redistributed here, so the resource can be observed and imported but not created.
+
+Two upstream LiteLLM server bugs are also worth knowing about, since neither is
+something this provider can work around:
+
+- Setting `budgetId` on an `Organization` makes LiteLLM's own `/organization/update`
+  fail with a 500, because it passes `budget_id` twice into `BudgetNewRequest`. The
+  organization can be created but never updated. The reference is available; the
+  shipped example leaves it unset.
+- Assigning a `Model` to a team returns a 403 on non-enterprise deployments, so
+  `Model.teamId` is available as a reference but not exercised by the examples.
 
 ## Versioning
 

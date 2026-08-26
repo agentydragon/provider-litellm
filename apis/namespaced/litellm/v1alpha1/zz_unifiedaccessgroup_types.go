@@ -28,7 +28,7 @@ type UnifiedAccessGroupInitParameters struct {
 	// +kubebuilder:validation:Optional
 	AccessAgentIdsSelector *v2.NamespacedSelector `json:"accessAgentIdsSelector,omitempty" tf:"-"`
 
-	// Display/name of the access group.
+	// Display name of the access group.
 	// The display/name of the unified access group.
 	AccessGroupName *string `json:"accessGroupName,omitempty" tf:"access_group_name,omitempty"`
 
@@ -49,8 +49,8 @@ type UnifiedAccessGroupInitParameters struct {
 	// Model names this access group grants access to.
 	AccessModelNames []*string `json:"accessModelNames,omitempty" tf:"access_model_names,omitempty"`
 
-	// Key IDs assigned to this access group.
-	// Key IDs assigned to this access group.
+	// Prefer litellm_key.<name>.id, which uses sha256:<64-hex>. Valid bare hashes, prefixed hashes, uppercase hexadecimal digits, and their historical representations remain accepted. Raw API keys and malformed values are rejected without being hashed.
+	// Key SHA256 management identifiers assigned to this access group. Values are sent as sorted, deduplicated bare hashes. An explicit empty list detaches every managed key.
 	AssignedKeyIds []*string `json:"assignedKeyIds,omitempty" tf:"assigned_key_ids,omitempty"`
 
 	// Team IDs assigned to this access group.
@@ -81,7 +81,7 @@ type UnifiedAccessGroupObservation struct {
 	// The unique identifier for this unified access group.
 	AccessGroupID *string `json:"accessGroupId,omitempty" tf:"access_group_id,omitempty"`
 
-	// Display/name of the access group.
+	// Display name of the access group.
 	// The display/name of the unified access group.
 	AccessGroupName *string `json:"accessGroupName,omitempty" tf:"access_group_name,omitempty"`
 
@@ -93,8 +93,8 @@ type UnifiedAccessGroupObservation struct {
 	// Model names this access group grants access to.
 	AccessModelNames []*string `json:"accessModelNames,omitempty" tf:"access_model_names,omitempty"`
 
-	// Key IDs assigned to this access group.
-	// Key IDs assigned to this access group.
+	// Prefer litellm_key.<name>.id, which uses sha256:<64-hex>. Valid bare hashes, prefixed hashes, uppercase hexadecimal digits, and their historical representations remain accepted. Raw API keys and malformed values are rejected without being hashed.
+	// Key SHA256 management identifiers assigned to this access group. Values are sent as sorted, deduplicated bare hashes. An explicit empty list detaches every managed key.
 	AssignedKeyIds []*string `json:"assignedKeyIds,omitempty" tf:"assigned_key_ids,omitempty"`
 
 	// Team IDs assigned to this access group.
@@ -116,7 +116,7 @@ type UnifiedAccessGroupObservation struct {
 	// Access group ID.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// Timestamp when the access group was last updated.
+	// Timestamp when the access group was updated.
 	// Timestamp when the access group was last updated.
 	UpdatedAt *string `json:"updatedAt,omitempty" tf:"updated_at,omitempty"`
 
@@ -141,7 +141,7 @@ type UnifiedAccessGroupParameters struct {
 	// +kubebuilder:validation:Optional
 	AccessAgentIdsSelector *v2.NamespacedSelector `json:"accessAgentIdsSelector,omitempty" tf:"-"`
 
-	// Display/name of the access group.
+	// Display name of the access group.
 	// The display/name of the unified access group.
 	// +kubebuilder:validation:Optional
 	AccessGroupName *string `json:"accessGroupName,omitempty" tf:"access_group_name,omitempty"`
@@ -165,8 +165,8 @@ type UnifiedAccessGroupParameters struct {
 	// +kubebuilder:validation:Optional
 	AccessModelNames []*string `json:"accessModelNames,omitempty" tf:"access_model_names,omitempty"`
 
-	// Key IDs assigned to this access group.
-	// Key IDs assigned to this access group.
+	// Prefer litellm_key.<name>.id, which uses sha256:<64-hex>. Valid bare hashes, prefixed hashes, uppercase hexadecimal digits, and their historical representations remain accepted. Raw API keys and malformed values are rejected without being hashed.
+	// Key SHA256 management identifiers assigned to this access group. Values are sent as sorted, deduplicated bare hashes. An explicit empty list detaches every managed key.
 	// +kubebuilder:validation:Optional
 	AssignedKeyIds []*string `json:"assignedKeyIds,omitempty" tf:"assigned_key_ids,omitempty"`
 
@@ -217,7 +217,7 @@ type UnifiedAccessGroupStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// UnifiedAccessGroup is the Schema for the UnifiedAccessGroups API. Manages a LiteLLM Access Group using the current
+// UnifiedAccessGroup is the Schema for the UnifiedAccessGroups API. Manages a LiteLLM Access Group through the
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

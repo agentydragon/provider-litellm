@@ -74,9 +74,17 @@ type KeyInitParameters struct {
 	// User-friendly alias for the key. When service_account_id is set and key_alias is omitted, the provider defaults key_alias to the service_account_id value.
 	KeyAlias *string `json:"keyAlias,omitempty" tf:"key_alias,omitempty"`
 
-	// User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state.
+	// User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state. Conflicts with key_wo.
 	// The API key value. If not specified, a key will be generated.
 	KeySecretRef *v2.LocalSecretKeySelector `json:"keySecretRef,omitempty" tf:"-"`
+
+	// Predefined key sent to LiteLLM but represented only by null in plan and state. Must be configured with key_wo_version. Use a cryptographically random, high-entropy value because its SHA256 management identifier is persisted.11+.
+	// Write-only predefined API key value. Use a cryptographically random, high-entropy key because its persisted SHA256 management identifier permits offline guesses of weak values.11 or compatible OpenTofu support.
+	KeyWoSecretRef *v2.LocalSecretKeySelector `json:"keyWoSecretRef,omitempty" tf:"-"`
+
+	// Persisted version or nonce for key_wo. Change this whenever the write-only secret changes. It conflicts with configurations that omit key_wo.
+	// Persisted version or nonce for key_wo. Change it when the write-only key changes; changing or removing it replaces the LiteLLM key.
+	KeyWoVersion *string `json:"keyWoVersion,omitempty" tf:"key_wo_version,omitempty"`
 
 	// Maximum budget for this key.
 	// Maximum budget for this key.
@@ -86,10 +94,7 @@ type KeyInitParameters struct {
 	// Maximum parallel requests allowed.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API.
-	// Metadata for the key.
-	// +mapType=granular
-	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+	Metadata map[string]*string `json:"metadataSecretRef,omitempty" tf:"-"`
 
 	// Map of maximum budget per model. Note: Requires LiteLLM Enterprise license.
 	// Per-model budget limits.
@@ -145,13 +150,20 @@ type KeyInitParameters struct {
 	// List of prompt IDs this key can access.
 	Prompts []*string `json:"prompts,omitempty" tf:"prompts,omitempty"`
 
+	// Complete key-specific router-settings document. Omitting the block leaves remote settings unmanaged. A configured block replaces the complete document on update rather than merging individual fields. Supported LiteLLM v1.98.0 fields:
+	RouterSettings *RouterSettingsInitParameters `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
+
 	// Requests per minute limit.
 	// Requests per minute limit.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Type of RPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-	// Type of RPM limit: 'key' (default) or 'team'. If 'team', RPM is shared across all keys for the team.
+	// Type of RPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+	// RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
 	RpmLimitType *string `json:"rpmLimitType,omitempty" tf:"rpm_limit_type,omitempty"`
+
+	// Requests an asynchronous email for each successful key Create request. Requires user_id for an exact existing user with a syntactically valid email address and cannot be used with service_account_id. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement or an ambiguous Create retry can request another email.11+ when configured.
+	// Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.
+	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
 
 	// Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
 	// Service account ID for team-owned keys.
@@ -182,8 +194,8 @@ type KeyInitParameters struct {
 	// Tokens per minute limit.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 
-	// Type of TPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-	// Type of TPM limit: 'key' (default) or 'team'. If 'team', TPM is shared across all keys for the team.
+	// Type of TPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+	// TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
 	TpmLimitType *string `json:"tpmLimitType,omitempty" tf:"tpm_limit_type,omitempty"`
 
 	// User ID associated with this key.
@@ -248,12 +260,16 @@ type KeyObservation struct {
 	// Guardrails for the key.
 	Guardrails []*string `json:"guardrails,omitempty" tf:"guardrails,omitempty"`
 
-	// Non-sensitive unique identifier for this key (SHA256 hash of the key value). This is safe to appear in logs and CI/CD output.
+	// Non-sensitive unique management identifier for this key (SHA256 hash of the key value). LiteLLM prevents this digest from authenticating as a virtual key. It is displayed in logs and CI/CD output, so low-entropy predefined keys remain susceptible to offline guessing.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
 	// Human-readable alias for this key.
 	// User-friendly alias for the key. When service_account_id is set and key_alias is omitted, the provider defaults key_alias to the service_account_id value.
 	KeyAlias *string `json:"keyAlias,omitempty" tf:"key_alias,omitempty"`
+
+	// Persisted version or nonce for key_wo. Change this whenever the write-only secret changes. It conflicts with configurations that omit key_wo.
+	// Persisted version or nonce for key_wo. Change it when the write-only key changes; changing or removing it replaces the LiteLLM key.
+	KeyWoVersion *string `json:"keyWoVersion,omitempty" tf:"key_wo_version,omitempty"`
 
 	// Maximum budget for this key.
 	// Maximum budget for this key.
@@ -262,11 +278,6 @@ type KeyObservation struct {
 	// Maximum number of parallel requests allowed.
 	// Maximum parallel requests allowed.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
-
-	// Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API.
-	// Metadata for the key.
-	// +mapType=granular
-	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
 
 	// Map of maximum budget per model. Note: Requires LiteLLM Enterprise license.
 	// Per-model budget limits.
@@ -304,13 +315,20 @@ type KeyObservation struct {
 	// List of prompt IDs this key can access.
 	Prompts []*string `json:"prompts,omitempty" tf:"prompts,omitempty"`
 
+	// Complete key-specific router-settings document. Omitting the block leaves remote settings unmanaged. A configured block replaces the complete document on update rather than merging individual fields. Supported LiteLLM v1.98.0 fields:
+	RouterSettings *RouterSettingsObservation `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
+
 	// Requests per minute limit.
 	// Requests per minute limit.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Type of RPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-	// Type of RPM limit: 'key' (default) or 'team'. If 'team', RPM is shared across all keys for the team.
+	// Type of RPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+	// RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
 	RpmLimitType *string `json:"rpmLimitType,omitempty" tf:"rpm_limit_type,omitempty"`
+
+	// Requests an asynchronous email for each successful key Create request. Requires user_id for an exact existing user with a syntactically valid email address and cannot be used with service_account_id. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement or an ambiguous Create retry can request another email.11+ when configured.
+	// Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.
+	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
 
 	// Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
 	// Service account ID for team-owned keys.
@@ -332,8 +350,8 @@ type KeyObservation struct {
 	// Tokens per minute limit.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 
-	// Type of TPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-	// Type of TPM limit: 'key' (default) or 'team'. If 'team', TPM is shared across all keys for the team.
+	// Type of TPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+	// TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
 	TpmLimitType *string `json:"tpmLimitType,omitempty" tf:"tpm_limit_type,omitempty"`
 
 	// User ID associated with this key.
@@ -414,10 +432,20 @@ type KeyParameters struct {
 	// +kubebuilder:validation:Optional
 	KeyAlias *string `json:"keyAlias,omitempty" tf:"key_alias,omitempty"`
 
-	// User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state.
+	// User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state. Conflicts with key_wo.
 	// The API key value. If not specified, a key will be generated.
 	// +kubebuilder:validation:Optional
 	KeySecretRef *v2.LocalSecretKeySelector `json:"keySecretRef,omitempty" tf:"-"`
+
+	// Predefined key sent to LiteLLM but represented only by null in plan and state. Must be configured with key_wo_version. Use a cryptographically random, high-entropy value because its SHA256 management identifier is persisted.11+.
+	// Write-only predefined API key value. Use a cryptographically random, high-entropy key because its persisted SHA256 management identifier permits offline guesses of weak values.11 or compatible OpenTofu support.
+	// +kubebuilder:validation:Optional
+	KeyWoSecretRef *v2.LocalSecretKeySelector `json:"keyWoSecretRef,omitempty" tf:"-"`
+
+	// Persisted version or nonce for key_wo. Change this whenever the write-only secret changes. It conflicts with configurations that omit key_wo.
+	// Persisted version or nonce for key_wo. Change it when the write-only key changes; changing or removing it replaces the LiteLLM key.
+	// +kubebuilder:validation:Optional
+	KeyWoVersion *string `json:"keyWoVersion,omitempty" tf:"key_wo_version,omitempty"`
 
 	// Maximum budget for this key.
 	// Maximum budget for this key.
@@ -429,11 +457,10 @@ type KeyParameters struct {
 	// +kubebuilder:validation:Optional
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API.
-	// Metadata for the key.
+	// Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API. When LiteLLM returns nested credentials as litellm_enc:: or another recognized redaction marker, the provider retains the corresponding configured leaf while continuing to refresh unmasked metadata values for drift.
+	// Metadata for the key. Marked sensitive because values may contain API keys or other credentials.
 	// +kubebuilder:validation:Optional
-	// +mapType=granular
-	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+	MetadataSecretRef *v2.LocalSecretReference `json:"metadataSecretRef,omitempty" tf:"-"`
 
 	// Map of maximum budget per model. Note: Requires LiteLLM Enterprise license.
 	// Per-model budget limits.
@@ -497,15 +524,24 @@ type KeyParameters struct {
 	// +kubebuilder:validation:Optional
 	Prompts []*string `json:"prompts,omitempty" tf:"prompts,omitempty"`
 
+	// Complete key-specific router-settings document. Omitting the block leaves remote settings unmanaged. A configured block replaces the complete document on update rather than merging individual fields. Supported LiteLLM v1.98.0 fields:
+	// +kubebuilder:validation:Optional
+	RouterSettings *RouterSettingsParameters `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
+
 	// Requests per minute limit.
 	// Requests per minute limit.
 	// +kubebuilder:validation:Optional
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Type of RPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-	// Type of RPM limit: 'key' (default) or 'team'. If 'team', RPM is shared across all keys for the team.
+	// Type of RPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+	// RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
 	// +kubebuilder:validation:Optional
 	RpmLimitType *string `json:"rpmLimitType,omitempty" tf:"rpm_limit_type,omitempty"`
+
+	// Requests an asynchronous email for each successful key Create request. Requires user_id for an exact existing user with a syntactically valid email address and cannot be used with service_account_id. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement or an ambiguous Create retry can request another email.11+ when configured.
+	// Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.
+	// +kubebuilder:validation:Optional
+	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
 
 	// Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
 	// Service account ID for team-owned keys.
@@ -541,8 +577,8 @@ type KeyParameters struct {
 	// +kubebuilder:validation:Optional
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 
-	// Type of TPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-	// Type of TPM limit: 'key' (default) or 'team'. If 'team', TPM is shared across all keys for the team.
+	// Type of TPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+	// TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
 	// +kubebuilder:validation:Optional
 	TpmLimitType *string `json:"tpmLimitType,omitempty" tf:"tpm_limit_type,omitempty"`
 
@@ -559,6 +595,282 @@ type KeyParameters struct {
 	// Selector for a User in litellm to populate userId.
 	// +kubebuilder:validation:Optional
 	UserIDSelector *v2.NamespacedSelector `json:"userIdSelector,omitempty" tf:"-"`
+}
+
+type RetryPolicyInitParameters struct {
+	AuthenticationErrorRetries *float64 `json:"authenticationErrorRetries,omitempty" tf:"authentication_error_retries,omitempty"`
+
+	BadRequestErrorRetries *float64 `json:"badRequestErrorRetries,omitempty" tf:"bad_request_error_retries,omitempty"`
+
+	ContentPolicyViolationErrorRetries *float64 `json:"contentPolicyViolationErrorRetries,omitempty" tf:"content_policy_violation_error_retries,omitempty"`
+
+	InternalServerErrorRetries *float64 `json:"internalServerErrorRetries,omitempty" tf:"internal_server_error_retries,omitempty"`
+
+	RateLimitErrorRetries *float64 `json:"rateLimitErrorRetries,omitempty" tf:"rate_limit_error_retries,omitempty"`
+
+	TimeoutErrorRetries *float64 `json:"timeoutErrorRetries,omitempty" tf:"timeout_error_retries,omitempty"`
+}
+
+type RetryPolicyObservation struct {
+	AuthenticationErrorRetries *float64 `json:"authenticationErrorRetries,omitempty" tf:"authentication_error_retries,omitempty"`
+
+	BadRequestErrorRetries *float64 `json:"badRequestErrorRetries,omitempty" tf:"bad_request_error_retries,omitempty"`
+
+	ContentPolicyViolationErrorRetries *float64 `json:"contentPolicyViolationErrorRetries,omitempty" tf:"content_policy_violation_error_retries,omitempty"`
+
+	InternalServerErrorRetries *float64 `json:"internalServerErrorRetries,omitempty" tf:"internal_server_error_retries,omitempty"`
+
+	RateLimitErrorRetries *float64 `json:"rateLimitErrorRetries,omitempty" tf:"rate_limit_error_retries,omitempty"`
+
+	TimeoutErrorRetries *float64 `json:"timeoutErrorRetries,omitempty" tf:"timeout_error_retries,omitempty"`
+}
+
+type RetryPolicyParameters struct {
+
+	// +kubebuilder:validation:Optional
+	AuthenticationErrorRetries *float64 `json:"authenticationErrorRetries,omitempty" tf:"authentication_error_retries,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	BadRequestErrorRetries *float64 `json:"badRequestErrorRetries,omitempty" tf:"bad_request_error_retries,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ContentPolicyViolationErrorRetries *float64 `json:"contentPolicyViolationErrorRetries,omitempty" tf:"content_policy_violation_error_retries,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	InternalServerErrorRetries *float64 `json:"internalServerErrorRetries,omitempty" tf:"internal_server_error_retries,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	RateLimitErrorRetries *float64 `json:"rateLimitErrorRetries,omitempty" tf:"rate_limit_error_retries,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	TimeoutErrorRetries *float64 `json:"timeoutErrorRetries,omitempty" tf:"timeout_error_retries,omitempty"`
+}
+
+type RouterSettingsInitParameters struct {
+
+	// Failures allowed before cooldown.
+	// Failures allowed before a deployment enters cooldown.
+	AllowedFails *float64 `json:"allowedFails,omitempty" tf:"allowed_fails,omitempty"`
+
+	// Ordered JSON array of context-window fallback mappings.
+	// Ordered JSON array of context-window fallback mappings.
+	ContextWindowFallbacks *string `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
+
+	// Cooldown duration in seconds.
+	// Cooldown duration in seconds.
+	CooldownTime *float64 `json:"cooldownTime,omitempty" tf:"cooldown_time,omitempty"`
+
+	// Enables request-tag routing.
+	// Enable routing by request tags.
+	EnableTagFiltering *bool `json:"enableTagFiltering,omitempty" tf:"enable_tag_filtering,omitempty"`
+
+	// Ordered JSON array of model fallback mappings.
+	// Ordered JSON array of model fallback mappings.
+	Fallbacks *string `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
+
+	// Maximum retries.
+	// Maximum retries.
+	MaxRetries *float64 `json:"maxRetries,omitempty" tf:"max_retries,omitempty"`
+
+	// JSON object mapping affinity groups to lists of model groups.
+	// JSON object mapping affinity groups to arrays of model groups.
+	ModelGroupAffinityConfig *string `json:"modelGroupAffinityConfig,omitempty" tf:"model_group_affinity_config,omitempty"`
+
+	// JSON object mapping aliases to model groups or alias configuration objects.
+	// JSON object mapping aliases to model groups or alias configuration objects.
+	ModelGroupAlias *string `json:"modelGroupAlias,omitempty" tf:"model_group_alias,omitempty"`
+
+	// JSON object mapping model groups to retry policies. Nested retry keys use LiteLLM's PascalCase names, such as RateLimitErrorRetries.
+	// JSON object mapping model groups to retry-policy objects. Retry-policy keys use LiteLLM's PascalCase wire names.
+	ModelGroupRetryPolicy *string `json:"modelGroupRetryPolicy,omitempty" tf:"model_group_retry_policy,omitempty"`
+
+	// Number of request retries.
+	// Number of request retries.
+	NumRetries *float64 `json:"numRetries,omitempty" tf:"num_retries,omitempty"`
+
+	// Retry delay in seconds; decimal values are supported.
+	// Retry delay in seconds; decimal values are supported.
+	RetryAfter *float64 `json:"retryAfter,omitempty" tf:"retry_after,omitempty"`
+
+	// Typed retry counts: bad_request_error_retries, authentication_error_retries, timeout_error_retries, rate_limit_error_retries, content_policy_violation_error_retries, and internal_server_error_retries.
+	RetryPolicy *RetryPolicyInitParameters `json:"retryPolicy,omitempty" tf:"retry_policy,omitempty"`
+
+	// JSON array of routing groups.
+	// JSON array of routing groups.
+	RoutingGroups *string `json:"routingGroups,omitempty" tf:"routing_groups,omitempty"`
+
+	// Routing strategy name.
+	// Routing strategy name.
+	RoutingStrategy *string `json:"routingStrategy,omitempty" tf:"routing_strategy,omitempty"`
+
+	// JSON object passed to the routing strategy.
+	// JSON object passed to the routing strategy.
+	RoutingStrategyArgs *string `json:"routingStrategyArgs,omitempty" tf:"routing_strategy_args,omitempty"`
+
+	// Prefix for tag-based routing.
+	// Prefix used for tag-based routing.
+	TagRoutingPrefix *string `json:"tagRoutingPrefix,omitempty" tf:"tag_routing_prefix,omitempty"`
+
+	// Request timeout in seconds.
+	// Request timeout in seconds.
+	Timeout *float64 `json:"timeout,omitempty" tf:"timeout,omitempty"`
+}
+
+type RouterSettingsObservation struct {
+
+	// Failures allowed before cooldown.
+	// Failures allowed before a deployment enters cooldown.
+	AllowedFails *float64 `json:"allowedFails,omitempty" tf:"allowed_fails,omitempty"`
+
+	// Ordered JSON array of context-window fallback mappings.
+	// Ordered JSON array of context-window fallback mappings.
+	ContextWindowFallbacks *string `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
+
+	// Cooldown duration in seconds.
+	// Cooldown duration in seconds.
+	CooldownTime *float64 `json:"cooldownTime,omitempty" tf:"cooldown_time,omitempty"`
+
+	// Enables request-tag routing.
+	// Enable routing by request tags.
+	EnableTagFiltering *bool `json:"enableTagFiltering,omitempty" tf:"enable_tag_filtering,omitempty"`
+
+	// Ordered JSON array of model fallback mappings.
+	// Ordered JSON array of model fallback mappings.
+	Fallbacks *string `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
+
+	// Maximum retries.
+	// Maximum retries.
+	MaxRetries *float64 `json:"maxRetries,omitempty" tf:"max_retries,omitempty"`
+
+	// JSON object mapping affinity groups to lists of model groups.
+	// JSON object mapping affinity groups to arrays of model groups.
+	ModelGroupAffinityConfig *string `json:"modelGroupAffinityConfig,omitempty" tf:"model_group_affinity_config,omitempty"`
+
+	// JSON object mapping aliases to model groups or alias configuration objects.
+	// JSON object mapping aliases to model groups or alias configuration objects.
+	ModelGroupAlias *string `json:"modelGroupAlias,omitempty" tf:"model_group_alias,omitempty"`
+
+	// JSON object mapping model groups to retry policies. Nested retry keys use LiteLLM's PascalCase names, such as RateLimitErrorRetries.
+	// JSON object mapping model groups to retry-policy objects. Retry-policy keys use LiteLLM's PascalCase wire names.
+	ModelGroupRetryPolicy *string `json:"modelGroupRetryPolicy,omitempty" tf:"model_group_retry_policy,omitempty"`
+
+	// Number of request retries.
+	// Number of request retries.
+	NumRetries *float64 `json:"numRetries,omitempty" tf:"num_retries,omitempty"`
+
+	// Retry delay in seconds; decimal values are supported.
+	// Retry delay in seconds; decimal values are supported.
+	RetryAfter *float64 `json:"retryAfter,omitempty" tf:"retry_after,omitempty"`
+
+	// Typed retry counts: bad_request_error_retries, authentication_error_retries, timeout_error_retries, rate_limit_error_retries, content_policy_violation_error_retries, and internal_server_error_retries.
+	RetryPolicy *RetryPolicyObservation `json:"retryPolicy,omitempty" tf:"retry_policy,omitempty"`
+
+	// JSON array of routing groups.
+	// JSON array of routing groups.
+	RoutingGroups *string `json:"routingGroups,omitempty" tf:"routing_groups,omitempty"`
+
+	// Routing strategy name.
+	// Routing strategy name.
+	RoutingStrategy *string `json:"routingStrategy,omitempty" tf:"routing_strategy,omitempty"`
+
+	// JSON object passed to the routing strategy.
+	// JSON object passed to the routing strategy.
+	RoutingStrategyArgs *string `json:"routingStrategyArgs,omitempty" tf:"routing_strategy_args,omitempty"`
+
+	// Prefix for tag-based routing.
+	// Prefix used for tag-based routing.
+	TagRoutingPrefix *string `json:"tagRoutingPrefix,omitempty" tf:"tag_routing_prefix,omitempty"`
+
+	// Request timeout in seconds.
+	// Request timeout in seconds.
+	Timeout *float64 `json:"timeout,omitempty" tf:"timeout,omitempty"`
+}
+
+type RouterSettingsParameters struct {
+
+	// Failures allowed before cooldown.
+	// Failures allowed before a deployment enters cooldown.
+	// +kubebuilder:validation:Optional
+	AllowedFails *float64 `json:"allowedFails,omitempty" tf:"allowed_fails,omitempty"`
+
+	// Ordered JSON array of context-window fallback mappings.
+	// Ordered JSON array of context-window fallback mappings.
+	// +kubebuilder:validation:Optional
+	ContextWindowFallbacks *string `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
+
+	// Cooldown duration in seconds.
+	// Cooldown duration in seconds.
+	// +kubebuilder:validation:Optional
+	CooldownTime *float64 `json:"cooldownTime,omitempty" tf:"cooldown_time,omitempty"`
+
+	// Enables request-tag routing.
+	// Enable routing by request tags.
+	// +kubebuilder:validation:Optional
+	EnableTagFiltering *bool `json:"enableTagFiltering,omitempty" tf:"enable_tag_filtering,omitempty"`
+
+	// Ordered JSON array of model fallback mappings.
+	// Ordered JSON array of model fallback mappings.
+	// +kubebuilder:validation:Optional
+	Fallbacks *string `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
+
+	// Maximum retries.
+	// Maximum retries.
+	// +kubebuilder:validation:Optional
+	MaxRetries *float64 `json:"maxRetries,omitempty" tf:"max_retries,omitempty"`
+
+	// JSON object mapping affinity groups to lists of model groups.
+	// JSON object mapping affinity groups to arrays of model groups.
+	// +kubebuilder:validation:Optional
+	ModelGroupAffinityConfig *string `json:"modelGroupAffinityConfig,omitempty" tf:"model_group_affinity_config,omitempty"`
+
+	// JSON object mapping aliases to model groups or alias configuration objects.
+	// JSON object mapping aliases to model groups or alias configuration objects.
+	// +kubebuilder:validation:Optional
+	ModelGroupAlias *string `json:"modelGroupAlias,omitempty" tf:"model_group_alias,omitempty"`
+
+	// JSON object mapping model groups to retry policies. Nested retry keys use LiteLLM's PascalCase names, such as RateLimitErrorRetries.
+	// JSON object mapping model groups to retry-policy objects. Retry-policy keys use LiteLLM's PascalCase wire names.
+	// +kubebuilder:validation:Optional
+	ModelGroupRetryPolicy *string `json:"modelGroupRetryPolicy,omitempty" tf:"model_group_retry_policy,omitempty"`
+
+	// Number of request retries.
+	// Number of request retries.
+	// +kubebuilder:validation:Optional
+	NumRetries *float64 `json:"numRetries,omitempty" tf:"num_retries,omitempty"`
+
+	// Retry delay in seconds; decimal values are supported.
+	// Retry delay in seconds; decimal values are supported.
+	// +kubebuilder:validation:Optional
+	RetryAfter *float64 `json:"retryAfter,omitempty" tf:"retry_after,omitempty"`
+
+	// Typed retry counts: bad_request_error_retries, authentication_error_retries, timeout_error_retries, rate_limit_error_retries, content_policy_violation_error_retries, and internal_server_error_retries.
+	// +kubebuilder:validation:Optional
+	RetryPolicy *RetryPolicyParameters `json:"retryPolicy,omitempty" tf:"retry_policy,omitempty"`
+
+	// JSON array of routing groups.
+	// JSON array of routing groups.
+	// +kubebuilder:validation:Optional
+	RoutingGroups *string `json:"routingGroups,omitempty" tf:"routing_groups,omitempty"`
+
+	// Routing strategy name.
+	// Routing strategy name.
+	// +kubebuilder:validation:Optional
+	RoutingStrategy *string `json:"routingStrategy,omitempty" tf:"routing_strategy,omitempty"`
+
+	// JSON object passed to the routing strategy.
+	// JSON object passed to the routing strategy.
+	// +kubebuilder:validation:Optional
+	RoutingStrategyArgs *string `json:"routingStrategyArgs,omitempty" tf:"routing_strategy_args,omitempty"`
+
+	// Prefix for tag-based routing.
+	// Prefix used for tag-based routing.
+	// +kubebuilder:validation:Optional
+	TagRoutingPrefix *string `json:"tagRoutingPrefix,omitempty" tf:"tag_routing_prefix,omitempty"`
+
+	// Request timeout in seconds.
+	// Request timeout in seconds.
+	// +kubebuilder:validation:Optional
+	Timeout *float64 `json:"timeout,omitempty" tf:"timeout,omitempty"`
 }
 
 // KeySpec defines the desired state of Key

@@ -110,8 +110,8 @@ spec:
                     type: string
                   searchToolInfo:
                     description: |-
-                      A JSON string containing additional search tool configuration. Use jsonencode() to construct this value. The provider automatically parses it into a JSON object when sending to the API.
-                      Additional search tool configuration as a JSON string.
+                      A JSON object string containing additional search tool configuration. Use jsonencode() to construct this value. Invalid syntax, JSON null, arrays, and scalar roots are rejected before mutation. Authoritative object read-back preserves semantically equivalent configured key order, whitespace, and exact number notation. Imports initially adopt the authoritative object, which can then be kept configured or deliberately omitted.
+                      Additional search tool configuration as a validated JSON object string.
                     type: string
                   searchToolName:
                     description: |-
@@ -173,8 +173,8 @@ spec:
                     type: string
                   searchToolInfo:
                     description: |-
-                      A JSON string containing additional search tool configuration. Use jsonencode() to construct this value. The provider automatically parses it into a JSON object when sending to the API.
-                      Additional search tool configuration as a JSON string.
+                      A JSON object string containing additional search tool configuration. Use jsonencode() to construct this value. Invalid syntax, JSON null, arrays, and scalar roots are rejected before mutation. Authoritative object read-back preserves semantically equivalent configured key order, whitespace, and exact number notation. Imports initially adopt the authoritative object, which can then be kept configured or deliberately omitted.
+                      Additional search tool configuration as a validated JSON object string.
                     type: string
                   searchToolName:
                     description: |-
@@ -312,8 +312,8 @@ spec:
                     type: string
                   searchToolInfo:
                     description: |-
-                      A JSON string containing additional search tool configuration. Use jsonencode() to construct this value. The provider automatically parses it into a JSON object when sending to the API.
-                      Additional search tool configuration as a JSON string.
+                      A JSON object string containing additional search tool configuration. Use jsonencode() to construct this value. Invalid syntax, JSON null, arrays, and scalar roots are rejected before mutation. Authoritative object read-back preserves semantically equivalent configured key order, whitespace, and exact number notation. Imports initially adopt the authoritative object, which can then be kept configured or deliberately omitted.
+                      Additional search tool configuration as a validated JSON object string.
                     type: string
                   searchToolName:
                     description: |-

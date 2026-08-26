@@ -35,8 +35,8 @@ spec:
     schema:
       openAPIV3Schema:
         description: Organization is the Schema for the Organizations API. Manages
-          organizations in LiteLLM. Organizations provide a way to group teams and
-          users together under a shared budget and set of permissions.
+          a LiteLLM organization. Organizations group teams and users under shared
+          model access and budget controls.
         properties:
           apiVersion:
             description: |-
@@ -76,18 +76,18 @@ spec:
                 properties:
                   blocked:
                     description: |-
-                      (Bool) Whether the organization is blocked from making requests.
-                      Flag indicating if the org is blocked.
+                      (Bool, Deprecated) Compatibility-only. false is a no-op; new true configuration is rejected.
+                      Deprecated compatibility field. LiteLLM v1.98 has no persistent organization blocked column; false is accepted as a no-op and true is rejected.
                     type: boolean
                   budgetDuration:
                     description: |-
-                      (String) Duration of the budget window (e.g., "30d", "1h", "7d").
-                      Frequency of resetting org budget (e.g., '30d', '1mo').
+                      (String) Reset duration such as "30d", "1h", or "7d".
+                      Budget reset duration (for example, '30d' or '1h').
                     type: string
                   budgetId:
                     description: |-
-                      (String) The ID of an existing budget to associate with this organization.
-                      The ID for a budget (tpm/rpm/max budget) for the organization.
+                      (String) Existing budget to use during creation. Reassociating an existing organization is blocked because v1.98 has no safe convergent reassociation lifecycle.
+                      The ID for the organization's budget. Reassociating an existing organization is not supported safely by LiteLLM v1.98.
                     type: string
                   budgetIdRef:
                     description: Reference to a Budget in litellm to populate budgetId.
@@ -165,14 +165,19 @@ spec:
                     type: object
                   maxBudget:
                     description: |-
-                      (Float64) Maximum budget allowed for the organization.
-                      Max budget for the organization.
+                      (Float64) Hard budget limit.
+                      Maximum hard budget for the organization.
+                    type: number
+                  maxParallelRequests:
+                    description: |-
+                      (Int64) Concurrent request limit.
+                      Maximum parallel requests for the organization budget.
                     type: number
                   metadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Metadata associated with the organization. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+                      (Map of String) Organization metadata. Use jsonencode() for complex values.
                       Metadata for the organization.
                     type: object
                     x-kubernetes-map-type: granular
@@ -180,46 +185,51 @@ spec:
                     additionalProperties:
                       type: number
                     description: |-
-                      (Map of Int64) Per-model requests per minute limits.
-                      The RPM (Requests Per Minute) limit per model for this organization.
+                      (Map of Int64) Per-model RPM limits stored in organization metadata.
+                      The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
                     type: object
                     x-kubernetes-map-type: granular
                   modelTpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      (Map of Int64) Per-model tokens per minute limits.
-                      The TPM (Tokens Per Minute) limit per model for this organization.
+                      (Map of Int64) Per-model TPM limits stored in organization metadata.
+                      The TPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
                     type: object
                     x-kubernetes-map-type: granular
                   models:
                     description: |-
-                      (List of String) List of model names the organization is allowed to use.
+                      (List of String) Models the organization may use. Configure [] to clear the list.
                       The models the organization has access to.
                     items:
                       type: string
                     type: array
                   organizationAlias:
                     description: |-
-                      (String) A human-readable alias for the organization. Must be unique.
+                      (String) Human-readable organization alias.
                       The name/alias of the organization.
                     type: string
                   rpmLimit:
                     description: |-
-                      (Int64) Requests per minute limit for the organization.
-                      Max RPM limit for the organization.
+                      (Int64) Requests-per-minute limit.
+                      Maximum requests per minute for the organization.
+                    type: number
+                  softBudget:
+                    description: |-
+                      (Float64) Budget alert threshold.
+                      Soft budget alert threshold for the organization.
                     type: number
                   tags:
                     description: |-
-                      (List of String) Tags associated with the organization.
-                      Tags for tracking spend and/or tag-based routing.
+                      (List of String, Deprecated) Compatibility-only. [] is a no-op; new non-empty configuration is rejected.
+                      Deprecated compatibility field. LiteLLM v1.98 has no persistent organization tags column; an empty list is accepted as a no-op and non-empty values are rejected.
                     items:
                       type: string
                     type: array
                   tpmLimit:
                     description: |-
-                      (Int64) Tokens per minute limit for the organization.
-                      Max TPM limit for the organization.
+                      (Int64) Tokens-per-minute limit.
+                      Maximum tokens per minute for the organization.
                     type: number
                 type: object
               initProvider:
@@ -237,18 +247,18 @@ spec:
                 properties:
                   blocked:
                     description: |-
-                      (Bool) Whether the organization is blocked from making requests.
-                      Flag indicating if the org is blocked.
+                      (Bool, Deprecated) Compatibility-only. false is a no-op; new true configuration is rejected.
+                      Deprecated compatibility field. LiteLLM v1.98 has no persistent organization blocked column; false is accepted as a no-op and true is rejected.
                     type: boolean
                   budgetDuration:
                     description: |-
-                      (String) Duration of the budget window (e.g., "30d", "1h", "7d").
-                      Frequency of resetting org budget (e.g., '30d', '1mo').
+                      (String) Reset duration such as "30d", "1h", or "7d".
+                      Budget reset duration (for example, '30d' or '1h').
                     type: string
                   budgetId:
                     description: |-
-                      (String) The ID of an existing budget to associate with this organization.
-                      The ID for a budget (tpm/rpm/max budget) for the organization.
+                      (String) Existing budget to use during creation. Reassociating an existing organization is blocked because v1.98 has no safe convergent reassociation lifecycle.
+                      The ID for the organization's budget. Reassociating an existing organization is not supported safely by LiteLLM v1.98.
                     type: string
                   budgetIdRef:
                     description: Reference to a Budget in litellm to populate budgetId.
@@ -326,14 +336,19 @@ spec:
                     type: object
                   maxBudget:
                     description: |-
-                      (Float64) Maximum budget allowed for the organization.
-                      Max budget for the organization.
+                      (Float64) Hard budget limit.
+                      Maximum hard budget for the organization.
+                    type: number
+                  maxParallelRequests:
+                    description: |-
+                      (Int64) Concurrent request limit.
+                      Maximum parallel requests for the organization budget.
                     type: number
                   metadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Metadata associated with the organization. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+                      (Map of String) Organization metadata. Use jsonencode() for complex values.
                       Metadata for the organization.
                     type: object
                     x-kubernetes-map-type: granular
@@ -341,46 +356,51 @@ spec:
                     additionalProperties:
                       type: number
                     description: |-
-                      (Map of Int64) Per-model requests per minute limits.
-                      The RPM (Requests Per Minute) limit per model for this organization.
+                      (Map of Int64) Per-model RPM limits stored in organization metadata.
+                      The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
                     type: object
                     x-kubernetes-map-type: granular
                   modelTpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      (Map of Int64) Per-model tokens per minute limits.
-                      The TPM (Tokens Per Minute) limit per model for this organization.
+                      (Map of Int64) Per-model TPM limits stored in organization metadata.
+                      The TPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
                     type: object
                     x-kubernetes-map-type: granular
                   models:
                     description: |-
-                      (List of String) List of model names the organization is allowed to use.
+                      (List of String) Models the organization may use. Configure [] to clear the list.
                       The models the organization has access to.
                     items:
                       type: string
                     type: array
                   organizationAlias:
                     description: |-
-                      (String) A human-readable alias for the organization. Must be unique.
+                      (String) Human-readable organization alias.
                       The name/alias of the organization.
                     type: string
                   rpmLimit:
                     description: |-
-                      (Int64) Requests per minute limit for the organization.
-                      Max RPM limit for the organization.
+                      (Int64) Requests-per-minute limit.
+                      Maximum requests per minute for the organization.
+                    type: number
+                  softBudget:
+                    description: |-
+                      (Float64) Budget alert threshold.
+                      Soft budget alert threshold for the organization.
                     type: number
                   tags:
                     description: |-
-                      (List of String) Tags associated with the organization.
-                      Tags for tracking spend and/or tag-based routing.
+                      (List of String, Deprecated) Compatibility-only. [] is a no-op; new non-empty configuration is rejected.
+                      Deprecated compatibility field. LiteLLM v1.98 has no persistent organization tags column; an empty list is accepted as a no-op and non-empty values are rejected.
                     items:
                       type: string
                     type: array
                   tpmLimit:
                     description: |-
-                      (Int64) Tokens per minute limit for the organization.
-                      Max TPM limit for the organization.
+                      (Int64) Tokens-per-minute limit.
+                      Maximum tokens per minute for the organization.
                     type: number
                 type: object
               managementPolicies:
@@ -481,38 +501,42 @@ spec:
                 properties:
                   blocked:
                     description: |-
-                      (Bool) Whether the organization is blocked from making requests.
-                      Flag indicating if the org is blocked.
+                      (Bool, Deprecated) Compatibility-only. false is a no-op; new true configuration is rejected.
+                      Deprecated compatibility field. LiteLLM v1.98 has no persistent organization blocked column; false is accepted as a no-op and true is rejected.
                     type: boolean
                   budgetDuration:
                     description: |-
-                      (String) Duration of the budget window (e.g., "30d", "1h", "7d").
-                      Frequency of resetting org budget (e.g., '30d', '1mo').
+                      (String) Reset duration such as "30d", "1h", or "7d".
+                      Budget reset duration (for example, '30d' or '1h').
                     type: string
                   budgetId:
                     description: |-
-                      (String) The ID of an existing budget to associate with this organization.
-                      The ID for a budget (tpm/rpm/max budget) for the organization.
+                      (String) Existing budget to use during creation. Reassociating an existing organization is blocked because v1.98 has no safe convergent reassociation lifecycle.
+                      The ID for the organization's budget. Reassociating an existing organization is not supported safely by LiteLLM v1.98.
                     type: string
                   createdAt:
                     description: |-
-                      Timestamp of when the organization was created.
+                      Creation timestamp.
                       Timestamp when the organization was created.
                     type: string
                   id:
-                    description: The unique identifier for the organization (same
-                      as organization_id).
+                    description: Organization ID, equal to organization_id.
                     type: string
                   maxBudget:
                     description: |-
-                      (Float64) Maximum budget allowed for the organization.
-                      Max budget for the organization.
+                      (Float64) Hard budget limit.
+                      Maximum hard budget for the organization.
+                    type: number
+                  maxParallelRequests:
+                    description: |-
+                      (Int64) Concurrent request limit.
+                      Maximum parallel requests for the organization budget.
                     type: number
                   metadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Metadata associated with the organization. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+                      (Map of String) Organization metadata. Use jsonencode() for complex values.
                       Metadata for the organization.
                     type: object
                     x-kubernetes-map-type: granular
@@ -520,46 +544,51 @@ spec:
                     additionalProperties:
                       type: number
                     description: |-
-                      (Map of Int64) Per-model requests per minute limits.
-                      The RPM (Requests Per Minute) limit per model for this organization.
+                      (Map of Int64) Per-model RPM limits stored in organization metadata.
+                      The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
                     type: object
                     x-kubernetes-map-type: granular
                   modelTpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      (Map of Int64) Per-model tokens per minute limits.
-                      The TPM (Tokens Per Minute) limit per model for this organization.
+                      (Map of Int64) Per-model TPM limits stored in organization metadata.
+                      The TPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
                     type: object
                     x-kubernetes-map-type: granular
                   models:
                     description: |-
-                      (List of String) List of model names the organization is allowed to use.
+                      (List of String) Models the organization may use. Configure [] to clear the list.
                       The models the organization has access to.
                     items:
                       type: string
                     type: array
                   organizationAlias:
                     description: |-
-                      (String) A human-readable alias for the organization. Must be unique.
+                      (String) Human-readable organization alias.
                       The name/alias of the organization.
                     type: string
                   rpmLimit:
                     description: |-
-                      (Int64) Requests per minute limit for the organization.
-                      Max RPM limit for the organization.
+                      (Int64) Requests-per-minute limit.
+                      Maximum requests per minute for the organization.
+                    type: number
+                  softBudget:
+                    description: |-
+                      (Float64) Budget alert threshold.
+                      Soft budget alert threshold for the organization.
                     type: number
                   tags:
                     description: |-
-                      (List of String) Tags associated with the organization.
-                      Tags for tracking spend and/or tag-based routing.
+                      (List of String, Deprecated) Compatibility-only. [] is a no-op; new non-empty configuration is rejected.
+                      Deprecated compatibility field. LiteLLM v1.98 has no persistent organization tags column; an empty list is accepted as a no-op and non-empty values are rejected.
                     items:
                       type: string
                     type: array
                   tpmLimit:
                     description: |-
-                      (Int64) Tokens per minute limit for the organization.
-                      Max TPM limit for the organization.
+                      (Int64) Tokens-per-minute limit.
+                      Maximum tokens per minute for the organization.
                     type: number
                 type: object
               conditions:

@@ -81,27 +81,34 @@ spec:
                     type: string
                   litellmCredentialName:
                     description: |-
-                      The name of the LiteLLM credential to use for authenticating with the provider.
-                      Name of the LiteLLM credential to use.
+                      The name of the LiteLLM credential to use for authenticating with the provider. LiteLLM v1.98 does not accept this field on update, so changing or removing an owned value replaces the vector store.
+                      Name of the LiteLLM credential to use. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
                     type: string
-                  litellmParams:
-                    additionalProperties:
-                      type: string
+                  litellmParamsSecretRef:
                     description: |-
-                      A map of string key-value pairs containing additional LiteLLM-specific parameters for the vector store.
-                      Additional LiteLLM parameters.
+                      A map of string key-value pairs containing additional LiteLLM-specific parameters. Changing or removing this create-only map replaces the vector store.
+                      Additional LiteLLM parameters. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
+                    properties:
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - name
+                    - namespace
                     type: object
-                    x-kubernetes-map-type: granular
                   vectorStoreDescription:
                     description: |-
-                      A human-readable description of the vector store.
+                      A human-readable description of the vector store. Removing it sends an explicit empty-string update.
                       Description of the vector store.
                     type: string
                   vectorStoreMetadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      A map of string key-value pairs containing metadata for the vector store.
+                      A complete map of string key-value pairs containing metadata for the vector store. {} and removal of an owned map send an explicit empty-map update. Imported metadata remains unmanaged while omitted.
                       Metadata associated with the vector store.
                     type: object
                     x-kubernetes-map-type: granular
@@ -131,27 +138,23 @@ spec:
                     type: string
                   litellmCredentialName:
                     description: |-
-                      The name of the LiteLLM credential to use for authenticating with the provider.
-                      Name of the LiteLLM credential to use.
+                      The name of the LiteLLM credential to use for authenticating with the provider. LiteLLM v1.98 does not accept this field on update, so changing or removing an owned value replaces the vector store.
+                      Name of the LiteLLM credential to use. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
                     type: string
-                  litellmParams:
+                  litellmParamsSecretRef:
                     additionalProperties:
                       type: string
-                    description: |-
-                      A map of string key-value pairs containing additional LiteLLM-specific parameters for the vector store.
-                      Additional LiteLLM parameters.
                     type: object
-                    x-kubernetes-map-type: granular
                   vectorStoreDescription:
                     description: |-
-                      A human-readable description of the vector store.
+                      A human-readable description of the vector store. Removing it sends an explicit empty-string update.
                       Description of the vector store.
                     type: string
                   vectorStoreMetadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      A map of string key-value pairs containing metadata for the vector store.
+                      A complete map of string key-value pairs containing metadata for the vector store. {} and removal of an owned map send an explicit empty-map update. Imported metadata remains unmanaged while omitted.
                       Metadata associated with the vector store.
                     type: object
                     x-kubernetes-map-type: granular
@@ -276,22 +279,23 @@ spec:
                     type: string
                   litellmCredentialName:
                     description: |-
-                      The name of the LiteLLM credential to use for authenticating with the provider.
-                      Name of the LiteLLM credential to use.
+                      The name of the LiteLLM credential to use for authenticating with the provider. LiteLLM v1.98 does not accept this field on update, so changing or removing an owned value replaces the vector store.
+                      Name of the LiteLLM credential to use. Changes require replacement because LiteLLM v1.98 does not accept this field on update.
                     type: string
-                  litellmParams:
-                    additionalProperties:
-                      type: string
-                    description: |-
-                      A map of string key-value pairs containing additional LiteLLM-specific parameters for the vector store.
-                      Additional LiteLLM parameters.
-                    type: object
-                    x-kubernetes-map-type: granular
+                  litellmCredentialNameConfigured:
+                    description: Internal ownership marker for litellm_credential_name.
+                    type: boolean
+                  litellmParamsConfigured:
+                    description: Internal ownership marker for litellm_params.
+                    type: boolean
                   vectorStoreDescription:
                     description: |-
-                      A human-readable description of the vector store.
+                      A human-readable description of the vector store. Removing it sends an explicit empty-string update.
                       Description of the vector store.
                     type: string
+                  vectorStoreDescriptionConfigured:
+                    description: Internal ownership marker for vector_store_description.
+                    type: boolean
                   vectorStoreId:
                     description: |-
                       The unique identifier assigned to the vector store by LiteLLM.
@@ -301,10 +305,13 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      A map of string key-value pairs containing metadata for the vector store.
+                      A complete map of string key-value pairs containing metadata for the vector store. {} and removal of an owned map send an explicit empty-map update. Imported metadata remains unmanaged while omitted.
                       Metadata associated with the vector store.
                     type: object
                     x-kubernetes-map-type: granular
+                  vectorStoreMetadataConfigured:
+                    description: Internal ownership marker for vector_store_metadata.
+                    type: boolean
                   vectorStoreName:
                     description: |-
                       The name of the vector store.

@@ -15,72 +15,72 @@ import (
 
 type ProjectInitParameters struct {
 
-	// Whether the project is blocked from making requests.
+	// Whether the project is blocked.
 	// Whether the project is blocked from making requests.
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// Budget reset duration (e.g. 30d, 1h).
-	// Budget reset duration (e.g. '30d', '1h').
+	// Reset duration such as "30d" or "1h".
+	// Budget reset duration (for example, '30d' or '1h').
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// Budget ID to associate with this project.
-	// Budget ID to associate with this project.
+	// Existing budget to associate during creation. Reassociation after creation is blocked because v1.98 cannot converge it safely.
+	// Budget ID associated with this project. Reassociation is not safely supported by LiteLLM v1.98.
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
-	// Description of the project's purpose and use case.
+	// Project description.
 	// Description of the project's purpose and use case.
 	Description *string `json:"description,omitempty" tf:"description,omitempty"`
 
-	// Maximum budget for this project.
+	// Hard budget limit.
 	// Maximum budget for this project.
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// Maximum parallel requests allowed.
+	// Concurrent request limit.
 	// Maximum parallel requests allowed.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Metadata for the project. Values are strings; use jsonencode() for complex values.
+	// Metadata; use jsonencode() for complex values.
 	// Metadata for the project. Values are strings; use jsonencode() for complex values.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
 
-	// Per-model budget limits (map of model name to float).
-	// Per-model budget limits.
+	// Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
+	// Legacy per-model budget map shape retained for schema compatibility.
 	// +mapType=granular
 	ModelMaxBudget map[string]*float64 `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 
-	// Per-model RPM limits (map of model name to int).
-	// Per-model RPM limits.
+	// Per-model RPM limits stored in metadata.
+	// Per-model RPM limits stored in project metadata.
 	// +mapType=granular
 	ModelRpmLimit map[string]*float64 `json:"modelRpmLimit,omitempty" tf:"model_rpm_limit,omitempty"`
 
-	// Per-model TPM limits (map of model name to int).
-	// Per-model TPM limits.
+	// Per-model TPM limits stored in metadata.
+	// Per-model TPM limits stored in project metadata.
 	// +mapType=granular
 	ModelTpmLimit map[string]*float64 `json:"modelTpmLimit,omitempty" tf:"model_tpm_limit,omitempty"`
 
-	// List of models the project can access.
+	// Accessible models. Configure [] to clear.
 	// List of models the project can access.
 	Models []*string `json:"models,omitempty" tf:"models,omitempty"`
 
-	// Human-friendly name for the project.
+	// Human-friendly project name.
 	// Human-friendly name for the project.
 	ProjectAlias *string `json:"projectAlias,omitempty" tf:"project_alias,omitempty"`
 
-	// Requests per minute limit.
+	// Requests-per-minute limit.
 	// Requests per minute limit.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Soft budget limit for warnings.
+	// Alert threshold.
 	// Soft budget limit for warnings.
 	SoftBudget *float64 `json:"softBudget,omitempty" tf:"soft_budget,omitempty"`
 
-	// Tags associated with the project.
-	// Tags associated with the project.
+	// Tags. LiteLLM v1.98 stores them in project metadata, and the provider reads that location authoritatively.
+	// Tags associated with the project. LiteLLM v1.98 stores these in project metadata.
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 
-	// The team ID that this project belongs to. Changing this forces a new resource.
-	// The team ID that this project belongs to. Required.
+	// Parent team ID.
+	// The team ID that this project belongs to.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Team
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
 
@@ -92,188 +92,186 @@ type ProjectInitParameters struct {
 	// +kubebuilder:validation:Optional
 	TeamIDSelector *v2.Selector `json:"teamIdSelector,omitempty" tf:"-"`
 
-	// Tokens per minute limit.
+	// Tokens-per-minute limit.
 	// Tokens per minute limit.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 }
 
 type ProjectObservation struct {
 
-	// Whether the project is blocked from making requests.
+	// Whether the project is blocked.
 	// Whether the project is blocked from making requests.
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// Budget reset duration (e.g. 30d, 1h).
-	// Budget reset duration (e.g. '30d', '1h').
+	// Reset duration such as "30d" or "1h".
+	// Budget reset duration (for example, '30d' or '1h').
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// Budget ID to associate with this project.
-	// Budget ID to associate with this project.
+	// Existing budget to associate during creation. Reassociation after creation is blocked because v1.98 cannot converge it safely.
+	// Budget ID associated with this project. Reassociation is not safely supported by LiteLLM v1.98.
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
-	// Timestamp when the project was created.
+	// Creation and update timestamps.
 	// Timestamp when the project was created.
 	CreatedAt *string `json:"createdAt,omitempty" tf:"created_at,omitempty"`
 
-	// User who created the project.
+	// Creating and last-updating users.
 	// User who created the project.
 	CreatedBy *string `json:"createdBy,omitempty" tf:"created_by,omitempty"`
 
-	// Description of the project's purpose and use case.
+	// Project description.
 	// Description of the project's purpose and use case.
 	Description *string `json:"description,omitempty" tf:"description,omitempty"`
 
-	// The project ID assigned by LiteLLM.
+	// Project ID.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// Maximum budget for this project.
+	// Hard budget limit.
 	// Maximum budget for this project.
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// Maximum parallel requests allowed.
+	// Concurrent request limit.
 	// Maximum parallel requests allowed.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Metadata for the project. Values are strings; use jsonencode() for complex values.
+	// Metadata; use jsonencode() for complex values.
 	// Metadata for the project. Values are strings; use jsonencode() for complex values.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
 
-	// Per-model budget limits (map of model name to float).
-	// Per-model budget limits.
+	// Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
+	// Legacy per-model budget map shape retained for schema compatibility.
 	// +mapType=granular
 	ModelMaxBudget map[string]*float64 `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 
-	// Per-model RPM limits (map of model name to int).
-	// Per-model RPM limits.
+	// Per-model RPM limits stored in metadata.
+	// Per-model RPM limits stored in project metadata.
 	// +mapType=granular
 	ModelRpmLimit map[string]*float64 `json:"modelRpmLimit,omitempty" tf:"model_rpm_limit,omitempty"`
 
-	// Per-model TPM limits (map of model name to int).
-	// Per-model TPM limits.
+	// Per-model TPM limits stored in metadata.
+	// Per-model TPM limits stored in project metadata.
 	// +mapType=granular
 	ModelTpmLimit map[string]*float64 `json:"modelTpmLimit,omitempty" tf:"model_tpm_limit,omitempty"`
 
-	// List of models the project can access.
+	// Accessible models. Configure [] to clear.
 	// List of models the project can access.
 	Models []*string `json:"models,omitempty" tf:"models,omitempty"`
 
-	// Human-friendly name for the project.
+	// Human-friendly project name.
 	// Human-friendly name for the project.
 	ProjectAlias *string `json:"projectAlias,omitempty" tf:"project_alias,omitempty"`
 
-	// Requests per minute limit.
+	// Requests-per-minute limit.
 	// Requests per minute limit.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Soft budget limit for warnings.
+	// Alert threshold.
 	// Soft budget limit for warnings.
 	SoftBudget *float64 `json:"softBudget,omitempty" tf:"soft_budget,omitempty"`
 
-	// Tags associated with the project.
-	// Tags associated with the project.
+	// Tags. LiteLLM v1.98 stores them in project metadata, and the provider reads that location authoritatively.
+	// Tags associated with the project. LiteLLM v1.98 stores these in project metadata.
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 
-	// The team ID that this project belongs to. Changing this forces a new resource.
-	// The team ID that this project belongs to. Required.
+	// Parent team ID.
+	// The team ID that this project belongs to.
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
 
-	// Tokens per minute limit.
+	// Tokens-per-minute limit.
 	// Tokens per minute limit.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 
 	// Timestamp when the project was last updated.
-	// Timestamp when the project was last updated.
 	UpdatedAt *string `json:"updatedAt,omitempty" tf:"updated_at,omitempty"`
 
-	// User who last updated the project.
 	// User who last updated the project.
 	UpdatedBy *string `json:"updatedBy,omitempty" tf:"updated_by,omitempty"`
 }
 
 type ProjectParameters struct {
 
-	// Whether the project is blocked from making requests.
+	// Whether the project is blocked.
 	// Whether the project is blocked from making requests.
 	// +kubebuilder:validation:Optional
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// Budget reset duration (e.g. 30d, 1h).
-	// Budget reset duration (e.g. '30d', '1h').
+	// Reset duration such as "30d" or "1h".
+	// Budget reset duration (for example, '30d' or '1h').
 	// +kubebuilder:validation:Optional
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// Budget ID to associate with this project.
-	// Budget ID to associate with this project.
+	// Existing budget to associate during creation. Reassociation after creation is blocked because v1.98 cannot converge it safely.
+	// Budget ID associated with this project. Reassociation is not safely supported by LiteLLM v1.98.
 	// +kubebuilder:validation:Optional
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
-	// Description of the project's purpose and use case.
+	// Project description.
 	// Description of the project's purpose and use case.
 	// +kubebuilder:validation:Optional
 	Description *string `json:"description,omitempty" tf:"description,omitempty"`
 
-	// Maximum budget for this project.
+	// Hard budget limit.
 	// Maximum budget for this project.
 	// +kubebuilder:validation:Optional
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// Maximum parallel requests allowed.
+	// Concurrent request limit.
 	// Maximum parallel requests allowed.
 	// +kubebuilder:validation:Optional
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Metadata for the project. Values are strings; use jsonencode() for complex values.
+	// Metadata; use jsonencode() for complex values.
 	// Metadata for the project. Values are strings; use jsonencode() for complex values.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
 
-	// Per-model budget limits (map of model name to float).
-	// Per-model budget limits.
+	// Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
+	// Legacy per-model budget map shape retained for schema compatibility.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	ModelMaxBudget map[string]*float64 `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 
-	// Per-model RPM limits (map of model name to int).
-	// Per-model RPM limits.
+	// Per-model RPM limits stored in metadata.
+	// Per-model RPM limits stored in project metadata.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	ModelRpmLimit map[string]*float64 `json:"modelRpmLimit,omitempty" tf:"model_rpm_limit,omitempty"`
 
-	// Per-model TPM limits (map of model name to int).
-	// Per-model TPM limits.
+	// Per-model TPM limits stored in metadata.
+	// Per-model TPM limits stored in project metadata.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	ModelTpmLimit map[string]*float64 `json:"modelTpmLimit,omitempty" tf:"model_tpm_limit,omitempty"`
 
-	// List of models the project can access.
+	// Accessible models. Configure [] to clear.
 	// List of models the project can access.
 	// +kubebuilder:validation:Optional
 	Models []*string `json:"models,omitempty" tf:"models,omitempty"`
 
-	// Human-friendly name for the project.
+	// Human-friendly project name.
 	// Human-friendly name for the project.
 	// +kubebuilder:validation:Optional
 	ProjectAlias *string `json:"projectAlias,omitempty" tf:"project_alias,omitempty"`
 
-	// Requests per minute limit.
+	// Requests-per-minute limit.
 	// Requests per minute limit.
 	// +kubebuilder:validation:Optional
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Soft budget limit for warnings.
+	// Alert threshold.
 	// Soft budget limit for warnings.
 	// +kubebuilder:validation:Optional
 	SoftBudget *float64 `json:"softBudget,omitempty" tf:"soft_budget,omitempty"`
 
-	// Tags associated with the project.
-	// Tags associated with the project.
+	// Tags. LiteLLM v1.98 stores them in project metadata, and the provider reads that location authoritatively.
+	// Tags associated with the project. LiteLLM v1.98 stores these in project metadata.
 	// +kubebuilder:validation:Optional
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 
-	// The team ID that this project belongs to. Changing this forces a new resource.
-	// The team ID that this project belongs to. Required.
+	// Parent team ID.
+	// The team ID that this project belongs to.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/cluster/litellm/v1alpha1.Team
 	// +kubebuilder:validation:Optional
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
@@ -286,7 +284,7 @@ type ProjectParameters struct {
 	// +kubebuilder:validation:Optional
 	TeamIDSelector *v2.Selector `json:"teamIdSelector,omitempty" tf:"-"`
 
-	// Tokens per minute limit.
+	// Tokens-per-minute limit.
 	// Tokens per minute limit.
 	// +kubebuilder:validation:Optional
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
@@ -319,7 +317,7 @@ type ProjectStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// Project is the Schema for the Projects API. Manages a LiteLLM Project. Projects sit between teams and keys in the hierarchy, allowing fine-grained budget and model access control within a team.
+// Project is the Schema for the Projects API. Manages a LiteLLM Project. Projects sit between teams and keys, providing fine-grained model, budget, rate, and blocking controls.
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

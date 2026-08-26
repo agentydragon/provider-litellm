@@ -15,59 +15,72 @@ import (
 
 type TeamMemberInitParameters struct {
 
-	// The maximum budget allocated to this user within the team.
-	// Maximum budget for this member in the team.
+	// Recurring member-budget reset interval. Use a positive integer followed by s, m, h, d, or w; one of hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured duration sends explicit JSON null.
+	// Recurring reset interval for this member's budget. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured value sends an explicit JSON null.
+	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
+
+	// Maximum member budget. Removing a previously configured value sends explicit JSON null to the native update endpoint.
+	// Maximum budget for this member in the team. Removing a configured value sends an explicit JSON null.
 	MaxBudgetInTeam *float64 `json:"maxBudgetInTeam,omitempty" tf:"max_budget_in_team,omitempty"`
 
-	// The role of the user within the team. Valid values: org_admin, internal_user, internal_user_viewer, admin, user.
-	// Role in the team (org_admin, internal_user, internal_user_viewer, admin, user).
+	// Team role. LiteLLM v1.98 accepts exactly admin or user.
+	// Role in the team (admin or user).
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The email address of the user.
-	// User email.
+	// Email representation used to resolve and correlate team-roster identity. At least one identity must be set. Matching is case-insensitive. This resource does not manage or update the user's account email; an account response can disprove a conflicting identity during preflight, but it is not copied into this argument.
+	// User email used to resolve identity. Either user_id or user_email must be provided. Matching is case-insensitive; safe configured spelling is preserved in state. This resource does not manage the user's account email.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 }
 
 type TeamMemberObservation struct {
 
-	// A composite ID in the format team_id:user_id.
+	// Recurring member-budget reset interval. Use a positive integer followed by s, m, h, d, or w; one of hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured duration sends explicit JSON null.
+	// Recurring reset interval for this member's budget. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured value sends an explicit JSON null.
+	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
+
+	// Stable canonical membership identifier in natural team_id:user_id form. Lifecycle code uses the separately stored identity attributes, so colons inside a versioned-import team ID do not make read or destroy ambiguous.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// The maximum budget allocated to this user within the team.
-	// Maximum budget for this member in the team.
+	// Maximum member budget. Removing a previously configured value sends explicit JSON null to the native update endpoint.
+	// Maximum budget for this member in the team. Removing a configured value sends an explicit JSON null.
 	MaxBudgetInTeam *float64 `json:"maxBudgetInTeam,omitempty" tf:"max_budget_in_team,omitempty"`
 
-	// The role of the user within the team. Valid values: org_admin, internal_user, internal_user_viewer, admin, user.
-	// Role in the team (org_admin, internal_user, internal_user_viewer, admin, user).
+	// Team role. LiteLLM v1.98 accepts exactly admin or user.
+	// Role in the team (admin or user).
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The ID of the team.
 	// Team ID.
+	// Team ID. Changing it replaces the membership.
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
 
-	// The email address of the user.
-	// User email.
+	// Email representation used to resolve and correlate team-roster identity. At least one identity must be set. Matching is case-insensitive. This resource does not manage or update the user's account email; an account response can disprove a conflicting identity during preflight, but it is not copied into this argument.
+	// User email used to resolve identity. Either user_id or user_email must be provided. Matching is case-insensitive; safe configured spelling is preserved in state. This resource does not manage the user's account email.
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The ID of the user to add to the team.
-	// User ID.
+	// User ID. At least one of user_id or user_email must be set. An email-only create records the canonical ID in state.
+	// Canonical user ID. Either user_id or user_email must be provided. Email-only creates store LiteLLM's resolved canonical ID in state. Changing a configured canonical ID replaces the membership.
 	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
 }
 
 type TeamMemberParameters struct {
 
-	// The maximum budget allocated to this user within the team.
-	// Maximum budget for this member in the team.
+	// Recurring member-budget reset interval. Use a positive integer followed by s, m, h, d, or w; one of hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured duration sends explicit JSON null.
+	// Recurring reset interval for this member's budget. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured value sends an explicit JSON null.
+	// +kubebuilder:validation:Optional
+	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
+
+	// Maximum member budget. Removing a previously configured value sends explicit JSON null to the native update endpoint.
+	// Maximum budget for this member in the team. Removing a configured value sends an explicit JSON null.
 	// +kubebuilder:validation:Optional
 	MaxBudgetInTeam *float64 `json:"maxBudgetInTeam,omitempty" tf:"max_budget_in_team,omitempty"`
 
-	// The role of the user within the team. Valid values: org_admin, internal_user, internal_user_viewer, admin, user.
-	// Role in the team (org_admin, internal_user, internal_user_viewer, admin, user).
+	// Team role. LiteLLM v1.98 accepts exactly admin or user.
+	// Role in the team (admin or user).
 	// +kubebuilder:validation:Optional
 	Role *string `json:"role,omitempty" tf:"role,omitempty"`
 
-	// The ID of the team.
 	// Team ID.
+	// Team ID. Changing it replaces the membership.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Team
 	// +kubebuilder:validation:Optional
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
@@ -80,13 +93,13 @@ type TeamMemberParameters struct {
 	// +kubebuilder:validation:Optional
 	TeamIDSelector *v2.NamespacedSelector `json:"teamIdSelector,omitempty" tf:"-"`
 
-	// The email address of the user.
-	// User email.
+	// Email representation used to resolve and correlate team-roster identity. At least one identity must be set. Matching is case-insensitive. This resource does not manage or update the user's account email; an account response can disprove a conflicting identity during preflight, but it is not copied into this argument.
+	// User email used to resolve identity. Either user_id or user_email must be provided. Matching is case-insensitive; safe configured spelling is preserved in state. This resource does not manage the user's account email.
 	// +kubebuilder:validation:Optional
 	UserEmail *string `json:"userEmail,omitempty" tf:"user_email,omitempty"`
 
-	// The ID of the user to add to the team.
-	// User ID.
+	// User ID. At least one of user_id or user_email must be set. An email-only create records the canonical ID in state.
+	// Canonical user ID. Either user_id or user_email must be provided. Email-only creates store LiteLLM's resolved canonical ID in state. Changing a configured canonical ID replaces the membership.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.User
 	// +kubebuilder:validation:Optional
 	UserID *string `json:"userId,omitempty" tf:"user_id,omitempty"`
@@ -127,7 +140,7 @@ type TeamMemberStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// TeamMember is the Schema for the TeamMembers API. Manages an individual member within a LiteLLM team.
+// TeamMember is the Schema for the TeamMembers API. Manages one member of a LiteLLM team
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
@@ -137,7 +150,6 @@ type TeamMember struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.role) || (has(self.initProvider) && has(self.initProvider.role))",message="spec.forProvider.role is a required parameter"
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.userEmail) || (has(self.initProvider) && has(self.initProvider.userEmail))",message="spec.forProvider.userEmail is a required parameter"
 	Spec   TeamMemberSpec   `json:"spec"`
 	Status TeamMemberStatus `json:"status,omitempty"`
 }

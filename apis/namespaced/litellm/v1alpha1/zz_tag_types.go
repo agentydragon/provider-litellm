@@ -16,11 +16,11 @@ import (
 type TagInitParameters struct {
 
 	// Duration for the budget period (e.g., "30d", "7d", "1h").
-	// Duration for budget reset (e.g., '1hr', '1d', '28d').
+	// Duration for budget reset (for example, '1hr', '1d', or '28d').
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// The budget ID to associate with this tag.
-	// Budget ID to associate with this tag.
+	// Budget ID associated with this tag. Inline controls create a generated association. An existing association cannot be detached or reassigned safely in LiteLLM v1.98.
+	// Budget ID associated with this tag. LiteLLM v1.98 cannot safely detach or reassign an existing association.
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
 	// Description of the tag's purpose.
@@ -35,8 +35,8 @@ type TagInitParameters struct {
 	// Max concurrent requests allowed for this tag.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// JSON string specifying per-model maximum budgets. Use jsonencode() to set this value.
-	// JSON string for per-model budget configuration.
+	// JSON object mapping model names to LiteLLM GenericBudgetConfig objects. Supported nested fields are max_budget, budget_duration, tpm_limit, and rpm_limit; budget_limit and time_period are LiteLLM aliases. Use jsonencode().
+	// JSON object of per-model GenericBudgetConfig values.
 	ModelMaxBudget *string `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 
 	// List of model names associated with this tag.
@@ -59,11 +59,11 @@ type TagInitParameters struct {
 type TagObservation struct {
 
 	// Duration for the budget period (e.g., "30d", "7d", "1h").
-	// Duration for budget reset (e.g., '1hr', '1d', '28d').
+	// Duration for budget reset (for example, '1hr', '1d', or '28d').
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// The budget ID to associate with this tag.
-	// Budget ID to associate with this tag.
+	// Budget ID associated with this tag. Inline controls create a generated association. An existing association cannot be detached or reassigned safely in LiteLLM v1.98.
+	// Budget ID associated with this tag. LiteLLM v1.98 cannot safely detach or reassign an existing association.
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
 	// Description of the tag's purpose.
@@ -81,8 +81,8 @@ type TagObservation struct {
 	// Max concurrent requests allowed for this tag.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// JSON string specifying per-model maximum budgets. Use jsonencode() to set this value.
-	// JSON string for per-model budget configuration.
+	// JSON object mapping model names to LiteLLM GenericBudgetConfig objects. Supported nested fields are max_budget, budget_duration, tpm_limit, and rpm_limit; budget_limit and time_period are LiteLLM aliases. Use jsonencode().
+	// JSON object of per-model GenericBudgetConfig values.
 	ModelMaxBudget *string `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 
 	// List of model names associated with this tag.
@@ -105,12 +105,12 @@ type TagObservation struct {
 type TagParameters struct {
 
 	// Duration for the budget period (e.g., "30d", "7d", "1h").
-	// Duration for budget reset (e.g., '1hr', '1d', '28d').
+	// Duration for budget reset (for example, '1hr', '1d', or '28d').
 	// +kubebuilder:validation:Optional
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
-	// The budget ID to associate with this tag.
-	// Budget ID to associate with this tag.
+	// Budget ID associated with this tag. Inline controls create a generated association. An existing association cannot be detached or reassigned safely in LiteLLM v1.98.
+	// Budget ID associated with this tag. LiteLLM v1.98 cannot safely detach or reassign an existing association.
 	// +kubebuilder:validation:Optional
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
@@ -129,8 +129,8 @@ type TagParameters struct {
 	// +kubebuilder:validation:Optional
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// JSON string specifying per-model maximum budgets. Use jsonencode() to set this value.
-	// JSON string for per-model budget configuration.
+	// JSON object mapping model names to LiteLLM GenericBudgetConfig objects. Supported nested fields are max_budget, budget_duration, tpm_limit, and rpm_limit; budget_limit and time_period are LiteLLM aliases. Use jsonencode().
+	// JSON object of per-model GenericBudgetConfig values.
 	// +kubebuilder:validation:Optional
 	ModelMaxBudget *string `json:"modelMaxBudget,omitempty" tf:"model_max_budget,omitempty"`
 

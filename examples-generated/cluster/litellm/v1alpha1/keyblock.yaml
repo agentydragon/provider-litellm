@@ -8,10 +8,7 @@ metadata:
   name: block-key
 spec:
   forProvider:
-    keySecretRef:
-      key: attribute.key
-      name: example-key
-      namespace: upbound-system
+    keyHash: ${litellm_key.example.id}
 
 ---
 

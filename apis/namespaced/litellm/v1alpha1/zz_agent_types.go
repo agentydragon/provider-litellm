@@ -46,17 +46,24 @@ type AgentCardInitParameters struct {
 	// Preferred transport protocol (e.g. 'httpsse', 'websocket').
 	PreferredTransport *string `json:"preferredTransport,omitempty" tf:"preferred_transport,omitempty"`
 
-	// A2A protocol version (e.g. 0.2.6).
-	// A2A protocol version (e.g. '0.2.6').
+	// A2A protocol version. LiteLLM's supported served families are 0.3 and 1.0; the registry request itself accepts a string, so the provider does not invent a narrower enum.
+	// A2A protocol version string. LiteLLM serves the 0.3 and 1.0 protocol families; the registry field itself is not narrowed to a provider-defined enum.
 	ProtocolVersion *string `json:"protocolVersion,omitempty" tf:"protocol_version,omitempty"`
 
 	// The service provider of the agent.
 	Provider []ProviderInitParameters `json:"provider,omitempty" tf:"provider,omitempty"`
 
+	// Ordered JWS signatures. Duplicate entries are preserved. An empty list explicitly clears signatures.
+	Signatures []SignaturesInitParameters `json:"signatures,omitempty" tf:"signatures,omitempty"`
+
 	// Skills the agent can perform.
 	Skills []SkillsInitParameters `json:"skills,omitempty" tf:"skills,omitempty"`
 
-	// The URL endpoint for the agent.
+	// Whether the agent supports an authenticated extended A2A card.
+	// Whether the agent supports an authenticated extended A2A card.
+	SupportsAuthenticatedExtendedCard *bool `json:"supportsAuthenticatedExtendedCard,omitempty" tf:"supports_authenticated_extended_card,omitempty"`
+
+	// The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
 	// The URL endpoint for the agent.
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
 
@@ -98,17 +105,24 @@ type AgentCardObservation struct {
 	// Preferred transport protocol (e.g. 'httpsse', 'websocket').
 	PreferredTransport *string `json:"preferredTransport,omitempty" tf:"preferred_transport,omitempty"`
 
-	// A2A protocol version (e.g. 0.2.6).
-	// A2A protocol version (e.g. '0.2.6').
+	// A2A protocol version. LiteLLM's supported served families are 0.3 and 1.0; the registry request itself accepts a string, so the provider does not invent a narrower enum.
+	// A2A protocol version string. LiteLLM serves the 0.3 and 1.0 protocol families; the registry field itself is not narrowed to a provider-defined enum.
 	ProtocolVersion *string `json:"protocolVersion,omitempty" tf:"protocol_version,omitempty"`
 
 	// The service provider of the agent.
 	Provider []ProviderObservation `json:"provider,omitempty" tf:"provider,omitempty"`
 
+	// Ordered JWS signatures. Duplicate entries are preserved. An empty list explicitly clears signatures.
+	Signatures []SignaturesObservation `json:"signatures,omitempty" tf:"signatures,omitempty"`
+
 	// Skills the agent can perform.
 	Skills []SkillsObservation `json:"skills,omitempty" tf:"skills,omitempty"`
 
-	// The URL endpoint for the agent.
+	// Whether the agent supports an authenticated extended A2A card.
+	// Whether the agent supports an authenticated extended A2A card.
+	SupportsAuthenticatedExtendedCard *bool `json:"supportsAuthenticatedExtendedCard,omitempty" tf:"supports_authenticated_extended_card,omitempty"`
+
+	// The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
 	// The URL endpoint for the agent.
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
 
@@ -158,8 +172,8 @@ type AgentCardParameters struct {
 	// +kubebuilder:validation:Optional
 	PreferredTransport *string `json:"preferredTransport,omitempty" tf:"preferred_transport,omitempty"`
 
-	// A2A protocol version (e.g. 0.2.6).
-	// A2A protocol version (e.g. '0.2.6').
+	// A2A protocol version. LiteLLM's supported served families are 0.3 and 1.0; the registry request itself accepts a string, so the provider does not invent a narrower enum.
+	// A2A protocol version string. LiteLLM serves the 0.3 and 1.0 protocol families; the registry field itself is not narrowed to a provider-defined enum.
 	// +kubebuilder:validation:Optional
 	ProtocolVersion *string `json:"protocolVersion,omitempty" tf:"protocol_version,omitempty"`
 
@@ -167,11 +181,20 @@ type AgentCardParameters struct {
 	// +kubebuilder:validation:Optional
 	Provider []ProviderParameters `json:"provider,omitempty" tf:"provider,omitempty"`
 
+	// Ordered JWS signatures. Duplicate entries are preserved. An empty list explicitly clears signatures.
+	// +kubebuilder:validation:Optional
+	Signatures []SignaturesParameters `json:"signatures,omitempty" tf:"signatures,omitempty"`
+
 	// Skills the agent can perform.
 	// +kubebuilder:validation:Optional
 	Skills []SkillsParameters `json:"skills,omitempty" tf:"skills,omitempty"`
 
-	// The URL endpoint for the agent.
+	// Whether the agent supports an authenticated extended A2A card.
+	// Whether the agent supports an authenticated extended A2A card.
+	// +kubebuilder:validation:Optional
+	SupportsAuthenticatedExtendedCard *bool `json:"supportsAuthenticatedExtendedCard,omitempty" tf:"supports_authenticated_extended_card,omitempty"`
+
+	// The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
 	// The URL endpoint for the agent.
 	// +kubebuilder:validation:Optional
 	URL *string `json:"url" tf:"url,omitempty"`
@@ -195,11 +218,13 @@ type AgentInitParameters struct {
 	// Extra header names to forward from the incoming request.
 	ExtraHeaders []*string `json:"extraHeaders,omitempty" tf:"extra_headers,omitempty"`
 
-	// Map of LiteLLM-specific parameters (e.g. model, api_key).
-	// LiteLLM-specific parameters for the agent (e.g. model, api_key).
-	// +mapType=granular
-	LitellmParams map[string]*string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
+	LitellmParams map[string]*string `json:"litellmParamsSecretRef,omitempty" tf:"-"`
 
+	// A lossless JSON object for arbitrary string, boolean, exact number, null, list, and object values. It merges with non-overlapping legacy keys. An overlap is valid only when the JSON value is the identical string; otherwise planning fails. Each explicitly configured JSON key transfers only that key's ownership; legacy-only configurations are not rewritten or silently migrated.
+	// Lossless JSON-object bridge for arbitrary LiteLLM parameters. It merges with non-overlapping legacy map keys; overlapping values must be the identical JSON string value. Explicit configuration owns only its exact keys.
+	LitellmParamsJSONSecretRef *v2.LocalSecretKeySelector `json:"litellmParamsJsonSecretRef,omitempty" tf:"-"`
+
+	// owned.
 	// Access control permissions for the agent.
 	ObjectPermission *ObjectPermissionInitParameters `json:"objectPermission,omitempty" tf:"object_permission,omitempty"`
 
@@ -215,10 +240,7 @@ type AgentInitParameters struct {
 	// Per-session tokens per minute limit.
 	SessionTpmLimit *float64 `json:"sessionTpmLimit,omitempty" tf:"session_tpm_limit,omitempty"`
 
-	// Map of static headers to send with agent requests.
-	// Static headers to send with agent requests.
-	// +mapType=granular
-	StaticHeaders map[string]*string `json:"staticHeaders,omitempty" tf:"static_headers,omitempty"`
+	StaticHeaders map[string]*string `json:"staticHeadersSecretRef,omitempty" tf:"-"`
 
 	// Tokens per minute limit for the agent.
 	// Tokens per minute limit for the agent.
@@ -249,11 +271,7 @@ type AgentObservation struct {
 	// Unique identifier for the skill.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// Map of LiteLLM-specific parameters (e.g. model, api_key).
-	// LiteLLM-specific parameters for the agent (e.g. model, api_key).
-	// +mapType=granular
-	LitellmParams map[string]*string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
-
+	// owned.
 	// Access control permissions for the agent.
 	ObjectPermission *ObjectPermissionObservation `json:"objectPermission,omitempty" tf:"object_permission,omitempty"`
 
@@ -268,11 +286,6 @@ type AgentObservation struct {
 	// Per-session tokens per minute limit.
 	// Per-session tokens per minute limit.
 	SessionTpmLimit *float64 `json:"sessionTpmLimit,omitempty" tf:"session_tpm_limit,omitempty"`
-
-	// Map of static headers to send with agent requests.
-	// Static headers to send with agent requests.
-	// +mapType=granular
-	StaticHeaders map[string]*string `json:"staticHeaders,omitempty" tf:"static_headers,omitempty"`
 
 	// Tokens per minute limit for the agent.
 	// Tokens per minute limit for the agent.
@@ -303,12 +316,17 @@ type AgentParameters struct {
 	// +kubebuilder:validation:Optional
 	ExtraHeaders []*string `json:"extraHeaders,omitempty" tf:"extra_headers,omitempty"`
 
-	// Map of LiteLLM-specific parameters (e.g. model, api_key).
-	// LiteLLM-specific parameters for the agent (e.g. model, api_key).
+	// A lossless JSON object for arbitrary string, boolean, exact number, null, list, and object values. It merges with non-overlapping legacy keys. An overlap is valid only when the JSON value is the identical string; otherwise planning fails. Each explicitly configured JSON key transfers only that key's ownership; legacy-only configurations are not rewritten or silently migrated.
+	// Lossless JSON-object bridge for arbitrary LiteLLM parameters. It merges with non-overlapping legacy map keys; overlapping values must be the identical JSON string value. Explicit configuration owns only its exact keys.
 	// +kubebuilder:validation:Optional
-	// +mapType=granular
-	LitellmParams map[string]*string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
+	LitellmParamsJSONSecretRef *v2.LocalSecretKeySelector `json:"litellmParamsJsonSecretRef,omitempty" tf:"-"`
 
+	// Legacy map(string) of literal LiteLLM parameters. Values such as "false", "001", and JSON-looking text are sent as strings without guessing or coercion.
+	// Legacy literal string-only LiteLLM parameters. Values are never parsed or coerced. Use litellm_params_json for heterogeneous values.
+	// +kubebuilder:validation:Optional
+	LitellmParamsSecretRef *v2.LocalSecretReference `json:"litellmParamsSecretRef,omitempty" tf:"-"`
+
+	// owned.
 	// Access control permissions for the agent.
 	// +kubebuilder:validation:Optional
 	ObjectPermission *ObjectPermissionParameters `json:"objectPermission,omitempty" tf:"object_permission,omitempty"`
@@ -329,10 +347,9 @@ type AgentParameters struct {
 	SessionTpmLimit *float64 `json:"sessionTpmLimit,omitempty" tf:"session_tpm_limit,omitempty"`
 
 	// Map of static headers to send with agent requests.
-	// Static headers to send with agent requests.
+	// Static headers to send with agent requests. Marked sensitive because headers commonly contain authorization credentials.
 	// +kubebuilder:validation:Optional
-	// +mapType=granular
-	StaticHeaders map[string]*string `json:"staticHeaders,omitempty" tf:"static_headers,omitempty"`
+	StaticHeadersSecretRef *v2.LocalSecretReference `json:"staticHeadersSecretRef,omitempty" tf:"-"`
 
 	// Tokens per minute limit for the agent.
 	// Tokens per minute limit for the agent.
@@ -402,8 +419,8 @@ type ObjectPermissionInitParameters struct {
 	// MCP server IDs the agent can access.
 	McpServers []*string `json:"mcpServers,omitempty" tf:"mcp_servers,omitempty"`
 
-	// Map of MCP server ID to allowed tools (JSON-encoded).
-	// Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+	// map(string) of MCP server ID to allowed tools. Each map value must be a valid JSON array containing only strings; use jsonencode(["tool_a", "tool_b"]). Empty arrays ("[]") and an explicit empty map ({}) are valid and are sent to LiteLLM to clear the corresponding permissions.
+	// Per-MCP-server tool permissions. The public type remains map(string): each value must be a JSON array containing only tool-name strings, such as jsonencode(["list_issues"]). Empty arrays and an empty map are valid explicit clears.
 	// +mapType=granular
 	McpToolPermissions map[string]*string `json:"mcpToolPermissions,omitempty" tf:"mcp_tool_permissions,omitempty"`
 
@@ -426,8 +443,8 @@ type ObjectPermissionObservation struct {
 	// MCP server IDs the agent can access.
 	McpServers []*string `json:"mcpServers,omitempty" tf:"mcp_servers,omitempty"`
 
-	// Map of MCP server ID to allowed tools (JSON-encoded).
-	// Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+	// map(string) of MCP server ID to allowed tools. Each map value must be a valid JSON array containing only strings; use jsonencode(["tool_a", "tool_b"]). Empty arrays ("[]") and an explicit empty map ({}) are valid and are sent to LiteLLM to clear the corresponding permissions.
+	// Per-MCP-server tool permissions. The public type remains map(string): each value must be a JSON array containing only tool-name strings, such as jsonencode(["list_issues"]). Empty arrays and an empty map are valid explicit clears.
 	// +mapType=granular
 	McpToolPermissions map[string]*string `json:"mcpToolPermissions,omitempty" tf:"mcp_tool_permissions,omitempty"`
 
@@ -453,8 +470,8 @@ type ObjectPermissionParameters struct {
 	// +kubebuilder:validation:Optional
 	McpServers []*string `json:"mcpServers,omitempty" tf:"mcp_servers,omitempty"`
 
-	// Map of MCP server ID to allowed tools (JSON-encoded).
-	// Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+	// map(string) of MCP server ID to allowed tools. Each map value must be a valid JSON array containing only strings; use jsonencode(["tool_a", "tool_b"]). Empty arrays ("[]") and an explicit empty map ({}) are valid and are sent to LiteLLM to clear the corresponding permissions.
+	// Per-MCP-server tool permissions. The public type remains map(string): each value must be a JSON array containing only tool-name strings, such as jsonencode(["list_issues"]). Empty arrays and an empty map are valid explicit clears.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	McpToolPermissions map[string]*string `json:"mcpToolPermissions,omitempty" tf:"mcp_tool_permissions,omitempty"`
@@ -471,7 +488,7 @@ type ProviderInitParameters struct {
 	// Organization name of the agent provider.
 	Organization *string `json:"organization,omitempty" tf:"organization,omitempty"`
 
-	// The URL endpoint for the agent.
+	// The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
 	// URL of the agent provider.
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
 }
@@ -482,7 +499,7 @@ type ProviderObservation struct {
 	// Organization name of the agent provider.
 	Organization *string `json:"organization,omitempty" tf:"organization,omitempty"`
 
-	// The URL endpoint for the agent.
+	// The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
 	// URL of the agent provider.
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
 }
@@ -494,10 +511,71 @@ type ProviderParameters struct {
 	// +kubebuilder:validation:Optional
 	Organization *string `json:"organization,omitempty" tf:"organization,omitempty"`
 
-	// The URL endpoint for the agent.
+	// The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
 	// URL of the agent provider.
 	// +kubebuilder:validation:Optional
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
+}
+
+type SignaturesInitParameters struct {
+
+	// Arbitrary non-null header object encoded as JSON. Exact numbers and nested values are preserved. Conflicts with header_json.
+	// Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.
+	Header *string `json:"header,omitempty" tf:"header,omitempty"`
+
+	// Strict JSON bridge accepting either an object or explicit JSON null. Use header_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with header. Signature order and duplicates are significant; an explicitly empty signatures list clears the list on full-card replacement.
+	// Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.
+	HeaderJSON *string `json:"headerJson,omitempty" tf:"header_json,omitempty"`
+
+	// JWS protected header.
+	// JWS protected header.
+	Protected *string `json:"protected,omitempty" tf:"protected,omitempty"`
+
+	// JWS signature value.
+	// JWS signature.
+	Signature *string `json:"signature,omitempty" tf:"signature,omitempty"`
+}
+
+type SignaturesObservation struct {
+
+	// Arbitrary non-null header object encoded as JSON. Exact numbers and nested values are preserved. Conflicts with header_json.
+	// Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.
+	Header *string `json:"header,omitempty" tf:"header,omitempty"`
+
+	// Strict JSON bridge accepting either an object or explicit JSON null. Use header_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with header. Signature order and duplicates are significant; an explicitly empty signatures list clears the list on full-card replacement.
+	// Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.
+	HeaderJSON *string `json:"headerJson,omitempty" tf:"header_json,omitempty"`
+
+	// JWS protected header.
+	// JWS protected header.
+	Protected *string `json:"protected,omitempty" tf:"protected,omitempty"`
+
+	// JWS signature value.
+	// JWS signature.
+	Signature *string `json:"signature,omitempty" tf:"signature,omitempty"`
+}
+
+type SignaturesParameters struct {
+
+	// Arbitrary non-null header object encoded as JSON. Exact numbers and nested values are preserved. Conflicts with header_json.
+	// Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.
+	// +kubebuilder:validation:Optional
+	Header *string `json:"header,omitempty" tf:"header,omitempty"`
+
+	// Strict JSON bridge accepting either an object or explicit JSON null. Use header_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with header. Signature order and duplicates are significant; an explicitly empty signatures list clears the list on full-card replacement.
+	// Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.
+	// +kubebuilder:validation:Optional
+	HeaderJSON *string `json:"headerJson,omitempty" tf:"header_json,omitempty"`
+
+	// JWS protected header.
+	// JWS protected header.
+	// +kubebuilder:validation:Optional
+	Protected *string `json:"protected" tf:"protected,omitempty"`
+
+	// JWS signature value.
+	// JWS signature.
+	// +kubebuilder:validation:Optional
+	Signature *string `json:"signature" tf:"signature,omitempty"`
 }
 
 type SkillsInitParameters struct {
@@ -525,6 +603,14 @@ type SkillsInitParameters struct {
 	// List of supported output MIME types.
 	// Supported output MIME types.
 	OutputModes []*string `json:"outputModes,omitempty" tf:"output_modes,omitempty"`
+
+	// Ordered non-null list(map(list(string))) of A2A security requirements. Requirement and scope ordering and duplicates are preserved; an explicit empty list clears the skill security field. Conflicts with security_json.
+	// Ordered non-null A2A security requirements. Each map value is an ordered list of scopes; duplicates are preserved. Conflicts with security_json.
+	Security []map[string][]*string `json:"security,omitempty" tf:"security,omitempty"`
+
+	// Strict JSON bridge accepting either the same ordered security list or explicit JSON null. Use security_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with security.
+	// Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.
+	SecurityJSON *string `json:"securityJson,omitempty" tf:"security_json,omitempty"`
 
 	// List of tags for categorizing the skill.
 	// Tags for categorizing the skill.
@@ -556,6 +642,14 @@ type SkillsObservation struct {
 	// List of supported output MIME types.
 	// Supported output MIME types.
 	OutputModes []*string `json:"outputModes,omitempty" tf:"output_modes,omitempty"`
+
+	// Ordered non-null list(map(list(string))) of A2A security requirements. Requirement and scope ordering and duplicates are preserved; an explicit empty list clears the skill security field. Conflicts with security_json.
+	// Ordered non-null A2A security requirements. Each map value is an ordered list of scopes; duplicates are preserved. Conflicts with security_json.
+	Security []map[string][]*string `json:"security,omitempty" tf:"security,omitempty"`
+
+	// Strict JSON bridge accepting either the same ordered security list or explicit JSON null. Use security_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with security.
+	// Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.
+	SecurityJSON *string `json:"securityJson,omitempty" tf:"security_json,omitempty"`
 
 	// List of tags for categorizing the skill.
 	// Tags for categorizing the skill.
@@ -593,6 +687,16 @@ type SkillsParameters struct {
 	// Supported output MIME types.
 	// +kubebuilder:validation:Optional
 	OutputModes []*string `json:"outputModes,omitempty" tf:"output_modes,omitempty"`
+
+	// Ordered non-null list(map(list(string))) of A2A security requirements. Requirement and scope ordering and duplicates are preserved; an explicit empty list clears the skill security field. Conflicts with security_json.
+	// Ordered non-null A2A security requirements. Each map value is an ordered list of scopes; duplicates are preserved. Conflicts with security_json.
+	// +kubebuilder:validation:Optional
+	Security []map[string][]*string `json:"security,omitempty" tf:"security,omitempty"`
+
+	// Strict JSON bridge accepting either the same ordered security list or explicit JSON null. Use security_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with security.
+	// Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.
+	// +kubebuilder:validation:Optional
+	SecurityJSON *string `json:"securityJson,omitempty" tf:"security_json,omitempty"`
 
 	// List of tags for categorizing the skill.
 	// Tags for categorizing the skill.

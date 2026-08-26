@@ -34,8 +34,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: TeamMember is the Schema for the TeamMembers API. Manages an
-          individual member within a LiteLLM team.
+        description: TeamMember is the Schema for the TeamMembers API. Manages one
+          member of a LiteLLM team
         properties:
           apiVersion:
             description: |-
@@ -59,20 +59,25 @@ spec:
             properties:
               forProvider:
                 properties:
+                  budgetDuration:
+                    description: |-
+                      Recurring member-budget reset interval. Use a positive integer followed by s, m, h, d, or w; one of hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured duration sends explicit JSON null.
+                      Recurring reset interval for this member's budget. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured value sends an explicit JSON null.
+                    type: string
                   maxBudgetInTeam:
                     description: |-
-                      The maximum budget allocated to this user within the team.
-                      Maximum budget for this member in the team.
+                      Maximum member budget. Removing a previously configured value sends explicit JSON null to the native update endpoint.
+                      Maximum budget for this member in the team. Removing a configured value sends an explicit JSON null.
                     type: number
                   role:
                     description: |-
-                      The role of the user within the team. Valid values: org_admin, internal_user, internal_user_viewer, admin, user.
-                      Role in the team (org_admin, internal_user, internal_user_viewer, admin, user).
+                      Team role. LiteLLM v1.98 accepts exactly admin or user.
+                      Role in the team (admin or user).
                     type: string
                   teamId:
                     description: |-
-                      The ID of the team.
                       Team ID.
+                      Team ID. Changing it replaces the membership.
                     type: string
                   teamIdRef:
                     description: Reference to a Team in litellm to populate teamId.
@@ -156,13 +161,13 @@ spec:
                     type: object
                   userEmail:
                     description: |-
-                      The email address of the user.
-                      User email.
+                      Email representation used to resolve and correlate team-roster identity. At least one identity must be set. Matching is case-insensitive. This resource does not manage or update the user's account email; an account response can disprove a conflicting identity during preflight, but it is not copied into this argument.
+                      User email used to resolve identity. Either user_id or user_email must be provided. Matching is case-insensitive; safe configured spelling is preserved in state. This resource does not manage the user's account email.
                     type: string
                   userId:
                     description: |-
-                      The ID of the user to add to the team.
-                      User ID.
+                      User ID. At least one of user_id or user_email must be set. An email-only create records the canonical ID in state.
+                      Canonical user ID. Either user_id or user_email must be provided. Email-only creates store LiteLLM's resolved canonical ID in state. Changing a configured canonical ID replaces the membership.
                     type: string
                   userIdRef:
                     description: Reference to a User in litellm to populate userId.
@@ -258,20 +263,25 @@ spec:
                   for example because of an external controller is managing them, like an
                   autoscaler.
                 properties:
+                  budgetDuration:
+                    description: |-
+                      Recurring member-budget reset interval. Use a positive integer followed by s, m, h, d, or w; one of hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured duration sends explicit JSON null.
+                      Recurring reset interval for this member's budget. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured value sends an explicit JSON null.
+                    type: string
                   maxBudgetInTeam:
                     description: |-
-                      The maximum budget allocated to this user within the team.
-                      Maximum budget for this member in the team.
+                      Maximum member budget. Removing a previously configured value sends explicit JSON null to the native update endpoint.
+                      Maximum budget for this member in the team. Removing a configured value sends an explicit JSON null.
                     type: number
                   role:
                     description: |-
-                      The role of the user within the team. Valid values: org_admin, internal_user, internal_user_viewer, admin, user.
-                      Role in the team (org_admin, internal_user, internal_user_viewer, admin, user).
+                      Team role. LiteLLM v1.98 accepts exactly admin or user.
+                      Role in the team (admin or user).
                     type: string
                   userEmail:
                     description: |-
-                      The email address of the user.
-                      User email.
+                      Email representation used to resolve and correlate team-roster identity. At least one identity must be set. Matching is case-insensitive. This resource does not manage or update the user's account email; an account response can disprove a conflicting identity during preflight, but it is not copied into this argument.
+                      User email used to resolve identity. Either user_id or user_email must be provided. Matching is case-insensitive; safe configured spelling is preserved in state. This resource does not manage the user's account email.
                     type: string
                 type: object
               managementPolicies:
@@ -337,42 +347,46 @@ spec:
               rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
                 || ''Update'' in self.managementPolicies) || has(self.forProvider.role)
                 || (has(self.initProvider) && has(self.initProvider.role))'
-            - message: spec.forProvider.userEmail is a required parameter
-              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
-                || ''Update'' in self.managementPolicies) || has(self.forProvider.userEmail)
-                || (has(self.initProvider) && has(self.initProvider.userEmail))'
           status:
             description: TeamMemberStatus defines the observed state of TeamMember.
             properties:
               atProvider:
                 properties:
+                  budgetDuration:
+                    description: |-
+                      Recurring member-budget reset interval. Use a positive integer followed by s, m, h, d, or w; one of hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured duration sends explicit JSON null.
+                      Recurring reset interval for this member's budget. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. Removing a configured value sends an explicit JSON null.
+                    type: string
                   id:
-                    description: A composite ID in the format team_id:user_id.
+                    description: Stable canonical membership identifier in natural
+                      team_id:user_id form. Lifecycle code uses the separately stored
+                      identity attributes, so colons inside a versioned-import team
+                      ID do not make read or destroy ambiguous.
                     type: string
                   maxBudgetInTeam:
                     description: |-
-                      The maximum budget allocated to this user within the team.
-                      Maximum budget for this member in the team.
+                      Maximum member budget. Removing a previously configured value sends explicit JSON null to the native update endpoint.
+                      Maximum budget for this member in the team. Removing a configured value sends an explicit JSON null.
                     type: number
                   role:
                     description: |-
-                      The role of the user within the team. Valid values: org_admin, internal_user, internal_user_viewer, admin, user.
-                      Role in the team (org_admin, internal_user, internal_user_viewer, admin, user).
+                      Team role. LiteLLM v1.98 accepts exactly admin or user.
+                      Role in the team (admin or user).
                     type: string
                   teamId:
                     description: |-
-                      The ID of the team.
                       Team ID.
+                      Team ID. Changing it replaces the membership.
                     type: string
                   userEmail:
                     description: |-
-                      The email address of the user.
-                      User email.
+                      Email representation used to resolve and correlate team-roster identity. At least one identity must be set. Matching is case-insensitive. This resource does not manage or update the user's account email; an account response can disprove a conflicting identity during preflight, but it is not copied into this argument.
+                      User email used to resolve identity. Either user_id or user_email must be provided. Matching is case-insensitive; safe configured spelling is preserved in state. This resource does not manage the user's account email.
                     type: string
                   userId:
                     description: |-
-                      The ID of the user to add to the team.
-                      User ID.
+                      User ID. At least one of user_id or user_email must be set. An email-only create records the canonical ID in state.
+                      Canonical user ID. Either user_id or user_email must be provided. Email-only creates store LiteLLM's resolved canonical ID in state. Changing a configured canonical ID replaces the membership.
                     type: string
                 type: object
               conditions:

@@ -60,10 +60,15 @@ spec:
             properties:
               forProvider:
                 properties:
+                  keyHash:
+                    description: |-
+                      Preferred sha256:<64-hex> management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+                      A sha256:<64-hex> key management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+                    type: string
                   keySecretRef:
                     description: |-
-                      The API key token to block. Changing this forces creation of a new resource.
-                      The API key value to block/unblock.
+                      Backward-compatible stateful API key token.
+                      Legacy stateful API key input. Existing configurations remain supported; prefer key_hash for new resources.
                     properties:
                       key:
                         type: string
@@ -88,10 +93,15 @@ spec:
                   for example because of an external controller is managing them, like an
                   autoscaler.
                 properties:
+                  keyHash:
+                    description: |-
+                      Preferred sha256:<64-hex> management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+                      A sha256:<64-hex> key management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+                    type: string
                   keySecretRef:
                     description: |-
-                      The API key token to block. Changing this forces creation of a new resource.
-                      The API key value to block/unblock.
+                      Backward-compatible stateful API key token.
+                      Legacy stateful API key input. Existing configurations remain supported; prefer key_hash for new resources.
                     properties:
                       key:
                         type: string
@@ -161,10 +171,6 @@ spec:
             required:
             - forProvider
             type: object
-            x-kubernetes-validations:
-            - message: spec.forProvider.keySecretRef is a required parameter
-              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
-                || ''Update'' in self.managementPolicies) || has(self.forProvider.keySecretRef)'
           status:
             description: KeyBlockStatus defines the observed state of KeyBlock.
             properties:
@@ -176,7 +182,13 @@ spec:
                       Whether the key is currently blocked. Always true when this resource exists.
                     type: boolean
                   id:
-                    description: The ID of this resource.
+                    description: Canonical non-sensitive sha256:<64-hex> management
+                      identifier.
+                    type: string
+                  keyHash:
+                    description: |-
+                      Preferred sha256:<64-hex> management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+                      A sha256:<64-hex> key management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
                     type: string
                 type: object
               conditions:

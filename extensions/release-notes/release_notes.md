@@ -1,54 +1,41 @@
-# v2.0.1
+# v2.0.2-rc.1
 
-First release of `provider-litellm`, a Crossplane provider for the
-[LiteLLM](https://docs.litellm.ai/) proxy API, generated with
-[Upjet](https://github.com/crossplane/upjet) from the
-[`ncecere/litellm`](https://registry.terraform.io/providers/ncecere/litellm/latest)
-Terraform provider. The package version tracks the upstream provider version it
-wraps.
+Prerelease. Moves the wrapped Terraform provider from the released
+`ncecere/litellm` v2.0.1 to the upstream `issues` development branch (pinned to
+commit `eb28657`), which adds a resource and a large body of fixes, and carries
+local patches that make the whole surface usable from Crossplane.
 
-## Managed resources
+## Added
 
-All 23 upstream resources are exposed, in both the cluster-scoped
-(`litellm.crossplane.io`) and namespaced Crossplane v2
-(`litellm.m.crossplane.io`) API groups:
+- **`JWTKeyMapping`** resource, mapping a JWT claim to an existing virtual key.
+  Creating one needs Terraform 1.11 write-only attributes, so on this provider it
+  can be observed and imported but not created -- see Known limitations.
+- New upstream fields throughout, including `Key.routerSettings`,
+  `Credential.credentialValuesJson`, `Team.teamId`, `KeyBlock.keyHash` and
+  `Organization.softBudget`.
 
-`AccessGroup`, `Agent`, `Budget`, `Credential`, `Fallback`, `Guardrail`, `Key`,
-`KeyBlock`, `MCPServer`, `Model`, `Organization`, `OrganizationMember`,
-`Project`, `Prompt`, `SearchTool`, `Tag`, `Team`, `TeamBlock`, `TeamMember`,
-`TeamMemberAdd`, `UnifiedAccessGroup`, `User`, `VectorStore`.
+## Fixed
 
-Cross-resource references are wired throughout, so a `Team` can point at an
-`Organization`, a `Key` at a `Team`, a `Model` at a `Credential` and so on
-without hard-coding generated identifiers.
+Six resources that could not previously be created now work: `Key`, `KeyBlock`,
+`MCPServer`, `UnifiedAccessGroup`, `SearchTool` and `Agent`. Verified end to end
+against a live LiteLLM proxy.
 
-## Verification
+The upstream branch reports an absent resource as a hard error rather than as
+not-found, which stops Terraform ever creating one, because a generated consumer
+observes before it creates. This release carries patches that:
 
-Sixteen resources were verified end to end against a live LiteLLM 1.99.0
-instance, covering create, observe and delete, with every configured reference
-resolving.
+- report a resource whose state has no identifier as absent, instead of issuing a
+  degenerate request (an empty query parameter, or a URL collapsing to a trailing
+  slash that LiteLLM answers with a redirect the provider will not follow);
+- classify `Budget` and `Tag` absence as not-found, including LiteLLM's
+  404-inside-a-500 tag response;
+- mark `Key.organizationId` computed, since LiteLLM derives it from the key's team
+  and returns it even when the configuration leaves it null. Without this the apply
+  is rejected as inconsistent and the key is tainted, forcing a replacement that
+  `prevent_destroy` then blocks.
 
-Seven are currently blocked by defects in the upstream Terraform provider rather
-than by this package. They are shipped so they begin working as soon as upstream
-is fixed:
+## Known limitations
 
-- `Key`, `Project` and `Agent` — the upstream read path errors on an empty
-  identifier instead of reporting the resource as absent, so creation never
-  starts.
-- `MCPServer` and `UnifiedAccessGroup` — the upstream read path expects a JSON
-  object where LiteLLM 1.99.0 returns an array.
-- `SearchTool` — the endpoint the provider calls returns 405 on LiteLLM 1.99.0.
-- `KeyBlock` — needs a real key token, so it is blocked behind `Key`.
-
-## Configuration
-
-Point a `ProviderConfig` at a Secret holding your LiteLLM endpoint and API key:
-
-```json
-{
-  "api_base": "https://litellm.example.com",
-  "api_key": "sk-1234567890"
-}
-```
-
-`insecure_skip_verify` and `litellm_changed_by` are also accepted.
+- `Project` requires LiteLLM Enterprise (`403` on `/project/new`).
+- `JWTKeyMapping` cannot be created without Terraform 1.11 write-only attributes;
+  this provider is pinned to Terraform 1.5.7 because 1.6 and later are BSL licensed.

@@ -21,7 +21,7 @@ func (mg *Guardrail) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this Guardrail
 func (tr *Guardrail) GetConnectionDetailsMapping() map[string]string {
-	return nil
+	return map[string]string{"litellm_params": "litellmParamsSecretRef"}
 }
 
 // GetObservation of this Guardrail

@@ -9,10 +9,11 @@ metadata:
   namespace: crossplane-system
 spec:
   forProvider:
+    maxBudgetInOrganization: 500
     organizationIdSelector:
       matchLabels:
         testing.upbound.io/example-name: company
-    role: internal_user
+    role: org_admin
     userIdSelector:
       matchLabels:
         testing.upbound.io/example-name: example

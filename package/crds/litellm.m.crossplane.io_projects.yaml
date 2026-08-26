@@ -35,8 +35,8 @@ spec:
     schema:
       openAPIV3Schema:
         description: Project is the Schema for the Projects API. Manages a LiteLLM
-          Project. Projects sit between teams and keys in the hierarchy, allowing
-          fine-grained budget and model access control within a team.
+          Project. Projects sit between teams and keys, providing fine-grained model,
+          budget, rate, and blocking controls.
         properties:
           apiVersion:
             description: |-
@@ -62,39 +62,39 @@ spec:
                 properties:
                   blocked:
                     description: |-
-                      Whether the project is blocked from making requests.
+                      Whether the project is blocked.
                       Whether the project is blocked from making requests.
                     type: boolean
                   budgetDuration:
                     description: |-
-                      Budget reset duration (e.g. 30d, 1h).
-                      Budget reset duration (e.g. '30d', '1h').
+                      Reset duration such as "30d" or "1h".
+                      Budget reset duration (for example, '30d' or '1h').
                     type: string
                   budgetId:
                     description: |-
-                      Budget ID to associate with this project.
-                      Budget ID to associate with this project.
+                      Existing budget to associate during creation. Reassociation after creation is blocked because v1.98 cannot converge it safely.
+                      Budget ID associated with this project. Reassociation is not safely supported by LiteLLM v1.98.
                     type: string
                   description:
                     description: |-
-                      Description of the project's purpose and use case.
+                      Project description.
                       Description of the project's purpose and use case.
                     type: string
                   maxBudget:
                     description: |-
-                      Maximum budget for this project.
+                      Hard budget limit.
                       Maximum budget for this project.
                     type: number
                   maxParallelRequests:
                     description: |-
-                      Maximum parallel requests allowed.
+                      Concurrent request limit.
                       Maximum parallel requests allowed.
                     type: number
                   metadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      Metadata for the project. Values are strings; use jsonencode() for complex values.
+                      Metadata; use jsonencode() for complex values.
                       Metadata for the project. Values are strings; use jsonencode() for complex values.
                     type: object
                     x-kubernetes-map-type: granular
@@ -102,59 +102,59 @@ spec:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model budget limits (map of model name to float).
-                      Per-model budget limits.
+                      Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
+                      Legacy per-model budget map shape retained for schema compatibility.
                     type: object
                     x-kubernetes-map-type: granular
                   modelRpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model RPM limits (map of model name to int).
-                      Per-model RPM limits.
+                      Per-model RPM limits stored in metadata.
+                      Per-model RPM limits stored in project metadata.
                     type: object
                     x-kubernetes-map-type: granular
                   modelTpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model TPM limits (map of model name to int).
-                      Per-model TPM limits.
+                      Per-model TPM limits stored in metadata.
+                      Per-model TPM limits stored in project metadata.
                     type: object
                     x-kubernetes-map-type: granular
                   models:
                     description: |-
-                      List of models the project can access.
+                      Accessible models. Configure [] to clear.
                       List of models the project can access.
                     items:
                       type: string
                     type: array
                   projectAlias:
                     description: |-
-                      Human-friendly name for the project.
+                      Human-friendly project name.
                       Human-friendly name for the project.
                     type: string
                   rpmLimit:
                     description: |-
-                      Requests per minute limit.
+                      Requests-per-minute limit.
                       Requests per minute limit.
                     type: number
                   softBudget:
                     description: |-
-                      Soft budget limit for warnings.
+                      Alert threshold.
                       Soft budget limit for warnings.
                     type: number
                   tags:
                     description: |-
-                      Tags associated with the project.
-                      Tags associated with the project.
+                      Tags. LiteLLM v1.98 stores them in project metadata, and the provider reads that location authoritatively.
+                      Tags associated with the project. LiteLLM v1.98 stores these in project metadata.
                     items:
                       type: string
                     type: array
                   teamId:
                     description: |-
-                      The team ID that this project belongs to. Changing this forces a new resource.
-                      The team ID that this project belongs to. Required.
+                      Parent team ID.
+                      The team ID that this project belongs to.
                     type: string
                   teamIdRef:
                     description: Reference to a Team in litellm to populate teamId.
@@ -238,7 +238,7 @@ spec:
                     type: object
                   tpmLimit:
                     description: |-
-                      Tokens per minute limit.
+                      Tokens-per-minute limit.
                       Tokens per minute limit.
                     type: number
                 type: object
@@ -257,39 +257,39 @@ spec:
                 properties:
                   blocked:
                     description: |-
-                      Whether the project is blocked from making requests.
+                      Whether the project is blocked.
                       Whether the project is blocked from making requests.
                     type: boolean
                   budgetDuration:
                     description: |-
-                      Budget reset duration (e.g. 30d, 1h).
-                      Budget reset duration (e.g. '30d', '1h').
+                      Reset duration such as "30d" or "1h".
+                      Budget reset duration (for example, '30d' or '1h').
                     type: string
                   budgetId:
                     description: |-
-                      Budget ID to associate with this project.
-                      Budget ID to associate with this project.
+                      Existing budget to associate during creation. Reassociation after creation is blocked because v1.98 cannot converge it safely.
+                      Budget ID associated with this project. Reassociation is not safely supported by LiteLLM v1.98.
                     type: string
                   description:
                     description: |-
-                      Description of the project's purpose and use case.
+                      Project description.
                       Description of the project's purpose and use case.
                     type: string
                   maxBudget:
                     description: |-
-                      Maximum budget for this project.
+                      Hard budget limit.
                       Maximum budget for this project.
                     type: number
                   maxParallelRequests:
                     description: |-
-                      Maximum parallel requests allowed.
+                      Concurrent request limit.
                       Maximum parallel requests allowed.
                     type: number
                   metadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      Metadata for the project. Values are strings; use jsonencode() for complex values.
+                      Metadata; use jsonencode() for complex values.
                       Metadata for the project. Values are strings; use jsonencode() for complex values.
                     type: object
                     x-kubernetes-map-type: granular
@@ -297,59 +297,59 @@ spec:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model budget limits (map of model name to float).
-                      Per-model budget limits.
+                      Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
+                      Legacy per-model budget map shape retained for schema compatibility.
                     type: object
                     x-kubernetes-map-type: granular
                   modelRpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model RPM limits (map of model name to int).
-                      Per-model RPM limits.
+                      Per-model RPM limits stored in metadata.
+                      Per-model RPM limits stored in project metadata.
                     type: object
                     x-kubernetes-map-type: granular
                   modelTpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model TPM limits (map of model name to int).
-                      Per-model TPM limits.
+                      Per-model TPM limits stored in metadata.
+                      Per-model TPM limits stored in project metadata.
                     type: object
                     x-kubernetes-map-type: granular
                   models:
                     description: |-
-                      List of models the project can access.
+                      Accessible models. Configure [] to clear.
                       List of models the project can access.
                     items:
                       type: string
                     type: array
                   projectAlias:
                     description: |-
-                      Human-friendly name for the project.
+                      Human-friendly project name.
                       Human-friendly name for the project.
                     type: string
                   rpmLimit:
                     description: |-
-                      Requests per minute limit.
+                      Requests-per-minute limit.
                       Requests per minute limit.
                     type: number
                   softBudget:
                     description: |-
-                      Soft budget limit for warnings.
+                      Alert threshold.
                       Soft budget limit for warnings.
                     type: number
                   tags:
                     description: |-
-                      Tags associated with the project.
-                      Tags associated with the project.
+                      Tags. LiteLLM v1.98 stores them in project metadata, and the provider reads that location authoritatively.
+                      Tags associated with the project. LiteLLM v1.98 stores these in project metadata.
                     items:
                       type: string
                     type: array
                   teamId:
                     description: |-
-                      The team ID that this project belongs to. Changing this forces a new resource.
-                      The team ID that this project belongs to. Required.
+                      Parent team ID.
+                      The team ID that this project belongs to.
                     type: string
                   teamIdRef:
                     description: Reference to a Team in litellm to populate teamId.
@@ -433,7 +433,7 @@ spec:
                     type: object
                   tpmLimit:
                     description: |-
-                      Tokens per minute limit.
+                      Tokens-per-minute limit.
                       Tokens per minute limit.
                     type: number
                 type: object
@@ -502,52 +502,52 @@ spec:
                 properties:
                   blocked:
                     description: |-
-                      Whether the project is blocked from making requests.
+                      Whether the project is blocked.
                       Whether the project is blocked from making requests.
                     type: boolean
                   budgetDuration:
                     description: |-
-                      Budget reset duration (e.g. 30d, 1h).
-                      Budget reset duration (e.g. '30d', '1h').
+                      Reset duration such as "30d" or "1h".
+                      Budget reset duration (for example, '30d' or '1h').
                     type: string
                   budgetId:
                     description: |-
-                      Budget ID to associate with this project.
-                      Budget ID to associate with this project.
+                      Existing budget to associate during creation. Reassociation after creation is blocked because v1.98 cannot converge it safely.
+                      Budget ID associated with this project. Reassociation is not safely supported by LiteLLM v1.98.
                     type: string
                   createdAt:
                     description: |-
-                      Timestamp when the project was created.
+                      Creation and update timestamps.
                       Timestamp when the project was created.
                     type: string
                   createdBy:
                     description: |-
-                      User who created the project.
+                      Creating and last-updating users.
                       User who created the project.
                     type: string
                   description:
                     description: |-
-                      Description of the project's purpose and use case.
+                      Project description.
                       Description of the project's purpose and use case.
                     type: string
                   id:
-                    description: The project ID assigned by LiteLLM.
+                    description: Project ID.
                     type: string
                   maxBudget:
                     description: |-
-                      Maximum budget for this project.
+                      Hard budget limit.
                       Maximum budget for this project.
                     type: number
                   maxParallelRequests:
                     description: |-
-                      Maximum parallel requests allowed.
+                      Concurrent request limit.
                       Maximum parallel requests allowed.
                     type: number
                   metadata:
                     additionalProperties:
                       type: string
                     description: |-
-                      Metadata for the project. Values are strings; use jsonencode() for complex values.
+                      Metadata; use jsonencode() for complex values.
                       Metadata for the project. Values are strings; use jsonencode() for complex values.
                     type: object
                     x-kubernetes-map-type: granular
@@ -555,74 +555,70 @@ spec:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model budget limits (map of model name to float).
-                      Per-model budget limits.
+                      Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
+                      Legacy per-model budget map shape retained for schema compatibility.
                     type: object
                     x-kubernetes-map-type: granular
                   modelRpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model RPM limits (map of model name to int).
-                      Per-model RPM limits.
+                      Per-model RPM limits stored in metadata.
+                      Per-model RPM limits stored in project metadata.
                     type: object
                     x-kubernetes-map-type: granular
                   modelTpmLimit:
                     additionalProperties:
                       type: number
                     description: |-
-                      Per-model TPM limits (map of model name to int).
-                      Per-model TPM limits.
+                      Per-model TPM limits stored in metadata.
+                      Per-model TPM limits stored in project metadata.
                     type: object
                     x-kubernetes-map-type: granular
                   models:
                     description: |-
-                      List of models the project can access.
+                      Accessible models. Configure [] to clear.
                       List of models the project can access.
                     items:
                       type: string
                     type: array
                   projectAlias:
                     description: |-
-                      Human-friendly name for the project.
+                      Human-friendly project name.
                       Human-friendly name for the project.
                     type: string
                   rpmLimit:
                     description: |-
-                      Requests per minute limit.
+                      Requests-per-minute limit.
                       Requests per minute limit.
                     type: number
                   softBudget:
                     description: |-
-                      Soft budget limit for warnings.
+                      Alert threshold.
                       Soft budget limit for warnings.
                     type: number
                   tags:
                     description: |-
-                      Tags associated with the project.
-                      Tags associated with the project.
+                      Tags. LiteLLM v1.98 stores them in project metadata, and the provider reads that location authoritatively.
+                      Tags associated with the project. LiteLLM v1.98 stores these in project metadata.
                     items:
                       type: string
                     type: array
                   teamId:
                     description: |-
-                      The team ID that this project belongs to. Changing this forces a new resource.
-                      The team ID that this project belongs to. Required.
+                      Parent team ID.
+                      The team ID that this project belongs to.
                     type: string
                   tpmLimit:
                     description: |-
-                      Tokens per minute limit.
+                      Tokens-per-minute limit.
                       Tokens per minute limit.
                     type: number
                   updatedAt:
-                    description: |-
-                      Timestamp when the project was last updated.
-                      Timestamp when the project was last updated.
+                    description: Timestamp when the project was last updated.
                     type: string
                   updatedBy:
-                    description: |-
-                      User who last updated the project.
-                      User who last updated the project.
+                    description: User who last updated the project.
                     type: string
                 type: object
               conditions:

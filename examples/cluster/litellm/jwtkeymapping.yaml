@@ -1,0 +1,22 @@
+apiVersion: litellm.crossplane.io/v1alpha1
+kind: JWTKeyMapping
+metadata:
+  annotations:
+    meta.upbound.io/example-id: litellm/v1alpha1/jwtkeymapping
+  labels:
+    testing.upbound.io/example-name: example
+  name: example-jwt-key-mapping
+spec:
+  forProvider:
+    jwtClaimName: team_id
+    description: Maps a JWT claim to an existing LiteLLM virtual key
+    isActive: true
+    # The claim value is sensitive, so it is read from a Secret.
+    jwtClaimValueSecretRef:
+      name: jwt-claim-value
+      key: value
+      namespace: crossplane-system
+# NOTE: creating a JWT key mapping requires the write-only `key_wo` argument,
+# which Terraform only supports from 1.11. This provider is pinned to Terraform
+# 1.5.7 because 1.6 and later are BSL licensed, so this resource can currently
+# be imported and observed but not created. See the README's known limitations.

@@ -25,6 +25,9 @@ func (tr *Fallback) Hub() {}
 func (tr *Guardrail) Hub() {}
 
 // Hub marks this type as a conversion hub.
+func (tr *JWTKeyMapping) Hub() {}
+
+// Hub marks this type as a conversion hub.
 func (tr *Key) Hub() {}
 
 // Hub marks this type as a conversion hub.

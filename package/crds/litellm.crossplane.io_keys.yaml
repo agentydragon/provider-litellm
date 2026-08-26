@@ -224,7 +224,7 @@ spec:
                     type: string
                   keySecretRef:
                     description: |-
-                      User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state.
+                      User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state. Conflicts with key_wo.
                       The API key value. If not specified, a key will be generated.
                     properties:
                       key:
@@ -241,6 +241,30 @@ spec:
                     - name
                     - namespace
                     type: object
+                  keyWoSecretRef:
+                    description: |-
+                      Predefined key sent to LiteLLM but represented only by null in plan and state. Must be configured with key_wo_version. Use a cryptographically random, high-entropy value because its SHA256 management identifier is persisted.11+.
+                      Write-only predefined API key value. Use a cryptographically random, high-entropy key because its persisted SHA256 management identifier permits offline guesses of weak values.11 or compatible OpenTofu support.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
+                  keyWoVersion:
+                    description: |-
+                      Persisted version or nonce for key_wo. Change this whenever the write-only secret changes. It conflicts with configurations that omit key_wo.
+                      Persisted version or nonce for key_wo. Change it when the write-only key changes; changing or removing it replaces the LiteLLM key.
+                    type: string
                   maxBudget:
                     description: |-
                       Maximum budget for this key.
@@ -251,14 +275,21 @@ spec:
                       Maximum number of parallel requests allowed.
                       Maximum parallel requests allowed.
                     type: number
-                  metadata:
-                    additionalProperties:
-                      type: string
+                  metadataSecretRef:
                     description: |-
-                      Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API.
-                      Metadata for the key.
+                      Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API. When LiteLLM returns nested credentials as litellm_enc:: or another recognized redaction marker, the provider retains the corresponding configured leaf while continuing to refresh unmasked metadata values for drift.
+                      Metadata for the key. Marked sensitive because values may contain API keys or other credentials.
+                    properties:
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - name
+                    - namespace
                     type: object
-                    x-kubernetes-map-type: granular
                   modelMaxBudget:
                     additionalProperties:
                       type: number
@@ -465,6 +496,111 @@ spec:
                     items:
                       type: string
                     type: array
+                  routerSettings:
+                    description: 'Complete key-specific router-settings document.
+                      Omitting the block leaves remote settings unmanaged. A configured
+                      block replaces the complete document on update rather than merging
+                      individual fields. Supported LiteLLM v1.98.0 fields:'
+                    properties:
+                      allowedFails:
+                        description: |-
+                          Failures allowed before cooldown.
+                          Failures allowed before a deployment enters cooldown.
+                        type: number
+                      contextWindowFallbacks:
+                        description: |-
+                          Ordered JSON array of context-window fallback mappings.
+                          Ordered JSON array of context-window fallback mappings.
+                        type: string
+                      cooldownTime:
+                        description: |-
+                          Cooldown duration in seconds.
+                          Cooldown duration in seconds.
+                        type: number
+                      enableTagFiltering:
+                        description: |-
+                          Enables request-tag routing.
+                          Enable routing by request tags.
+                        type: boolean
+                      fallbacks:
+                        description: |-
+                          Ordered JSON array of model fallback mappings.
+                          Ordered JSON array of model fallback mappings.
+                        type: string
+                      maxRetries:
+                        description: |-
+                          Maximum retries.
+                          Maximum retries.
+                        type: number
+                      modelGroupAffinityConfig:
+                        description: |-
+                          JSON object mapping affinity groups to lists of model groups.
+                          JSON object mapping affinity groups to arrays of model groups.
+                        type: string
+                      modelGroupAlias:
+                        description: |-
+                          JSON object mapping aliases to model groups or alias configuration objects.
+                          JSON object mapping aliases to model groups or alias configuration objects.
+                        type: string
+                      modelGroupRetryPolicy:
+                        description: |-
+                          JSON object mapping model groups to retry policies. Nested retry keys use LiteLLM's PascalCase names, such as RateLimitErrorRetries.
+                          JSON object mapping model groups to retry-policy objects. Retry-policy keys use LiteLLM's PascalCase wire names.
+                        type: string
+                      numRetries:
+                        description: |-
+                          Number of request retries.
+                          Number of request retries.
+                        type: number
+                      retryAfter:
+                        description: |-
+                          Retry delay in seconds; decimal values are supported.
+                          Retry delay in seconds; decimal values are supported.
+                        type: number
+                      retryPolicy:
+                        description: 'Typed retry counts: bad_request_error_retries,
+                          authentication_error_retries, timeout_error_retries, rate_limit_error_retries,
+                          content_policy_violation_error_retries, and internal_server_error_retries.'
+                        properties:
+                          authenticationErrorRetries:
+                            type: number
+                          badRequestErrorRetries:
+                            type: number
+                          contentPolicyViolationErrorRetries:
+                            type: number
+                          internalServerErrorRetries:
+                            type: number
+                          rateLimitErrorRetries:
+                            type: number
+                          timeoutErrorRetries:
+                            type: number
+                        type: object
+                      routingGroups:
+                        description: |-
+                          JSON array of routing groups.
+                          JSON array of routing groups.
+                        type: string
+                      routingStrategy:
+                        description: |-
+                          Routing strategy name.
+                          Routing strategy name.
+                        type: string
+                      routingStrategyArgs:
+                        description: |-
+                          JSON object passed to the routing strategy.
+                          JSON object passed to the routing strategy.
+                        type: string
+                      tagRoutingPrefix:
+                        description: |-
+                          Prefix for tag-based routing.
+                          Prefix used for tag-based routing.
+                        type: string
+                      timeout:
+                        description: |-
+                          Request timeout in seconds.
+                          Request timeout in seconds.
+                        type: number
+                    type: object
                   rpmLimit:
                     description: |-
                       Requests per minute limit.
@@ -472,9 +608,14 @@ spec:
                     type: number
                   rpmLimitType:
                     description: |-
-                      Type of RPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-                      Type of RPM limit: 'key' (default) or 'team'. If 'team', RPM is shared across all keys for the team.
+                      Type of RPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+                      RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
                     type: string
+                  sendInviteEmail:
+                    description: |-
+                      Requests an asynchronous email for each successful key Create request. Requires user_id for an exact existing user with a syntactically valid email address and cannot be used with service_account_id. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement or an ambiguous Create retry can request another email.11+ when configured.
+                      Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.
+                    type: boolean
                   serviceAccountId:
                     description: |-
                       Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
@@ -578,8 +719,8 @@ spec:
                     type: number
                   tpmLimitType:
                     description: |-
-                      Type of TPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-                      Type of TPM limit: 'key' (default) or 'team'. If 'team', TPM is shared across all keys for the team.
+                      Type of TPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+                      TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
                     type: string
                   userId:
                     description: |-
@@ -826,7 +967,7 @@ spec:
                     type: string
                   keySecretRef:
                     description: |-
-                      User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state.
+                      User-defined key value. If not set, LiteLLM generates a 16-digit unique sk- key automatically. The key is stored as a sensitive value in state. Conflicts with key_wo.
                       The API key value. If not specified, a key will be generated.
                     properties:
                       key:
@@ -843,6 +984,30 @@ spec:
                     - name
                     - namespace
                     type: object
+                  keyWoSecretRef:
+                    description: |-
+                      Predefined key sent to LiteLLM but represented only by null in plan and state. Must be configured with key_wo_version. Use a cryptographically random, high-entropy value because its SHA256 management identifier is persisted.11+.
+                      Write-only predefined API key value. Use a cryptographically random, high-entropy key because its persisted SHA256 management identifier permits offline guesses of weak values.11 or compatible OpenTofu support.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
+                  keyWoVersion:
+                    description: |-
+                      Persisted version or nonce for key_wo. Change this whenever the write-only secret changes. It conflicts with configurations that omit key_wo.
+                      Persisted version or nonce for key_wo. Change it when the write-only key changes; changing or removing it replaces the LiteLLM key.
+                    type: string
                   maxBudget:
                     description: |-
                       Maximum budget for this key.
@@ -853,14 +1018,10 @@ spec:
                       Maximum number of parallel requests allowed.
                       Maximum parallel requests allowed.
                     type: number
-                  metadata:
+                  metadataSecretRef:
                     additionalProperties:
                       type: string
-                    description: |-
-                      Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API.
-                      Metadata for the key.
                     type: object
-                    x-kubernetes-map-type: granular
                   modelMaxBudget:
                     additionalProperties:
                       type: number
@@ -1067,6 +1228,111 @@ spec:
                     items:
                       type: string
                     type: array
+                  routerSettings:
+                    description: 'Complete key-specific router-settings document.
+                      Omitting the block leaves remote settings unmanaged. A configured
+                      block replaces the complete document on update rather than merging
+                      individual fields. Supported LiteLLM v1.98.0 fields:'
+                    properties:
+                      allowedFails:
+                        description: |-
+                          Failures allowed before cooldown.
+                          Failures allowed before a deployment enters cooldown.
+                        type: number
+                      contextWindowFallbacks:
+                        description: |-
+                          Ordered JSON array of context-window fallback mappings.
+                          Ordered JSON array of context-window fallback mappings.
+                        type: string
+                      cooldownTime:
+                        description: |-
+                          Cooldown duration in seconds.
+                          Cooldown duration in seconds.
+                        type: number
+                      enableTagFiltering:
+                        description: |-
+                          Enables request-tag routing.
+                          Enable routing by request tags.
+                        type: boolean
+                      fallbacks:
+                        description: |-
+                          Ordered JSON array of model fallback mappings.
+                          Ordered JSON array of model fallback mappings.
+                        type: string
+                      maxRetries:
+                        description: |-
+                          Maximum retries.
+                          Maximum retries.
+                        type: number
+                      modelGroupAffinityConfig:
+                        description: |-
+                          JSON object mapping affinity groups to lists of model groups.
+                          JSON object mapping affinity groups to arrays of model groups.
+                        type: string
+                      modelGroupAlias:
+                        description: |-
+                          JSON object mapping aliases to model groups or alias configuration objects.
+                          JSON object mapping aliases to model groups or alias configuration objects.
+                        type: string
+                      modelGroupRetryPolicy:
+                        description: |-
+                          JSON object mapping model groups to retry policies. Nested retry keys use LiteLLM's PascalCase names, such as RateLimitErrorRetries.
+                          JSON object mapping model groups to retry-policy objects. Retry-policy keys use LiteLLM's PascalCase wire names.
+                        type: string
+                      numRetries:
+                        description: |-
+                          Number of request retries.
+                          Number of request retries.
+                        type: number
+                      retryAfter:
+                        description: |-
+                          Retry delay in seconds; decimal values are supported.
+                          Retry delay in seconds; decimal values are supported.
+                        type: number
+                      retryPolicy:
+                        description: 'Typed retry counts: bad_request_error_retries,
+                          authentication_error_retries, timeout_error_retries, rate_limit_error_retries,
+                          content_policy_violation_error_retries, and internal_server_error_retries.'
+                        properties:
+                          authenticationErrorRetries:
+                            type: number
+                          badRequestErrorRetries:
+                            type: number
+                          contentPolicyViolationErrorRetries:
+                            type: number
+                          internalServerErrorRetries:
+                            type: number
+                          rateLimitErrorRetries:
+                            type: number
+                          timeoutErrorRetries:
+                            type: number
+                        type: object
+                      routingGroups:
+                        description: |-
+                          JSON array of routing groups.
+                          JSON array of routing groups.
+                        type: string
+                      routingStrategy:
+                        description: |-
+                          Routing strategy name.
+                          Routing strategy name.
+                        type: string
+                      routingStrategyArgs:
+                        description: |-
+                          JSON object passed to the routing strategy.
+                          JSON object passed to the routing strategy.
+                        type: string
+                      tagRoutingPrefix:
+                        description: |-
+                          Prefix for tag-based routing.
+                          Prefix used for tag-based routing.
+                        type: string
+                      timeout:
+                        description: |-
+                          Request timeout in seconds.
+                          Request timeout in seconds.
+                        type: number
+                    type: object
                   rpmLimit:
                     description: |-
                       Requests per minute limit.
@@ -1074,9 +1340,14 @@ spec:
                     type: number
                   rpmLimitType:
                     description: |-
-                      Type of RPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-                      Type of RPM limit: 'key' (default) or 'team'. If 'team', RPM is shared across all keys for the team.
+                      Type of RPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+                      RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
                     type: string
+                  sendInviteEmail:
+                    description: |-
+                      Requests an asynchronous email for each successful key Create request. Requires user_id for an exact existing user with a syntactically valid email address and cannot be used with service_account_id. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement or an ambiguous Create retry can request another email.11+ when configured.
+                      Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.
+                    type: boolean
                   serviceAccountId:
                     description: |-
                       Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
@@ -1180,8 +1451,8 @@ spec:
                     type: number
                   tpmLimitType:
                     description: |-
-                      Type of TPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-                      Type of TPM limit: 'key' (default) or 'team'. If 'team', TPM is shared across all keys for the team.
+                      Type of TPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+                      TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
                     type: string
                   userId:
                     description: |-
@@ -1426,14 +1697,21 @@ spec:
                       type: string
                     type: array
                   id:
-                    description: Non-sensitive unique identifier for this key (SHA256
-                      hash of the key value). This is safe to appear in logs and CI/CD
-                      output.
+                    description: Non-sensitive unique management identifier for this
+                      key (SHA256 hash of the key value). LiteLLM prevents this digest
+                      from authenticating as a virtual key. It is displayed in logs
+                      and CI/CD output, so low-entropy predefined keys remain susceptible
+                      to offline guessing.
                     type: string
                   keyAlias:
                     description: |-
                       Human-readable alias for this key.
                       User-friendly alias for the key. When service_account_id is set and key_alias is omitted, the provider defaults key_alias to the service_account_id value.
+                    type: string
+                  keyWoVersion:
+                    description: |-
+                      Persisted version or nonce for key_wo. Change this whenever the write-only secret changes. It conflicts with configurations that omit key_wo.
+                      Persisted version or nonce for key_wo. Change it when the write-only key changes; changing or removing it replaces the LiteLLM key.
                     type: string
                   maxBudget:
                     description: |-
@@ -1445,14 +1723,6 @@ spec:
                       Maximum number of parallel requests allowed.
                       Maximum parallel requests allowed.
                     type: number
-                  metadata:
-                    additionalProperties:
-                      type: string
-                    description: |-
-                      Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API.
-                      Metadata for the key.
-                    type: object
-                    x-kubernetes-map-type: granular
                   modelMaxBudget:
                     additionalProperties:
                       type: number
@@ -1509,6 +1779,111 @@ spec:
                     items:
                       type: string
                     type: array
+                  routerSettings:
+                    description: 'Complete key-specific router-settings document.
+                      Omitting the block leaves remote settings unmanaged. A configured
+                      block replaces the complete document on update rather than merging
+                      individual fields. Supported LiteLLM v1.98.0 fields:'
+                    properties:
+                      allowedFails:
+                        description: |-
+                          Failures allowed before cooldown.
+                          Failures allowed before a deployment enters cooldown.
+                        type: number
+                      contextWindowFallbacks:
+                        description: |-
+                          Ordered JSON array of context-window fallback mappings.
+                          Ordered JSON array of context-window fallback mappings.
+                        type: string
+                      cooldownTime:
+                        description: |-
+                          Cooldown duration in seconds.
+                          Cooldown duration in seconds.
+                        type: number
+                      enableTagFiltering:
+                        description: |-
+                          Enables request-tag routing.
+                          Enable routing by request tags.
+                        type: boolean
+                      fallbacks:
+                        description: |-
+                          Ordered JSON array of model fallback mappings.
+                          Ordered JSON array of model fallback mappings.
+                        type: string
+                      maxRetries:
+                        description: |-
+                          Maximum retries.
+                          Maximum retries.
+                        type: number
+                      modelGroupAffinityConfig:
+                        description: |-
+                          JSON object mapping affinity groups to lists of model groups.
+                          JSON object mapping affinity groups to arrays of model groups.
+                        type: string
+                      modelGroupAlias:
+                        description: |-
+                          JSON object mapping aliases to model groups or alias configuration objects.
+                          JSON object mapping aliases to model groups or alias configuration objects.
+                        type: string
+                      modelGroupRetryPolicy:
+                        description: |-
+                          JSON object mapping model groups to retry policies. Nested retry keys use LiteLLM's PascalCase names, such as RateLimitErrorRetries.
+                          JSON object mapping model groups to retry-policy objects. Retry-policy keys use LiteLLM's PascalCase wire names.
+                        type: string
+                      numRetries:
+                        description: |-
+                          Number of request retries.
+                          Number of request retries.
+                        type: number
+                      retryAfter:
+                        description: |-
+                          Retry delay in seconds; decimal values are supported.
+                          Retry delay in seconds; decimal values are supported.
+                        type: number
+                      retryPolicy:
+                        description: 'Typed retry counts: bad_request_error_retries,
+                          authentication_error_retries, timeout_error_retries, rate_limit_error_retries,
+                          content_policy_violation_error_retries, and internal_server_error_retries.'
+                        properties:
+                          authenticationErrorRetries:
+                            type: number
+                          badRequestErrorRetries:
+                            type: number
+                          contentPolicyViolationErrorRetries:
+                            type: number
+                          internalServerErrorRetries:
+                            type: number
+                          rateLimitErrorRetries:
+                            type: number
+                          timeoutErrorRetries:
+                            type: number
+                        type: object
+                      routingGroups:
+                        description: |-
+                          JSON array of routing groups.
+                          JSON array of routing groups.
+                        type: string
+                      routingStrategy:
+                        description: |-
+                          Routing strategy name.
+                          Routing strategy name.
+                        type: string
+                      routingStrategyArgs:
+                        description: |-
+                          JSON object passed to the routing strategy.
+                          JSON object passed to the routing strategy.
+                        type: string
+                      tagRoutingPrefix:
+                        description: |-
+                          Prefix for tag-based routing.
+                          Prefix used for tag-based routing.
+                        type: string
+                      timeout:
+                        description: |-
+                          Request timeout in seconds.
+                          Request timeout in seconds.
+                        type: number
+                    type: object
                   rpmLimit:
                     description: |-
                       Requests per minute limit.
@@ -1516,9 +1891,14 @@ spec:
                     type: number
                   rpmLimitType:
                     description: |-
-                      Type of RPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-                      Type of RPM limit: 'key' (default) or 'team'. If 'team', RPM is shared across all keys for the team.
+                      Type of RPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+                      RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
                     type: string
+                  sendInviteEmail:
+                    description: |-
+                      Requests an asynchronous email for each successful key Create request. Requires user_id for an exact existing user with a syntactically valid email address and cannot be used with service_account_id. It is never persisted, read back, imported, or sent during Update; a successful apply does not confirm email delivery. Replacement or an ambiguous Create retry can request another email.11+ when configured.
+                      Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.
+                    type: boolean
                   serviceAccountId:
                     description: |-
                       Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
@@ -1548,8 +1928,8 @@ spec:
                     type: number
                   tpmLimitType:
                     description: |-
-                      Type of TPM limit enforcement (e.g., "best_effort_throughput", "guaranteed_throughput").
-                      Type of TPM limit: 'key' (default) or 'team'. If 'team', TPM is shared across all keys for the team.
+                      Type of TPM limit enforcement. LiteLLM v1.98 accepts exactly "guaranteed_throughput", "best_effort_throughput", or "dynamic" for key requests.
+                      TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput, best_effort_throughput, or dynamic for keys.
                     type: string
                   userId:
                     description: |-

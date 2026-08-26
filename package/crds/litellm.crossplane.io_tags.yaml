@@ -78,12 +78,12 @@ spec:
                   budgetDuration:
                     description: |-
                       Duration for the budget period (e.g., "30d", "7d", "1h").
-                      Duration for budget reset (e.g., '1hr', '1d', '28d').
+                      Duration for budget reset (for example, '1hr', '1d', or '28d').
                     type: string
                   budgetId:
                     description: |-
-                      The budget ID to associate with this tag.
-                      Budget ID to associate with this tag.
+                      Budget ID associated with this tag. Inline controls create a generated association. An existing association cannot be detached or reassigned safely in LiteLLM v1.98.
+                      Budget ID associated with this tag. LiteLLM v1.98 cannot safely detach or reassign an existing association.
                     type: string
                   description:
                     description: |-
@@ -102,8 +102,8 @@ spec:
                     type: number
                   modelMaxBudget:
                     description: |-
-                      JSON string specifying per-model maximum budgets. Use jsonencode() to set this value.
-                      JSON string for per-model budget configuration.
+                      JSON object mapping model names to LiteLLM GenericBudgetConfig objects. Supported nested fields are max_budget, budget_duration, tpm_limit, and rpm_limit; budget_limit and time_period are LiteLLM aliases. Use jsonencode().
+                      JSON object of per-model GenericBudgetConfig values.
                     type: string
                   models:
                     description: |-
@@ -144,12 +144,12 @@ spec:
                   budgetDuration:
                     description: |-
                       Duration for the budget period (e.g., "30d", "7d", "1h").
-                      Duration for budget reset (e.g., '1hr', '1d', '28d').
+                      Duration for budget reset (for example, '1hr', '1d', or '28d').
                     type: string
                   budgetId:
                     description: |-
-                      The budget ID to associate with this tag.
-                      Budget ID to associate with this tag.
+                      Budget ID associated with this tag. Inline controls create a generated association. An existing association cannot be detached or reassigned safely in LiteLLM v1.98.
+                      Budget ID associated with this tag. LiteLLM v1.98 cannot safely detach or reassign an existing association.
                     type: string
                   description:
                     description: |-
@@ -168,8 +168,8 @@ spec:
                     type: number
                   modelMaxBudget:
                     description: |-
-                      JSON string specifying per-model maximum budgets. Use jsonencode() to set this value.
-                      JSON string for per-model budget configuration.
+                      JSON object mapping model names to LiteLLM GenericBudgetConfig objects. Supported nested fields are max_budget, budget_duration, tpm_limit, and rpm_limit; budget_limit and time_period are LiteLLM aliases. Use jsonencode().
+                      JSON object of per-model GenericBudgetConfig values.
                     type: string
                   models:
                     description: |-
@@ -288,12 +288,12 @@ spec:
                   budgetDuration:
                     description: |-
                       Duration for the budget period (e.g., "30d", "7d", "1h").
-                      Duration for budget reset (e.g., '1hr', '1d', '28d').
+                      Duration for budget reset (for example, '1hr', '1d', or '28d').
                     type: string
                   budgetId:
                     description: |-
-                      The budget ID to associate with this tag.
-                      Budget ID to associate with this tag.
+                      Budget ID associated with this tag. Inline controls create a generated association. An existing association cannot be detached or reassigned safely in LiteLLM v1.98.
+                      Budget ID associated with this tag. LiteLLM v1.98 cannot safely detach or reassign an existing association.
                     type: string
                   description:
                     description: |-
@@ -315,8 +315,8 @@ spec:
                     type: number
                   modelMaxBudget:
                     description: |-
-                      JSON string specifying per-model maximum budgets. Use jsonencode() to set this value.
-                      JSON string for per-model budget configuration.
+                      JSON object mapping model names to LiteLLM GenericBudgetConfig objects. Supported nested fields are max_budget, budget_duration, tpm_limit, and rpm_limit; budget_limit and time_period are LiteLLM aliases. Use jsonencode().
+                      JSON object of per-model GenericBudgetConfig values.
                     type: string
                   models:
                     description: |-

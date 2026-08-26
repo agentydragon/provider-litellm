@@ -126,8 +126,8 @@ spec:
                         type: string
                       protocolVersion:
                         description: |-
-                          A2A protocol version (e.g. 0.2.6).
-                          A2A protocol version (e.g. '0.2.6').
+                          A2A protocol version. LiteLLM's supported served families are 0.3 and 1.0; the registry request itself accepts a string, so the provider does not invent a narrower enum.
+                          A2A protocol version string. LiteLLM serves the 0.3 and 1.0 protocol families; the registry field itself is not narrowed to a provider-defined enum.
                         type: string
                       provider:
                         description: The service provider of the agent.
@@ -140,8 +140,35 @@ spec:
                               type: string
                             url:
                               description: |-
-                                The URL endpoint for the agent.
+                                The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
                                 URL of the agent provider.
+                              type: string
+                          type: object
+                        type: array
+                      signatures:
+                        description: Ordered JWS signatures. Duplicate entries are
+                          preserved. An empty list explicitly clears signatures.
+                        items:
+                          properties:
+                            header:
+                              description: |-
+                                Arbitrary non-null header object encoded as JSON. Exact numbers and nested values are preserved. Conflicts with header_json.
+                                Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.
+                              type: string
+                            headerJson:
+                              description: |-
+                                Strict JSON bridge accepting either an object or explicit JSON null. Use header_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with header. Signature order and duplicates are significant; an explicitly empty signatures list clears the list on full-card replacement.
+                                Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.
+                              type: string
+                            protected:
+                              description: |-
+                                JWS protected header.
+                                JWS protected header.
+                              type: string
+                            signature:
+                              description: |-
+                                JWS signature value.
+                                JWS signature.
                               type: string
                           type: object
                         type: array
@@ -185,6 +212,22 @@ spec:
                               items:
                                 type: string
                               type: array
+                            security:
+                              description: |-
+                                Ordered non-null list(map(list(string))) of A2A security requirements. Requirement and scope ordering and duplicates are preserved; an explicit empty list clears the skill security field. Conflicts with security_json.
+                                Ordered non-null A2A security requirements. Each map value is an ordered list of scopes; duplicates are preserved. Conflicts with security_json.
+                              items:
+                                additionalProperties:
+                                  items:
+                                    type: string
+                                  type: array
+                                type: object
+                              type: array
+                            securityJson:
+                              description: |-
+                                Strict JSON bridge accepting either the same ordered security list or explicit JSON null. Use security_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with security.
+                                Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.
+                              type: string
                             tags:
                               description: |-
                                 List of tags for categorizing the skill.
@@ -194,9 +237,14 @@ spec:
                               type: array
                           type: object
                         type: array
+                      supportsAuthenticatedExtendedCard:
+                        description: |-
+                          Whether the agent supports an authenticated extended A2A card.
+                          Whether the agent supports an authenticated extended A2A card.
+                        type: boolean
                       url:
                         description: |-
-                          The URL endpoint for the agent.
+                          The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
                           The URL endpoint for the agent.
                         type: string
                       version:
@@ -217,16 +265,35 @@ spec:
                     items:
                       type: string
                     type: array
-                  litellmParams:
-                    additionalProperties:
-                      type: string
+                  litellmParamsJsonSecretRef:
                     description: |-
-                      Map of LiteLLM-specific parameters (e.g. model, api_key).
-                      LiteLLM-specific parameters for the agent (e.g. model, api_key).
+                      A lossless JSON object for arbitrary string, boolean, exact number, null, list, and object values. It merges with non-overlapping legacy keys. An overlap is valid only when the JSON value is the identical string; otherwise planning fails. Each explicitly configured JSON key transfers only that key's ownership; legacy-only configurations are not rewritten or silently migrated.
+                      Lossless JSON-object bridge for arbitrary LiteLLM parameters. It merges with non-overlapping legacy map keys; overlapping values must be the identical JSON string value. Explicit configuration owns only its exact keys.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
                     type: object
-                    x-kubernetes-map-type: granular
+                  litellmParamsSecretRef:
+                    description: |-
+                      Legacy map(string) of literal LiteLLM parameters. Values such as "false", "001", and JSON-looking text are sent as strings without guessing or coercion.
+                      Legacy literal string-only LiteLLM parameters. Values are never parsed or coerced. Use litellm_params_json for heterogeneous values.
+                    properties:
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - name
+                    type: object
                   objectPermission:
-                    description: Access control permissions for the agent.
+                    description: |-
+                      owned.
+                      Access control permissions for the agent.
                     properties:
                       agents:
                         description: |-
@@ -253,8 +320,8 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of MCP server ID to allowed tools (JSON-encoded).
-                          Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+                          map(string) of MCP server ID to allowed tools. Each map value must be a valid JSON array containing only strings; use jsonencode(["tool_a", "tool_b"]). Empty arrays ("[]") and an explicit empty map ({}) are valid and are sent to LiteLLM to clear the corresponding permissions.
+                          Per-MCP-server tool permissions. The public type remains map(string): each value must be a JSON array containing only tool-name strings, such as jsonencode(["list_issues"]). Empty arrays and an empty map are valid explicit clears.
                         type: object
                         x-kubernetes-map-type: granular
                       models:
@@ -280,14 +347,17 @@ spec:
                       Per-session tokens per minute limit.
                       Per-session tokens per minute limit.
                     type: number
-                  staticHeaders:
-                    additionalProperties:
-                      type: string
+                  staticHeadersSecretRef:
                     description: |-
                       Map of static headers to send with agent requests.
-                      Static headers to send with agent requests.
+                      Static headers to send with agent requests. Marked sensitive because headers commonly contain authorization credentials.
+                    properties:
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - name
                     type: object
-                    x-kubernetes-map-type: granular
                   tpmLimit:
                     description: |-
                       Tokens per minute limit for the agent.
@@ -373,8 +443,8 @@ spec:
                         type: string
                       protocolVersion:
                         description: |-
-                          A2A protocol version (e.g. 0.2.6).
-                          A2A protocol version (e.g. '0.2.6').
+                          A2A protocol version. LiteLLM's supported served families are 0.3 and 1.0; the registry request itself accepts a string, so the provider does not invent a narrower enum.
+                          A2A protocol version string. LiteLLM serves the 0.3 and 1.0 protocol families; the registry field itself is not narrowed to a provider-defined enum.
                         type: string
                       provider:
                         description: The service provider of the agent.
@@ -387,8 +457,35 @@ spec:
                               type: string
                             url:
                               description: |-
-                                The URL endpoint for the agent.
+                                The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
                                 URL of the agent provider.
+                              type: string
+                          type: object
+                        type: array
+                      signatures:
+                        description: Ordered JWS signatures. Duplicate entries are
+                          preserved. An empty list explicitly clears signatures.
+                        items:
+                          properties:
+                            header:
+                              description: |-
+                                Arbitrary non-null header object encoded as JSON. Exact numbers and nested values are preserved. Conflicts with header_json.
+                                Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.
+                              type: string
+                            headerJson:
+                              description: |-
+                                Strict JSON bridge accepting either an object or explicit JSON null. Use header_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with header. Signature order and duplicates are significant; an explicitly empty signatures list clears the list on full-card replacement.
+                                Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.
+                              type: string
+                            protected:
+                              description: |-
+                                JWS protected header.
+                                JWS protected header.
+                              type: string
+                            signature:
+                              description: |-
+                                JWS signature value.
+                                JWS signature.
                               type: string
                           type: object
                         type: array
@@ -432,6 +529,22 @@ spec:
                               items:
                                 type: string
                               type: array
+                            security:
+                              description: |-
+                                Ordered non-null list(map(list(string))) of A2A security requirements. Requirement and scope ordering and duplicates are preserved; an explicit empty list clears the skill security field. Conflicts with security_json.
+                                Ordered non-null A2A security requirements. Each map value is an ordered list of scopes; duplicates are preserved. Conflicts with security_json.
+                              items:
+                                additionalProperties:
+                                  items:
+                                    type: string
+                                  type: array
+                                type: object
+                              type: array
+                            securityJson:
+                              description: |-
+                                Strict JSON bridge accepting either the same ordered security list or explicit JSON null. Use security_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with security.
+                                Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.
+                              type: string
                             tags:
                               description: |-
                                 List of tags for categorizing the skill.
@@ -441,9 +554,14 @@ spec:
                               type: array
                           type: object
                         type: array
+                      supportsAuthenticatedExtendedCard:
+                        description: |-
+                          Whether the agent supports an authenticated extended A2A card.
+                          Whether the agent supports an authenticated extended A2A card.
+                        type: boolean
                       url:
                         description: |-
-                          The URL endpoint for the agent.
+                          The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
                           The URL endpoint for the agent.
                         type: string
                       version:
@@ -464,16 +582,28 @@ spec:
                     items:
                       type: string
                     type: array
-                  litellmParams:
+                  litellmParamsJsonSecretRef:
+                    description: |-
+                      A lossless JSON object for arbitrary string, boolean, exact number, null, list, and object values. It merges with non-overlapping legacy keys. An overlap is valid only when the JSON value is the identical string; otherwise planning fails. Each explicitly configured JSON key transfers only that key's ownership; legacy-only configurations are not rewritten or silently migrated.
+                      Lossless JSON-object bridge for arbitrary LiteLLM parameters. It merges with non-overlapping legacy map keys; overlapping values must be the identical JSON string value. Explicit configuration owns only its exact keys.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  litellmParamsSecretRef:
                     additionalProperties:
                       type: string
-                    description: |-
-                      Map of LiteLLM-specific parameters (e.g. model, api_key).
-                      LiteLLM-specific parameters for the agent (e.g. model, api_key).
                     type: object
-                    x-kubernetes-map-type: granular
                   objectPermission:
-                    description: Access control permissions for the agent.
+                    description: |-
+                      owned.
+                      Access control permissions for the agent.
                     properties:
                       agents:
                         description: |-
@@ -500,8 +630,8 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of MCP server ID to allowed tools (JSON-encoded).
-                          Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+                          map(string) of MCP server ID to allowed tools. Each map value must be a valid JSON array containing only strings; use jsonencode(["tool_a", "tool_b"]). Empty arrays ("[]") and an explicit empty map ({}) are valid and are sent to LiteLLM to clear the corresponding permissions.
+                          Per-MCP-server tool permissions. The public type remains map(string): each value must be a JSON array containing only tool-name strings, such as jsonencode(["list_issues"]). Empty arrays and an empty map are valid explicit clears.
                         type: object
                         x-kubernetes-map-type: granular
                       models:
@@ -527,14 +657,10 @@ spec:
                       Per-session tokens per minute limit.
                       Per-session tokens per minute limit.
                     type: number
-                  staticHeaders:
+                  staticHeadersSecretRef:
                     additionalProperties:
                       type: string
-                    description: |-
-                      Map of static headers to send with agent requests.
-                      Static headers to send with agent requests.
                     type: object
-                    x-kubernetes-map-type: granular
                   tpmLimit:
                     description: |-
                       Tokens per minute limit for the agent.
@@ -675,8 +801,8 @@ spec:
                         type: string
                       protocolVersion:
                         description: |-
-                          A2A protocol version (e.g. 0.2.6).
-                          A2A protocol version (e.g. '0.2.6').
+                          A2A protocol version. LiteLLM's supported served families are 0.3 and 1.0; the registry request itself accepts a string, so the provider does not invent a narrower enum.
+                          A2A protocol version string. LiteLLM serves the 0.3 and 1.0 protocol families; the registry field itself is not narrowed to a provider-defined enum.
                         type: string
                       provider:
                         description: The service provider of the agent.
@@ -689,8 +815,35 @@ spec:
                               type: string
                             url:
                               description: |-
-                                The URL endpoint for the agent.
+                                The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
                                 URL of the agent provider.
+                              type: string
+                          type: object
+                        type: array
+                      signatures:
+                        description: Ordered JWS signatures. Duplicate entries are
+                          preserved. An empty list explicitly clears signatures.
+                        items:
+                          properties:
+                            header:
+                              description: |-
+                                Arbitrary non-null header object encoded as JSON. Exact numbers and nested values are preserved. Conflicts with header_json.
+                                Optional arbitrary non-null JWS header as a JSON object. Conflicts with header_json.
+                              type: string
+                            headerJson:
+                              description: |-
+                                Strict JSON bridge accepting either an object or explicit JSON null. Use header_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with header. Signature order and duplicates are significant; an explicitly empty signatures list clears the list on full-card replacement.
+                                Strict JSON bridge for an arbitrary JWS header, including explicit JSON null. Conflicts with header.
+                              type: string
+                            protected:
+                              description: |-
+                                JWS protected header.
+                                JWS protected header.
+                              type: string
+                            signature:
+                              description: |-
+                                JWS signature value.
+                                JWS signature.
                               type: string
                           type: object
                         type: array
@@ -734,6 +887,22 @@ spec:
                               items:
                                 type: string
                               type: array
+                            security:
+                              description: |-
+                                Ordered non-null list(map(list(string))) of A2A security requirements. Requirement and scope ordering and duplicates are preserved; an explicit empty list clears the skill security field. Conflicts with security_json.
+                                Ordered non-null A2A security requirements. Each map value is an ordered list of scopes; duplicates are preserved. Conflicts with security_json.
+                              items:
+                                additionalProperties:
+                                  items:
+                                    type: string
+                                  type: array
+                                type: object
+                              type: array
+                            securityJson:
+                              description: |-
+                                Strict JSON bridge accepting either the same ordered security list or explicit JSON null. Use security_json = jsonencode(null) when wire-level null must differ from omission. Conflicts with security.
+                                Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.
+                              type: string
                             tags:
                               description: |-
                                 List of tags for categorizing the skill.
@@ -743,9 +912,14 @@ spec:
                               type: array
                           type: object
                         type: array
+                      supportsAuthenticatedExtendedCard:
+                        description: |-
+                          Whether the agent supports an authenticated extended A2A card.
+                          Whether the agent supports an authenticated extended A2A card.
+                        type: boolean
                       url:
                         description: |-
-                          The URL endpoint for the agent.
+                          The URL endpoint for the agent. Set it to an empty string for provider-backed agents such as Bedrock AgentCore, where LiteLLM derives the endpoint from litellm_params.
                           The URL endpoint for the agent.
                         type: string
                       version:
@@ -779,16 +953,10 @@ spec:
                   id:
                     description: Unique identifier for the skill.
                     type: string
-                  litellmParams:
-                    additionalProperties:
-                      type: string
-                    description: |-
-                      Map of LiteLLM-specific parameters (e.g. model, api_key).
-                      LiteLLM-specific parameters for the agent (e.g. model, api_key).
-                    type: object
-                    x-kubernetes-map-type: granular
                   objectPermission:
-                    description: Access control permissions for the agent.
+                    description: |-
+                      owned.
+                      Access control permissions for the agent.
                     properties:
                       agents:
                         description: |-
@@ -815,8 +983,8 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of MCP server ID to allowed tools (JSON-encoded).
-                          Per-MCP-server tool permissions (map of server ID to list of allowed tools, JSON-encoded).
+                          map(string) of MCP server ID to allowed tools. Each map value must be a valid JSON array containing only strings; use jsonencode(["tool_a", "tool_b"]). Empty arrays ("[]") and an explicit empty map ({}) are valid and are sent to LiteLLM to clear the corresponding permissions.
+                          Per-MCP-server tool permissions. The public type remains map(string): each value must be a JSON array containing only tool-name strings, such as jsonencode(["list_issues"]). Empty arrays and an empty map are valid explicit clears.
                         type: object
                         x-kubernetes-map-type: granular
                       models:
@@ -842,14 +1010,6 @@ spec:
                       Per-session tokens per minute limit.
                       Per-session tokens per minute limit.
                     type: number
-                  staticHeaders:
-                    additionalProperties:
-                      type: string
-                    description: |-
-                      Map of static headers to send with agent requests.
-                      Static headers to send with agent requests.
-                    type: object
-                    x-kubernetes-map-type: granular
                   tpmLimit:
                     description: |-
                       Tokens per minute limit for the agent.

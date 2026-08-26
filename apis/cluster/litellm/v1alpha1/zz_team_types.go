@@ -83,43 +83,19 @@ type FallbacksParameters struct {
 	Model *string `json:"model" tf:"model,omitempty"`
 }
 
-type RouterSettingsInitParameters struct {
-
-	// List of fallback model chains triggered when a context window exceeded error occurs. Each entry has the same structure as fallbacks.
-	ContextWindowFallbacks []ContextWindowFallbacksInitParameters `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
-
-	// List of fallback model chains triggered when a model call fails after retries. Each entry contains:
-	Fallbacks []FallbacksInitParameters `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
-}
-
-type RouterSettingsObservation struct {
-
-	// List of fallback model chains triggered when a context window exceeded error occurs. Each entry has the same structure as fallbacks.
-	ContextWindowFallbacks []ContextWindowFallbacksObservation `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
-
-	// List of fallback model chains triggered when a model call fails after retries. Each entry contains:
-	Fallbacks []FallbacksObservation `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
-}
-
-type RouterSettingsParameters struct {
-
-	// List of fallback model chains triggered when a context window exceeded error occurs. Each entry has the same structure as fallbacks.
-	// +kubebuilder:validation:Optional
-	ContextWindowFallbacks []ContextWindowFallbacksParameters `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
-
-	// List of fallback model chains triggered when a model call fails after retries. Each entry contains:
-	// +kubebuilder:validation:Optional
-	Fallbacks []FallbacksParameters `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
-}
-
 type TeamInitParameters struct {
+
+	// Unordered set of access group IDs associated with the team. Use [] to detach all groups.
+	// Access group IDs associated with this team. Order is ignored. Set an empty collection to detach all access groups.
+	// +listType=set
+	AccessGroupIds []*string `json:"accessGroupIds,omitempty" tf:"access_group_ids,omitempty"`
 
 	// Whether the team is blocked from making requests.
 	// Whether the team is blocked.
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// Duration for the budget cycle (e.g., "30d", "7d", "1h").
-	// Budget reset duration.
+	// Recurring team budget reset interval. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected.
+	// Recurring team budget reset interval. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo.
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
 	// List of guardrail identifiers applied to the team.
@@ -172,14 +148,14 @@ type TeamInitParameters struct {
 	Prompts []*string `json:"prompts,omitempty" tf:"prompts,omitempty"`
 
 	// Router settings for the team, including fallback configurations. These override global fallback settings for requests made with this team's keys. Resolution order: Key > Team > Global. Contains the following nested attributes:
-	RouterSettings *RouterSettingsInitParameters `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
+	RouterSettings *TeamRouterSettingsInitParameters `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
 
 	// Requests per minute limit for the team.
 	// Requests per minute limit for the team.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Type of RPM limit (e.g., "guaranteed_throughput").
-	// Type of RPM limit: 'key' or 'team'. If 'team', RPM is shared across all keys for the team.
+	// Create-only RPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+	// Create-only RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
 	RpmLimitType *string `json:"rpmLimitType,omitempty" tf:"rpm_limit_type,omitempty"`
 
 	// List of tags for the team. Requires LiteLLM Enterprise license.
@@ -190,9 +166,17 @@ type TeamInitParameters struct {
 	// User-defined team alias.
 	TeamAlias *string `json:"teamAlias,omitempty" tf:"team_alias,omitempty"`
 
+	// Stable LiteLLM team identifier. Supply a predetermined value for external identity or JWT group mapping, or omit it to let the provider generate a UUID.
+	// The LiteLLM team ID. If not specified, the provider generates one. Changing it replaces the team.
+	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
+
 	// Default budget for each team member.
 	// Default budget for team members.
 	TeamMemberBudget *float64 `json:"teamMemberBudget,omitempty" tf:"team_member_budget,omitempty"`
+
+	// Recurring reset interval for the default member budget. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected. LiteLLM applies it to new/default membership budgets and may backfill memberships without a budget; private member overrides are preserved. Configure litellm_team_member.budget_duration for per-member control.
+	// Default recurring budget reset interval for team memberships. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. LiteLLM applies it to new/default memberships and may backfill memberships without a budget; private member overrides are preserved.
+	TeamMemberBudgetDuration *string `json:"teamMemberBudgetDuration,omitempty" tf:"team_member_budget_duration,omitempty"`
 
 	// List of permissions granted to team members.
 	// List of permissions granted to team members.
@@ -210,26 +194,31 @@ type TeamInitParameters struct {
 	// Tokens per minute limit for the team.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 
-	// Type of TPM limit (e.g., "guaranteed_throughput").
-	// Type of TPM limit: 'key' or 'team'. If 'team', TPM is shared across all keys for the team.
+	// Create-only TPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+	// Create-only TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
 	TpmLimitType *string `json:"tpmLimitType,omitempty" tf:"tpm_limit_type,omitempty"`
 }
 
 type TeamObservation struct {
 
+	// Unordered set of access group IDs associated with the team. Use [] to detach all groups.
+	// Access group IDs associated with this team. Order is ignored. Set an empty collection to detach all access groups.
+	// +listType=set
+	AccessGroupIds []*string `json:"accessGroupIds,omitempty" tf:"access_group_ids,omitempty"`
+
 	// Whether the team is blocked from making requests.
 	// Whether the team is blocked.
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// Duration for the budget cycle (e.g., "30d", "7d", "1h").
-	// Budget reset duration.
+	// Recurring team budget reset interval. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected.
+	// Recurring team budget reset interval. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo.
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
 	// List of guardrail identifiers applied to the team.
 	// Guardrails for the team.
 	Guardrails []*string `json:"guardrails,omitempty" tf:"guardrails,omitempty"`
 
-	// The unique identifier of the team.
+	// It always matches team_id.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
 	// Maximum budget allocated to the team.
@@ -269,14 +258,14 @@ type TeamObservation struct {
 	Prompts []*string `json:"prompts,omitempty" tf:"prompts,omitempty"`
 
 	// Router settings for the team, including fallback configurations. These override global fallback settings for requests made with this team's keys. Resolution order: Key > Team > Global. Contains the following nested attributes:
-	RouterSettings *RouterSettingsObservation `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
+	RouterSettings *TeamRouterSettingsObservation `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
 
 	// Requests per minute limit for the team.
 	// Requests per minute limit for the team.
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Type of RPM limit (e.g., "guaranteed_throughput").
-	// Type of RPM limit: 'key' or 'team'. If 'team', RPM is shared across all keys for the team.
+	// Create-only RPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+	// Create-only RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
 	RpmLimitType *string `json:"rpmLimitType,omitempty" tf:"rpm_limit_type,omitempty"`
 
 	// List of tags for the team. Requires LiteLLM Enterprise license.
@@ -287,9 +276,17 @@ type TeamObservation struct {
 	// User-defined team alias.
 	TeamAlias *string `json:"teamAlias,omitempty" tf:"team_alias,omitempty"`
 
+	// Stable LiteLLM team identifier. Supply a predetermined value for external identity or JWT group mapping, or omit it to let the provider generate a UUID.
+	// The LiteLLM team ID. If not specified, the provider generates one. Changing it replaces the team.
+	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
+
 	// Default budget for each team member.
 	// Default budget for team members.
 	TeamMemberBudget *float64 `json:"teamMemberBudget,omitempty" tf:"team_member_budget,omitempty"`
+
+	// Recurring reset interval for the default member budget. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected. LiteLLM applies it to new/default membership budgets and may backfill memberships without a budget; private member overrides are preserved. Configure litellm_team_member.budget_duration for per-member control.
+	// Default recurring budget reset interval for team memberships. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. LiteLLM applies it to new/default memberships and may backfill memberships without a budget; private member overrides are preserved.
+	TeamMemberBudgetDuration *string `json:"teamMemberBudgetDuration,omitempty" tf:"team_member_budget_duration,omitempty"`
 
 	// List of permissions granted to team members.
 	// List of permissions granted to team members.
@@ -307,20 +304,26 @@ type TeamObservation struct {
 	// Tokens per minute limit for the team.
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 
-	// Type of TPM limit (e.g., "guaranteed_throughput").
-	// Type of TPM limit: 'key' or 'team'. If 'team', TPM is shared across all keys for the team.
+	// Create-only TPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+	// Create-only TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
 	TpmLimitType *string `json:"tpmLimitType,omitempty" tf:"tpm_limit_type,omitempty"`
 }
 
 type TeamParameters struct {
+
+	// Unordered set of access group IDs associated with the team. Use [] to detach all groups.
+	// Access group IDs associated with this team. Order is ignored. Set an empty collection to detach all access groups.
+	// +kubebuilder:validation:Optional
+	// +listType=set
+	AccessGroupIds []*string `json:"accessGroupIds,omitempty" tf:"access_group_ids,omitempty"`
 
 	// Whether the team is blocked from making requests.
 	// Whether the team is blocked.
 	// +kubebuilder:validation:Optional
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// Duration for the budget cycle (e.g., "30d", "7d", "1h").
-	// Budget reset duration.
+	// Recurring team budget reset interval. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected.
+	// Recurring team budget reset interval. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo.
 	// +kubebuilder:validation:Optional
 	BudgetDuration *string `json:"budgetDuration,omitempty" tf:"budget_duration,omitempty"`
 
@@ -384,15 +387,15 @@ type TeamParameters struct {
 
 	// Router settings for the team, including fallback configurations. These override global fallback settings for requests made with this team's keys. Resolution order: Key > Team > Global. Contains the following nested attributes:
 	// +kubebuilder:validation:Optional
-	RouterSettings *RouterSettingsParameters `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
+	RouterSettings *TeamRouterSettingsParameters `json:"routerSettings,omitempty" tf:"router_settings,omitempty"`
 
 	// Requests per minute limit for the team.
 	// Requests per minute limit for the team.
 	// +kubebuilder:validation:Optional
 	RpmLimit *float64 `json:"rpmLimit,omitempty" tf:"rpm_limit,omitempty"`
 
-	// Type of RPM limit (e.g., "guaranteed_throughput").
-	// Type of RPM limit: 'key' or 'team'. If 'team', RPM is shared across all keys for the team.
+	// Create-only RPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+	// Create-only RPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
 	// +kubebuilder:validation:Optional
 	RpmLimitType *string `json:"rpmLimitType,omitempty" tf:"rpm_limit_type,omitempty"`
 
@@ -406,10 +409,20 @@ type TeamParameters struct {
 	// +kubebuilder:validation:Optional
 	TeamAlias *string `json:"teamAlias,omitempty" tf:"team_alias,omitempty"`
 
+	// Stable LiteLLM team identifier. Supply a predetermined value for external identity or JWT group mapping, or omit it to let the provider generate a UUID.
+	// The LiteLLM team ID. If not specified, the provider generates one. Changing it replaces the team.
+	// +kubebuilder:validation:Optional
+	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
+
 	// Default budget for each team member.
 	// Default budget for team members.
 	// +kubebuilder:validation:Optional
 	TeamMemberBudget *float64 `json:"teamMemberBudget,omitempty" tf:"team_member_budget,omitempty"`
+
+	// Recurring reset interval for the default member budget. Use a positive integer followed by s, m, h, d, or w (for example, 30d, 24h, or 1w); one of the exact aliases hourly, daily, weekly, or monthly; or exactly 1mo. Zero values, other month counts such as 2mo or 12mo, case variants, and malformed aliases or units are rejected. LiteLLM applies it to new/default membership budgets and may backfill memberships without a budget; private member overrides are preserved. Configure litellm_team_member.budget_duration for per-member control.
+	// Default recurring budget reset interval for team memberships. Accepts positive s, m, h, d, or w durations; hourly, daily, weekly, or monthly; or exactly 1mo. LiteLLM applies it to new/default memberships and may backfill memberships without a budget; private member overrides are preserved.
+	// +kubebuilder:validation:Optional
+	TeamMemberBudgetDuration *string `json:"teamMemberBudgetDuration,omitempty" tf:"team_member_budget_duration,omitempty"`
 
 	// List of permissions granted to team members.
 	// List of permissions granted to team members.
@@ -431,10 +444,39 @@ type TeamParameters struct {
 	// +kubebuilder:validation:Optional
 	TpmLimit *float64 `json:"tpmLimit,omitempty" tf:"tpm_limit,omitempty"`
 
-	// Type of TPM limit (e.g., "guaranteed_throughput").
-	// Type of TPM limit: 'key' or 'team'. If 'team', TPM is shared across all keys for the team.
+	// Create-only TPM limit type. LiteLLM v1.98 accepts exactly "guaranteed_throughput" or "best_effort_throughput" when creating a team. Adding, changing, or removing it replaces the team.
+	// Create-only TPM limit enforcement type. LiteLLM v1.98 accepts guaranteed_throughput or best_effort_throughput for new teams. Changing this value replaces the team.
 	// +kubebuilder:validation:Optional
 	TpmLimitType *string `json:"tpmLimitType,omitempty" tf:"tpm_limit_type,omitempty"`
+}
+
+type TeamRouterSettingsInitParameters struct {
+
+	// List of fallback model chains triggered when a context window exceeded error occurs. Each entry has the same structure as fallbacks.
+	ContextWindowFallbacks []ContextWindowFallbacksInitParameters `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
+
+	// List of fallback model chains triggered when a model call fails after retries. Each entry contains:
+	Fallbacks []FallbacksInitParameters `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
+}
+
+type TeamRouterSettingsObservation struct {
+
+	// List of fallback model chains triggered when a context window exceeded error occurs. Each entry has the same structure as fallbacks.
+	ContextWindowFallbacks []ContextWindowFallbacksObservation `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
+
+	// List of fallback model chains triggered when a model call fails after retries. Each entry contains:
+	Fallbacks []FallbacksObservation `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
+}
+
+type TeamRouterSettingsParameters struct {
+
+	// List of fallback model chains triggered when a context window exceeded error occurs. Each entry has the same structure as fallbacks.
+	// +kubebuilder:validation:Optional
+	ContextWindowFallbacks []ContextWindowFallbacksParameters `json:"contextWindowFallbacks,omitempty" tf:"context_window_fallbacks,omitempty"`
+
+	// List of fallback model chains triggered when a model call fails after retries. Each entry contains:
+	// +kubebuilder:validation:Optional
+	Fallbacks []FallbacksParameters `json:"fallbacks,omitempty" tf:"fallbacks,omitempty"`
 }
 
 // TeamSpec defines the desired state of Team

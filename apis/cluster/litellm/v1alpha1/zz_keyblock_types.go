@@ -15,9 +15,13 @@ import (
 
 type KeyBlockInitParameters struct {
 
-	// The API key token to block. Changing this forces creation of a new resource.
-	// The API key value to block/unblock.
-	KeySecretRef v2.SecretKeySelector `json:"keySecretRef,omitempty" tf:"-"`
+	// Preferred sha256:<64-hex> management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+	// A sha256:<64-hex> key management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+	KeyHash *string `json:"keyHash,omitempty" tf:"key_hash,omitempty"`
+
+	// Backward-compatible stateful API key token.
+	// Legacy stateful API key input. Existing configurations remain supported; prefer key_hash for new resources.
+	KeySecretRef *v2.SecretKeySelector `json:"keySecretRef,omitempty" tf:"-"`
 }
 
 type KeyBlockObservation struct {
@@ -26,16 +30,25 @@ type KeyBlockObservation struct {
 	// Whether the key is currently blocked. Always true when this resource exists.
 	Blocked *bool `json:"blocked,omitempty" tf:"blocked,omitempty"`
 
-	// The ID of this resource.
+	// Canonical non-sensitive sha256:<64-hex> management identifier.
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
+
+	// Preferred sha256:<64-hex> management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+	// A sha256:<64-hex> key management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+	KeyHash *string `json:"keyHash,omitempty" tf:"key_hash,omitempty"`
 }
 
 type KeyBlockParameters struct {
 
-	// The API key token to block. Changing this forces creation of a new resource.
-	// The API key value to block/unblock.
+	// Preferred sha256:<64-hex> management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
+	// A sha256:<64-hex> key management identifier, such as litellm_key.example.id. LiteLLM receives only the bare hash.
 	// +kubebuilder:validation:Optional
-	KeySecretRef v2.SecretKeySelector `json:"keySecretRef" tf:"-"`
+	KeyHash *string `json:"keyHash,omitempty" tf:"key_hash,omitempty"`
+
+	// Backward-compatible stateful API key token.
+	// Legacy stateful API key input. Existing configurations remain supported; prefer key_hash for new resources.
+	// +kubebuilder:validation:Optional
+	KeySecretRef *v2.SecretKeySelector `json:"keySecretRef,omitempty" tf:"-"`
 }
 
 // KeyBlockSpec defines the desired state of KeyBlock
@@ -74,9 +87,8 @@ type KeyBlockStatus struct {
 type KeyBlock struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.keySecretRef)",message="spec.forProvider.keySecretRef is a required parameter"
-	Spec   KeyBlockSpec   `json:"spec"`
-	Status KeyBlockStatus `json:"status,omitempty"`
+	Spec              KeyBlockSpec   `json:"spec"`
+	Status            KeyBlockStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

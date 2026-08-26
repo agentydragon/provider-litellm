@@ -13,9 +13,6 @@ spec:
       matchLabels:
         testing.upbound.io/example-name: engineering
     userEmail: developer@example.com
-    userIdSelector:
-      matchLabels:
-        testing.upbound.io/example-name: example
 
 ---
 

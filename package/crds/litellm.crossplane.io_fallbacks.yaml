@@ -86,7 +86,7 @@ spec:
                   fallbackType:
                     description: |-
                       (String, Optional, Forces new resource) Type of fallback. Defaults to general. One of:
-                      Type of fallback: 'general' (default), 'context_window', or 'content_policy'.
+                      Type of fallback: general (default), context_window, or content_policy.
                     type: string
                   model:
                     description: |-
@@ -223,7 +223,7 @@ spec:
                   fallbackType:
                     description: |-
                       (String, Optional, Forces new resource) Type of fallback. Defaults to general. One of:
-                      Type of fallback: 'general' (default), 'context_window', or 'content_policy'.
+                      Type of fallback: general (default), context_window, or content_policy.
                     type: string
                   id:
                     description: Unique identifier for this fallback (model:fallback_type).

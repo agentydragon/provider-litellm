@@ -24,9 +24,14 @@ type ModelInitParameters struct {
 	AccessGroups []*string `json:"accessGroups,omitempty" tf:"access_groups,omitempty"`
 
 	// map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.
-	// Additional parameters to pass to litellm_params.
+	// Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
 	// +mapType=granular
 	AdditionalLitellmParams map[string]*string `json:"additionalLitellmParams,omitempty" tf:"additional_litellm_params,omitempty"`
+
+	// map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
+	// Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
+	// +mapType=granular
+	AdditionalModelInfo map[string]*string `json:"additionalModelInfo,omitempty" tf:"additional_model_info,omitempty"`
 
 	// string (Sensitive). AWS access key ID for AWS-based models.
 	// AWS access key ID for Bedrock.
@@ -60,11 +65,11 @@ type ModelInitParameters struct {
 	// Input cost per million tokens.
 	InputCostPerMillionTokens *float64 `json:"inputCostPerMillionTokens,omitempty" tf:"input_cost_per_million_tokens,omitempty"`
 
-	// float. Cost applied per input pixel for models that charge by image size.
+	// float. Cost applied per input pixel for models that charge by image size. Removing an owned value replaces the model.
 	// Input cost per pixel.
 	InputCostPerPixel *float64 `json:"inputCostPerPixel,omitempty" tf:"input_cost_per_pixel,omitempty"`
 
-	// float. Cost applied per input second for audio/transcription models.
+	// float. Cost applied per input second for audio/transcription models. Removing an owned value replaces the model.
 	// Input cost per second.
 	InputCostPerSecond *float64 `json:"inputCostPerSecond,omitempty" tf:"input_cost_per_second,omitempty"`
 
@@ -85,7 +90,7 @@ type ModelInitParameters struct {
 	// Merge reasoning content in choices.
 	MergeReasoningContentInChoices *bool `json:"mergeReasoningContentInChoices,omitempty" tf:"merge_reasoning_content_in_choices,omitempty"`
 
-	// string. The intended use of the model. Valid values (aligned with LiteLLM proxy API):
+	// string. The intended use of the model. Removing an owned mode replaces the model because LiteLLM may infer and retain a mode during updates. LiteLLM v1.98 keeps this request field extensible rather than declaring an endpoint enum; common values include:
 	// Model mode. Supported values: chat, completion, embedding, audio_speech, audio_transcription, image_generation, video_generation, batch, rerank, realtime, responses, ocr, moderation.
 	Mode *string `json:"mode,omitempty" tf:"mode,omitempty"`
 
@@ -105,23 +110,23 @@ type ModelInitParameters struct {
 	// Output cost per million tokens.
 	OutputCostPerMillionTokens *float64 `json:"outputCostPerMillionTokens,omitempty" tf:"output_cost_per_million_tokens,omitempty"`
 
-	// float. Cost applied per output pixel for image-generation models.
+	// float. Cost applied per output pixel for image-generation models. Removing an owned value replaces the model.
 	// Output cost per pixel.
 	OutputCostPerPixel *float64 `json:"outputCostPerPixel,omitempty" tf:"output_cost_per_pixel,omitempty"`
 
-	// float. Cost applied per output second for audio/transcription models.
+	// float. Cost applied per output second for audio/transcription models. Removing an owned value replaces the model.
 	// Output cost per second.
 	OutputCostPerSecond *float64 `json:"outputCostPerSecond,omitempty" tf:"output_cost_per_second,omitempty"`
 
-	// string. Configures the model's reasoning effort level. Valid values are:
+	// string. Configures the provider-specific reasoning effort level. Common values are:
 	// Reasoning effort level (low, medium, high).
 	ReasoningEffort *string `json:"reasoningEffort,omitempty" tf:"reasoning_effort,omitempty"`
 
-	// integer. Requests per minute limit for this model.
+	// integer. Requests per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
 	// Requests per minute limit.
 	Rpm *float64 `json:"rpm,omitempty" tf:"rpm,omitempty"`
 
-	// string. Associate the model with a specific team.
+	// string. Associate the model with a specific team. Changing or removing an owned team association replaces the model because LiteLLM v1.98 does not provide a reliable in-place detach operation.
 	// Team ID to associate with this model.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Team
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
@@ -142,11 +147,11 @@ type ModelInitParameters struct {
 	// Enable thinking/reasoning mode.
 	ThinkingEnabled *bool `json:"thinkingEnabled,omitempty" tf:"thinking_enabled,omitempty"`
 
-	// string. The usage tier for this model. Valid values are "free" or "paid". Default: "free".
-	// Model tier (free, paid, etc.).
+	// string. The usage tier for this model. LiteLLM v1.98 accepts exactly "free" or "paid"; the provider validates the value during planning. Default: "free".
+	// Model tier: free or paid.
 	Tier *string `json:"tier,omitempty" tf:"tier,omitempty"`
 
-	// integer. Tokens per minute limit for this model.
+	// integer. Tokens per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
 	// Tokens per minute limit.
 	Tpm *float64 `json:"tpm,omitempty" tf:"tpm,omitempty"`
 
@@ -174,9 +179,20 @@ type ModelObservation struct {
 	AccessGroups []*string `json:"accessGroups,omitempty" tf:"access_groups,omitempty"`
 
 	// map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.
-	// Additional parameters to pass to litellm_params.
+	// Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
 	// +mapType=granular
 	AdditionalLitellmParams map[string]*string `json:"additionalLitellmParams,omitempty" tf:"additional_litellm_params,omitempty"`
+
+	// Internal state marker indicating whether additional_litellm_params is explicitly managed by configuration.
+	AdditionalLitellmParamsConfigured *bool `json:"additionalLitellmParamsConfigured,omitempty" tf:"additional_litellm_params_configured,omitempty"`
+
+	// map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
+	// Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
+	// +mapType=granular
+	AdditionalModelInfo map[string]*string `json:"additionalModelInfo,omitempty" tf:"additional_model_info,omitempty"`
+
+	// Internal state marker indicating whether additional_model_info is explicitly managed by configuration.
+	AdditionalModelInfoConfigured *bool `json:"additionalModelInfoConfigured,omitempty" tf:"additional_model_info_configured,omitempty"`
 
 	// string. AWS region name for AWS-based models.
 	// AWS region name for Bedrock.
@@ -197,11 +213,11 @@ type ModelObservation struct {
 	// Input cost per million tokens.
 	InputCostPerMillionTokens *float64 `json:"inputCostPerMillionTokens,omitempty" tf:"input_cost_per_million_tokens,omitempty"`
 
-	// float. Cost applied per input pixel for models that charge by image size.
+	// float. Cost applied per input pixel for models that charge by image size. Removing an owned value replaces the model.
 	// Input cost per pixel.
 	InputCostPerPixel *float64 `json:"inputCostPerPixel,omitempty" tf:"input_cost_per_pixel,omitempty"`
 
-	// float. Cost applied per input second for audio/transcription models.
+	// float. Cost applied per input second for audio/transcription models. Removing an owned value replaces the model.
 	// Input cost per second.
 	InputCostPerSecond *float64 `json:"inputCostPerSecond,omitempty" tf:"input_cost_per_second,omitempty"`
 
@@ -213,7 +229,7 @@ type ModelObservation struct {
 	// Merge reasoning content in choices.
 	MergeReasoningContentInChoices *bool `json:"mergeReasoningContentInChoices,omitempty" tf:"merge_reasoning_content_in_choices,omitempty"`
 
-	// string. The intended use of the model. Valid values (aligned with LiteLLM proxy API):
+	// string. The intended use of the model. Removing an owned mode replaces the model because LiteLLM may infer and retain a mode during updates. LiteLLM v1.98 keeps this request field extensible rather than declaring an endpoint enum; common values include:
 	// Model mode. Supported values: chat, completion, embedding, audio_speech, audio_transcription, image_generation, video_generation, batch, rerank, realtime, responses, ocr, moderation.
 	Mode *string `json:"mode,omitempty" tf:"mode,omitempty"`
 
@@ -229,23 +245,23 @@ type ModelObservation struct {
 	// Output cost per million tokens.
 	OutputCostPerMillionTokens *float64 `json:"outputCostPerMillionTokens,omitempty" tf:"output_cost_per_million_tokens,omitempty"`
 
-	// float. Cost applied per output pixel for image-generation models.
+	// float. Cost applied per output pixel for image-generation models. Removing an owned value replaces the model.
 	// Output cost per pixel.
 	OutputCostPerPixel *float64 `json:"outputCostPerPixel,omitempty" tf:"output_cost_per_pixel,omitempty"`
 
-	// float. Cost applied per output second for audio/transcription models.
+	// float. Cost applied per output second for audio/transcription models. Removing an owned value replaces the model.
 	// Output cost per second.
 	OutputCostPerSecond *float64 `json:"outputCostPerSecond,omitempty" tf:"output_cost_per_second,omitempty"`
 
-	// string. Configures the model's reasoning effort level. Valid values are:
+	// string. Configures the provider-specific reasoning effort level. Common values are:
 	// Reasoning effort level (low, medium, high).
 	ReasoningEffort *string `json:"reasoningEffort,omitempty" tf:"reasoning_effort,omitempty"`
 
-	// integer. Requests per minute limit for this model.
+	// integer. Requests per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
 	// Requests per minute limit.
 	Rpm *float64 `json:"rpm,omitempty" tf:"rpm,omitempty"`
 
-	// string. Associate the model with a specific team.
+	// string. Associate the model with a specific team. Changing or removing an owned team association replaces the model because LiteLLM v1.98 does not provide a reliable in-place detach operation.
 	// Team ID to associate with this model.
 	TeamID *string `json:"teamId,omitempty" tf:"team_id,omitempty"`
 
@@ -257,11 +273,11 @@ type ModelObservation struct {
 	// Enable thinking/reasoning mode.
 	ThinkingEnabled *bool `json:"thinkingEnabled,omitempty" tf:"thinking_enabled,omitempty"`
 
-	// string. The usage tier for this model. Valid values are "free" or "paid". Default: "free".
-	// Model tier (free, paid, etc.).
+	// string. The usage tier for this model. LiteLLM v1.98 accepts exactly "free" or "paid"; the provider validates the value during planning. Default: "free".
+	// Model tier: free or paid.
 	Tier *string `json:"tier,omitempty" tf:"tier,omitempty"`
 
-	// integer. Tokens per minute limit for this model.
+	// integer. Tokens per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
 	// Tokens per minute limit.
 	Tpm *float64 `json:"tpm,omitempty" tf:"tpm,omitempty"`
 
@@ -283,10 +299,16 @@ type ModelParameters struct {
 	AccessGroups []*string `json:"accessGroups,omitempty" tf:"access_groups,omitempty"`
 
 	// map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.
-	// Additional parameters to pass to litellm_params.
+	// Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	AdditionalLitellmParams map[string]*string `json:"additionalLitellmParams,omitempty" tf:"additional_litellm_params,omitempty"`
+
+	// map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
+	// Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
+	// +kubebuilder:validation:Optional
+	// +mapType=granular
+	AdditionalModelInfo map[string]*string `json:"additionalModelInfo,omitempty" tf:"additional_model_info,omitempty"`
 
 	// string (Sensitive). AWS access key ID for AWS-based models.
 	// AWS access key ID for Bedrock.
@@ -328,12 +350,12 @@ type ModelParameters struct {
 	// +kubebuilder:validation:Optional
 	InputCostPerMillionTokens *float64 `json:"inputCostPerMillionTokens,omitempty" tf:"input_cost_per_million_tokens,omitempty"`
 
-	// float. Cost applied per input pixel for models that charge by image size.
+	// float. Cost applied per input pixel for models that charge by image size. Removing an owned value replaces the model.
 	// Input cost per pixel.
 	// +kubebuilder:validation:Optional
 	InputCostPerPixel *float64 `json:"inputCostPerPixel,omitempty" tf:"input_cost_per_pixel,omitempty"`
 
-	// float. Cost applied per input second for audio/transcription models.
+	// float. Cost applied per input second for audio/transcription models. Removing an owned value replaces the model.
 	// Input cost per second.
 	// +kubebuilder:validation:Optional
 	InputCostPerSecond *float64 `json:"inputCostPerSecond,omitempty" tf:"input_cost_per_second,omitempty"`
@@ -357,7 +379,7 @@ type ModelParameters struct {
 	// +kubebuilder:validation:Optional
 	MergeReasoningContentInChoices *bool `json:"mergeReasoningContentInChoices,omitempty" tf:"merge_reasoning_content_in_choices,omitempty"`
 
-	// string. The intended use of the model. Valid values (aligned with LiteLLM proxy API):
+	// string. The intended use of the model. Removing an owned mode replaces the model because LiteLLM may infer and retain a mode during updates. LiteLLM v1.98 keeps this request field extensible rather than declaring an endpoint enum; common values include:
 	// Model mode. Supported values: chat, completion, embedding, audio_speech, audio_transcription, image_generation, video_generation, batch, rerank, realtime, responses, ocr, moderation.
 	// +kubebuilder:validation:Optional
 	Mode *string `json:"mode,omitempty" tf:"mode,omitempty"`
@@ -382,27 +404,27 @@ type ModelParameters struct {
 	// +kubebuilder:validation:Optional
 	OutputCostPerMillionTokens *float64 `json:"outputCostPerMillionTokens,omitempty" tf:"output_cost_per_million_tokens,omitempty"`
 
-	// float. Cost applied per output pixel for image-generation models.
+	// float. Cost applied per output pixel for image-generation models. Removing an owned value replaces the model.
 	// Output cost per pixel.
 	// +kubebuilder:validation:Optional
 	OutputCostPerPixel *float64 `json:"outputCostPerPixel,omitempty" tf:"output_cost_per_pixel,omitempty"`
 
-	// float. Cost applied per output second for audio/transcription models.
+	// float. Cost applied per output second for audio/transcription models. Removing an owned value replaces the model.
 	// Output cost per second.
 	// +kubebuilder:validation:Optional
 	OutputCostPerSecond *float64 `json:"outputCostPerSecond,omitempty" tf:"output_cost_per_second,omitempty"`
 
-	// string. Configures the model's reasoning effort level. Valid values are:
+	// string. Configures the provider-specific reasoning effort level. Common values are:
 	// Reasoning effort level (low, medium, high).
 	// +kubebuilder:validation:Optional
 	ReasoningEffort *string `json:"reasoningEffort,omitempty" tf:"reasoning_effort,omitempty"`
 
-	// integer. Requests per minute limit for this model.
+	// integer. Requests per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
 	// Requests per minute limit.
 	// +kubebuilder:validation:Optional
 	Rpm *float64 `json:"rpm,omitempty" tf:"rpm,omitempty"`
 
-	// string. Associate the model with a specific team.
+	// string. Associate the model with a specific team. Changing or removing an owned team association replaces the model because LiteLLM v1.98 does not provide a reliable in-place detach operation.
 	// Team ID to associate with this model.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Team
 	// +kubebuilder:validation:Optional
@@ -426,12 +448,12 @@ type ModelParameters struct {
 	// +kubebuilder:validation:Optional
 	ThinkingEnabled *bool `json:"thinkingEnabled,omitempty" tf:"thinking_enabled,omitempty"`
 
-	// string. The usage tier for this model. Valid values are "free" or "paid". Default: "free".
-	// Model tier (free, paid, etc.).
+	// string. The usage tier for this model. LiteLLM v1.98 accepts exactly "free" or "paid"; the provider validates the value during planning. Default: "free".
+	// Model tier: free or paid.
 	// +kubebuilder:validation:Optional
 	Tier *string `json:"tier,omitempty" tf:"tier,omitempty"`
 
-	// integer. Tokens per minute limit for this model.
+	// integer. Tokens per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
 	// Tokens per minute limit.
 	// +kubebuilder:validation:Optional
 	Tpm *float64 `json:"tpm,omitempty" tf:"tpm,omitempty"`

@@ -86,7 +86,15 @@ spec:
                       type: string
                     description: |-
                       map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.
-                      Additional parameters to pass to litellm_params.
+                      Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
+                    type: object
+                    x-kubernetes-map-type: granular
+                  additionalModelInfo:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
+                      Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
                     type: object
                     x-kubernetes-map-type: granular
                   apiVersion:
@@ -192,12 +200,12 @@ spec:
                     type: number
                   inputCostPerPixel:
                     description: |-
-                      float. Cost applied per input pixel for models that charge by image size.
+                      float. Cost applied per input pixel for models that charge by image size. Removing an owned value replaces the model.
                       Input cost per pixel.
                     type: number
                   inputCostPerSecond:
                     description: |-
-                      float. Cost applied per input second for audio/transcription models.
+                      float. Cost applied per input second for audio/transcription models. Removing an owned value replaces the model.
                       Input cost per second.
                     type: number
                   litellmCredentialName:
@@ -288,7 +296,7 @@ spec:
                     type: boolean
                   mode:
                     description: |-
-                      string. The intended use of the model. Valid values (aligned with LiteLLM proxy API):
+                      string. The intended use of the model. Removing an owned mode replaces the model because LiteLLM may infer and retain a mode during updates. LiteLLM v1.98 keeps this request field extensible rather than declaring an endpoint enum; common values include:
                       Model mode. Supported values: chat, completion, embedding, audio_speech, audio_transcription, image_generation, video_generation, batch, rerank, realtime, responses, ocr, moderation.
                     type: string
                   modelApiBase:
@@ -327,27 +335,27 @@ spec:
                     type: number
                   outputCostPerPixel:
                     description: |-
-                      float. Cost applied per output pixel for image-generation models.
+                      float. Cost applied per output pixel for image-generation models. Removing an owned value replaces the model.
                       Output cost per pixel.
                     type: number
                   outputCostPerSecond:
                     description: |-
-                      float. Cost applied per output second for audio/transcription models.
+                      float. Cost applied per output second for audio/transcription models. Removing an owned value replaces the model.
                       Output cost per second.
                     type: number
                   reasoningEffort:
                     description: |-
-                      string. Configures the model's reasoning effort level. Valid values are:
+                      string. Configures the provider-specific reasoning effort level. Common values are:
                       Reasoning effort level (low, medium, high).
                     type: string
                   rpm:
                     description: |-
-                      integer. Requests per minute limit for this model.
+                      integer. Requests per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
                       Requests per minute limit.
                     type: number
                   teamId:
                     description: |-
-                      string. Associate the model with a specific team.
+                      string. Associate the model with a specific team. Changing or removing an owned team association replaces the model because LiteLLM v1.98 does not provide a reliable in-place detach operation.
                       Team ID to associate with this model.
                     type: string
                   teamIdRef:
@@ -436,12 +444,12 @@ spec:
                     type: boolean
                   tier:
                     description: |-
-                      string. The usage tier for this model. Valid values are "free" or "paid". Default: "free".
-                      Model tier (free, paid, etc.).
+                      string. The usage tier for this model. LiteLLM v1.98 accepts exactly "free" or "paid"; the provider validates the value during planning. Default: "free".
+                      Model tier: free or paid.
                     type: string
                   tpm:
                     description: |-
-                      integer. Tokens per minute limit for this model.
+                      integer. Tokens per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
                       Tokens per minute limit.
                     type: number
                   vertexCredentials:
@@ -513,7 +521,15 @@ spec:
                       type: string
                     description: |-
                       map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.
-                      Additional parameters to pass to litellm_params.
+                      Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
+                    type: object
+                    x-kubernetes-map-type: granular
+                  additionalModelInfo:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
+                      Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
                     type: object
                     x-kubernetes-map-type: granular
                   apiVersion:
@@ -619,12 +635,12 @@ spec:
                     type: number
                   inputCostPerPixel:
                     description: |-
-                      float. Cost applied per input pixel for models that charge by image size.
+                      float. Cost applied per input pixel for models that charge by image size. Removing an owned value replaces the model.
                       Input cost per pixel.
                     type: number
                   inputCostPerSecond:
                     description: |-
-                      float. Cost applied per input second for audio/transcription models.
+                      float. Cost applied per input second for audio/transcription models. Removing an owned value replaces the model.
                       Input cost per second.
                     type: number
                   litellmCredentialName:
@@ -715,7 +731,7 @@ spec:
                     type: boolean
                   mode:
                     description: |-
-                      string. The intended use of the model. Valid values (aligned with LiteLLM proxy API):
+                      string. The intended use of the model. Removing an owned mode replaces the model because LiteLLM may infer and retain a mode during updates. LiteLLM v1.98 keeps this request field extensible rather than declaring an endpoint enum; common values include:
                       Model mode. Supported values: chat, completion, embedding, audio_speech, audio_transcription, image_generation, video_generation, batch, rerank, realtime, responses, ocr, moderation.
                     type: string
                   modelApiBase:
@@ -754,27 +770,27 @@ spec:
                     type: number
                   outputCostPerPixel:
                     description: |-
-                      float. Cost applied per output pixel for image-generation models.
+                      float. Cost applied per output pixel for image-generation models. Removing an owned value replaces the model.
                       Output cost per pixel.
                     type: number
                   outputCostPerSecond:
                     description: |-
-                      float. Cost applied per output second for audio/transcription models.
+                      float. Cost applied per output second for audio/transcription models. Removing an owned value replaces the model.
                       Output cost per second.
                     type: number
                   reasoningEffort:
                     description: |-
-                      string. Configures the model's reasoning effort level. Valid values are:
+                      string. Configures the provider-specific reasoning effort level. Common values are:
                       Reasoning effort level (low, medium, high).
                     type: string
                   rpm:
                     description: |-
-                      integer. Requests per minute limit for this model.
+                      integer. Requests per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
                       Requests per minute limit.
                     type: number
                   teamId:
                     description: |-
-                      string. Associate the model with a specific team.
+                      string. Associate the model with a specific team. Changing or removing an owned team association replaces the model because LiteLLM v1.98 does not provide a reliable in-place detach operation.
                       Team ID to associate with this model.
                     type: string
                   teamIdRef:
@@ -863,12 +879,12 @@ spec:
                     type: boolean
                   tier:
                     description: |-
-                      string. The usage tier for this model. Valid values are "free" or "paid". Default: "free".
-                      Model tier (free, paid, etc.).
+                      string. The usage tier for this model. LiteLLM v1.98 accepts exactly "free" or "paid"; the provider validates the value during planning. Default: "free".
+                      Model tier: free or paid.
                     type: string
                   tpm:
                     description: |-
-                      integer. Tokens per minute limit for this model.
+                      integer. Tokens per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
                       Tokens per minute limit.
                     type: number
                   vertexCredentials:
@@ -1031,9 +1047,25 @@ spec:
                       type: string
                     description: |-
                       map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.
-                      Additional parameters to pass to litellm_params.
+                      Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
                     type: object
                     x-kubernetes-map-type: granular
+                  additionalLitellmParamsConfigured:
+                    description: Internal state marker indicating whether additional_litellm_params
+                      is explicitly managed by configuration.
+                    type: boolean
+                  additionalModelInfo:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
+                      Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
+                    type: object
+                    x-kubernetes-map-type: granular
+                  additionalModelInfoConfigured:
+                    description: Internal state marker indicating whether additional_model_info
+                      is explicitly managed by configuration.
+                    type: boolean
                   apiVersion:
                     description: |-
                       string. The API version to use for the model provider.
@@ -1064,12 +1096,12 @@ spec:
                     type: number
                   inputCostPerPixel:
                     description: |-
-                      float. Cost applied per input pixel for models that charge by image size.
+                      float. Cost applied per input pixel for models that charge by image size. Removing an owned value replaces the model.
                       Input cost per pixel.
                     type: number
                   inputCostPerSecond:
                     description: |-
-                      float. Cost applied per input second for audio/transcription models.
+                      float. Cost applied per input second for audio/transcription models. Removing an owned value replaces the model.
                       Input cost per second.
                     type: number
                   litellmCredentialName:
@@ -1084,7 +1116,7 @@ spec:
                     type: boolean
                   mode:
                     description: |-
-                      string. The intended use of the model. Valid values (aligned with LiteLLM proxy API):
+                      string. The intended use of the model. Removing an owned mode replaces the model because LiteLLM may infer and retain a mode during updates. LiteLLM v1.98 keeps this request field extensible rather than declaring an endpoint enum; common values include:
                       Model mode. Supported values: chat, completion, embedding, audio_speech, audio_transcription, image_generation, video_generation, batch, rerank, realtime, responses, ocr, moderation.
                     type: string
                   modelApiBase:
@@ -1104,27 +1136,27 @@ spec:
                     type: number
                   outputCostPerPixel:
                     description: |-
-                      float. Cost applied per output pixel for image-generation models.
+                      float. Cost applied per output pixel for image-generation models. Removing an owned value replaces the model.
                       Output cost per pixel.
                     type: number
                   outputCostPerSecond:
                     description: |-
-                      float. Cost applied per output second for audio/transcription models.
+                      float. Cost applied per output second for audio/transcription models. Removing an owned value replaces the model.
                       Output cost per second.
                     type: number
                   reasoningEffort:
                     description: |-
-                      string. Configures the model's reasoning effort level. Valid values are:
+                      string. Configures the provider-specific reasoning effort level. Common values are:
                       Reasoning effort level (low, medium, high).
                     type: string
                   rpm:
                     description: |-
-                      integer. Requests per minute limit for this model.
+                      integer. Requests per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
                       Requests per minute limit.
                     type: number
                   teamId:
                     description: |-
-                      string. Associate the model with a specific team.
+                      string. Associate the model with a specific team. Changing or removing an owned team association replaces the model because LiteLLM v1.98 does not provide a reliable in-place detach operation.
                       Team ID to associate with this model.
                     type: string
                   thinkingBudgetTokens:
@@ -1139,12 +1171,12 @@ spec:
                     type: boolean
                   tier:
                     description: |-
-                      string. The usage tier for this model. Valid values are "free" or "paid". Default: "free".
-                      Model tier (free, paid, etc.).
+                      string. The usage tier for this model. LiteLLM v1.98 accepts exactly "free" or "paid"; the provider validates the value during planning. Default: "free".
+                      Model tier: free or paid.
                     type: string
                   tpm:
                     description: |-
-                      integer. Tokens per minute limit for this model.
+                      integer. Tokens per minute limit for this model. Zero is a valid configured limit; it does not mean "unset." Removing an owned value replaces the model.
                       Tokens per minute limit.
                     type: number
                   vertexCredentials:

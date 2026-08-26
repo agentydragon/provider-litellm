@@ -103,6 +103,11 @@ spec:
                       The dotprompt-formatted content for the prompt. Supports YAML frontmatter for model configuration and Mustache-style {{variable}} template syntax.
                       Content for dotprompt integration (Firebase Genkit format).
                     type: string
+                  environment:
+                    description: |-
+                      Environment-scoped ownership dimension. Defaults to "development". Changing it replaces the resource without deleting versions in any other environment.
+                      Environment-scoped prompt identity. Defaults to development; changing it creates a separately owned logical prompt.
+                    type: string
                   ignorePromptManagerModel:
                     description: |-
                       When true, ignores the model specified in the prompt manager and uses the caller's model instead.
@@ -120,13 +125,13 @@ spec:
                     type: string
                   promptType:
                     description: |-
-                      The type of prompt storage (e.g., "db" for database-stored prompts).
-                      Type of prompt: 'config' or 'db'.
+                      The prompt definition location. LiteLLM v1.98 accepts "config" or "db"; API-managed creates use "db" when omitted. The provider rejects new config creates because v1.98 cannot update or delete them, while existing/imported config prompts remain readable.
+                      Type of prompt: config or db.
                     type: string
                   providerSpecificQueryParams:
                     description: |-
                       Provider-specific query parameters to pass through.
-                      JSON string of provider-specific query parameters.
+                      JSON object string of provider-specific query parameters.
                     type: string
                 type: object
               initProvider:
@@ -171,6 +176,11 @@ spec:
                       The dotprompt-formatted content for the prompt. Supports YAML frontmatter for model configuration and Mustache-style {{variable}} template syntax.
                       Content for dotprompt integration (Firebase Genkit format).
                     type: string
+                  environment:
+                    description: |-
+                      Environment-scoped ownership dimension. Defaults to "development". Changing it replaces the resource without deleting versions in any other environment.
+                      Environment-scoped prompt identity. Defaults to development; changing it creates a separately owned logical prompt.
+                    type: string
                   ignorePromptManagerModel:
                     description: |-
                       When true, ignores the model specified in the prompt manager and uses the caller's model instead.
@@ -188,13 +198,13 @@ spec:
                     type: string
                   promptType:
                     description: |-
-                      The type of prompt storage (e.g., "db" for database-stored prompts).
-                      Type of prompt: 'config' or 'db'.
+                      The prompt definition location. LiteLLM v1.98 accepts "config" or "db"; API-managed creates use "db" when omitted. The provider rejects new config creates because v1.98 cannot update or delete them, while existing/imported config prompts remain readable.
+                      Type of prompt: config or db.
                     type: string
                   providerSpecificQueryParams:
                     description: |-
                       Provider-specific query parameters to pass through.
-                      JSON string of provider-specific query parameters.
+                      JSON object string of provider-specific query parameters.
                     type: string
                 type: object
               managementPolicies:
@@ -298,13 +308,25 @@ spec:
                       API base URL for the prompt manager endpoint.
                       Base URL for the prompt provider API.
                     type: string
+                  createdAt:
+                    description: |-
+                      Creation timestamp of the selected latest version.
+                      Creation timestamp of the selected latest version.
+                    type: string
                   dotpromptContent:
                     description: |-
                       The dotprompt-formatted content for the prompt. Supports YAML frontmatter for model configuration and Mustache-style {{variable}} template syntax.
                       Content for dotprompt integration (Firebase Genkit format).
                     type: string
+                  environment:
+                    description: |-
+                      Environment-scoped ownership dimension. Defaults to "development". Changing it replaces the resource without deleting versions in any other environment.
+                      Environment-scoped prompt identity. Defaults to development; changing it creates a separately owned logical prompt.
+                    type: string
                   id:
-                    description: The identifier of the prompt.
+                    description: The base prompt identifier. This remains equal to
+                      prompt_id for backward compatibility; the full managed identity
+                      is the pair (prompt_id, environment).
                     type: string
                   ignorePromptManagerModel:
                     description: |-
@@ -323,14 +345,24 @@ spec:
                     type: string
                   promptType:
                     description: |-
-                      The type of prompt storage (e.g., "db" for database-stored prompts).
-                      Type of prompt: 'config' or 'db'.
+                      The prompt definition location. LiteLLM v1.98 accepts "config" or "db"; API-managed creates use "db" when omitted. The provider rejects new config creates because v1.98 cannot update or delete them, while existing/imported config prompts remain readable.
+                      Type of prompt: config or db.
                     type: string
                   providerSpecificQueryParams:
                     description: |-
                       Provider-specific query parameters to pass through.
-                      JSON string of provider-specific query parameters.
+                      JSON object string of provider-specific query parameters.
                     type: string
+                  updatedAt:
+                    description: |-
+                      Last-update timestamp of the selected latest version.
+                      Last-update timestamp of the selected latest version.
+                    type: string
+                  version:
+                    description: |-
+                      The latest positive version owned in this environment. Each successful update appends a new version.
+                      Latest version currently owned in this environment. Updates append a new version.
+                    type: number
                 type: object
               conditions:
                 description: Conditions of the resource.

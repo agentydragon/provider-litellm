@@ -27,7 +27,7 @@ type FallbackObservation struct {
 	FallbackModels []*string `json:"fallbackModels,omitempty" tf:"fallback_models,omitempty"`
 
 	// (String, Optional, Forces new resource) Type of fallback. Defaults to general. One of:
-	// Type of fallback: 'general' (default), 'context_window', or 'content_policy'.
+	// Type of fallback: general (default), context_window, or content_policy.
 	FallbackType *string `json:"fallbackType,omitempty" tf:"fallback_type,omitempty"`
 
 	// Unique identifier for this fallback (model:fallback_type).
@@ -46,7 +46,7 @@ type FallbackParameters struct {
 	FallbackModels []*string `json:"fallbackModels,omitempty" tf:"fallback_models,omitempty"`
 
 	// (String, Optional, Forces new resource) Type of fallback. Defaults to general. One of:
-	// Type of fallback: 'general' (default), 'context_window', or 'content_policy'.
+	// Type of fallback: general (default), context_window, or content_policy.
 	// +kubebuilder:validation:Optional
 	FallbackType *string `json:"fallbackType,omitempty" tf:"fallback_type,omitempty"`
 

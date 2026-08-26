@@ -12,9 +12,14 @@ TERRAFORM_VERSION_VALID := $(shell [ "$(TERRAFORM_VERSION)" = "`printf "$(TERRAF
 
 export TERRAFORM_PROVIDER_SOURCE ?= ncecere/litellm
 export TERRAFORM_PROVIDER_REPO ?= https://github.com/ncecere/terraform-provider-litellm
-export TERRAFORM_PROVIDER_VERSION ?= 2.0.1
+# The provider is built from source at TERRAFORM_PROVIDER_REF rather than
+# downloaded from GitHub releases, because the upstream `issues` development
+# branch carries the fixes and resources this provider needs but publishes no
+# release artifact. Patches under hack/patches are applied on top of it; see
+# hack/build-terraform-provider.sh.
+export TERRAFORM_PROVIDER_REF ?= eb28657
+export TERRAFORM_PROVIDER_VERSION ?= 2.0.2-issues
 export TERRAFORM_PROVIDER_DOWNLOAD_NAME ?= terraform-provider-litellm
-export TERRAFORM_PROVIDER_DOWNLOAD_URL_PREFIX ?= $(TERRAFORM_PROVIDER_REPO)/releases/download/v$(TERRAFORM_PROVIDER_VERSION)
 export TERRAFORM_NATIVE_PROVIDER_BINARY ?= terraform-provider-litellm_v$(TERRAFORM_PROVIDER_VERSION)
 export TERRAFORM_DOCS_PATH ?= docs/resources
 # The upstream docs are hand-written and carry none of the tfplugindocs
@@ -110,6 +115,8 @@ build.init: $(UP) $(CROSSPLANE_CLI) check-terraform-version
 TERRAFORM := $(TOOLS_HOST_DIR)/terraform-$(TERRAFORM_VERSION)
 TERRAFORM_WORKDIR := $(WORK_DIR)/terraform
 TERRAFORM_PROVIDER_SCHEMA := config/schema.json
+export TERRAFORM_PROVIDER_SRC := $(WORK_DIR)/tf-provider-src
+export TERRAFORM_PROVIDER_MIRROR := $(WORK_DIR)/tf-mirror
 
 check-terraform-version:
 ifneq ($(TERRAFORM_VERSION_VALID),1)
@@ -125,25 +132,35 @@ $(TERRAFORM): check-terraform-version
 	@rm -fr $(TOOLS_HOST_DIR)/tmp-terraform
 	@$(OK) installing terraform $(HOSTOS)-$(HOSTARCH)
 
-$(TERRAFORM_PROVIDER_SCHEMA): $(TERRAFORM)
+# Build the upstream provider from source for every platform the image needs
+# plus the host, so schema generation and the runtime image share one mirror.
+terraform-provider: 
+	@$(INFO) building $(TERRAFORM_PROVIDER_SOURCE) from $(TERRAFORM_PROVIDER_REF)
+	@./hack/build-terraform-provider.sh \
+		"$(TERRAFORM_PROVIDER_REPO)" "$(TERRAFORM_PROVIDER_REF)" "$(TERRAFORM_PROVIDER_VERSION)" \
+		"$(TERRAFORM_PROVIDER_SRC)" "$(TERRAFORM_PROVIDER_MIRROR)" \
+		$(HOSTOS)_$(HOSTARCH) $(filter linux_%,$(PLATFORMS)) || $(FAIL)
+	@$(OK) building $(TERRAFORM_PROVIDER_SOURCE) from $(TERRAFORM_PROVIDER_REF)
+
+$(TERRAFORM_PROVIDER_SCHEMA): $(TERRAFORM) terraform-provider
 	@$(INFO) generating provider schema for $(TERRAFORM_PROVIDER_SOURCE) $(TERRAFORM_PROVIDER_VERSION)
+	@# Start clean: the lock file pins the previous version, and the version
+	@# moves whenever TERRAFORM_PROVIDER_REF does.
+	@rm -rf $(TERRAFORM_WORKDIR)
 	@mkdir -p $(TERRAFORM_WORKDIR)
 	@echo '{"terraform":[{"required_providers":[{"provider":{"source":"'"$(TERRAFORM_PROVIDER_SOURCE)"'","version":"'"$(TERRAFORM_PROVIDER_VERSION)"'"}}],"required_version":"'"$(TERRAFORM_VERSION)"'"}]}' > $(TERRAFORM_WORKDIR)/main.tf.json
-	@$(TERRAFORM) -chdir=$(TERRAFORM_WORKDIR) init > $(TERRAFORM_WORKDIR)/terraform-logs.txt 2>&1
-	@$(TERRAFORM) -chdir=$(TERRAFORM_WORKDIR) providers schema -json=true > $(TERRAFORM_PROVIDER_SCHEMA) 2>> $(TERRAFORM_WORKDIR)/terraform-logs.txt
+	@TF_CLI_CONFIG_FILE=$(TERRAFORM_PROVIDER_MIRROR)/terraformrc $(TERRAFORM) -chdir=$(TERRAFORM_WORKDIR) init > $(TERRAFORM_WORKDIR)/terraform-logs.txt 2>&1
+	@TF_CLI_CONFIG_FILE=$(TERRAFORM_PROVIDER_MIRROR)/terraformrc $(TERRAFORM) -chdir=$(TERRAFORM_WORKDIR) providers schema -json=true > $(TERRAFORM_PROVIDER_SCHEMA) 2>> $(TERRAFORM_WORKDIR)/terraform-logs.txt
 	@$(OK) generating provider schema for $(TERRAFORM_PROVIDER_SOURCE) $(TERRAFORM_PROVIDER_VERSION)
 
-pull-docs:
-	@if [ ! -d "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" ]; then \
-  		mkdir -p "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" && \
-		git clone -c advice.detachedHead=false --depth 1 --filter=blob:none --branch "v$(TERRAFORM_PROVIDER_VERSION)" --sparse "$(TERRAFORM_PROVIDER_REPO)" "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)"; \
-	fi
-	@git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" sparse-checkout set "$(TERRAFORM_DOCS_PATH)"
-	@./hack/prepare-docs.sh "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)/$(TERRAFORM_DOCS_PATH)" "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)/$(TERRAFORM_SCRAPE_DOCS_PATH)" "$(shell echo $(TERRAFORM_PROVIDER_DOWNLOAD_NAME) | sed 's/^terraform-provider-//')"
+# Docs come from the same checkout the binary was built from, so they always
+# describe exactly the schema that was generated.
+pull-docs: terraform-provider
+	@./hack/prepare-docs.sh "$(TERRAFORM_PROVIDER_SRC)/$(TERRAFORM_DOCS_PATH)" "$(TERRAFORM_PROVIDER_SRC)/$(TERRAFORM_SCRAPE_DOCS_PATH)" "$(shell echo $(TERRAFORM_PROVIDER_DOWNLOAD_NAME) | sed 's/^terraform-provider-//')"
 
 generate.init: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs
 
-.PHONY: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs check-terraform-version
+.PHONY: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs check-terraform-version terraform-provider
 # ====================================================================================
 # Targets
 

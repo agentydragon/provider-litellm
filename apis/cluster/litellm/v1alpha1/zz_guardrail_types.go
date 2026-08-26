@@ -27,20 +27,20 @@ type GuardrailInitParameters struct {
 	// The unique guardrail ID. Generated if not specified.
 	GuardrailID *string `json:"guardrailId,omitempty" tf:"guardrail_id,omitempty"`
 
-	// (String) A JSON-encoded string containing additional metadata or information about the guardrail.
-	// JSON string containing additional metadata for the guardrail.
+	// (String) A JSON-encoded object containing additional metadata or information about the guardrail.
+	// JSON object string containing additional metadata for the guardrail.
 	GuardrailInfo *string `json:"guardrailInfo,omitempty" tf:"guardrail_info,omitempty"`
 
 	// (String) A unique name for the guardrail.
 	// Human-readable name for the guardrail.
 	GuardrailName *string `json:"guardrailName,omitempty" tf:"guardrail_name,omitempty"`
 
-	// (String) A JSON-encoded string containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). When reading back from the API, only the keys originally configured by the user are preserved, preventing the API's default values from appearing in state.
-	// JSON string containing additional provider-specific parameters for the guardrail.
-	LitellmParams *string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
+	// (Sensitive String) A JSON-encoded object containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). Top-level API defaults are excluded during read-back. Within configured objects and arrays, null fields added by LiteLLM are ignored unless they were explicitly configured; non-null additions and missing or changed configured values remain visible as drift.
+	// JSON object string containing additional provider-specific parameters for the guardrail.
+	LitellmParamsSecretRef *v2.SecretKeySelector `json:"litellmParamsSecretRef,omitempty" tf:"-"`
 
-	// (String) When the guardrail is applied. Must be one of:
-	// When to apply the guardrail. Can be a single value or JSON array (e.g., 'pre_call', 'post_call', 'during_call', '["pre_call", "post_call"]').
+	// (String) When the guardrail is applied. Accepts one mode string (for example pre_call, during_call, post_call, or logging_only), a JSON array of mode strings, or a JSON Mode object. A Mode object requires tags, mapping each request tag to a mode string or string array, and may include default as a mode string or string array. JSON forms are validated, sent as native arrays/objects, and preserve semantically equivalent configured formatting on read-back.
+	// When to apply the guardrail. Accepts a mode string, a JSON string array, or a JSON Mode object with required tags and optional default routing.
 	Mode *string `json:"mode,omitempty" tf:"mode,omitempty"`
 }
 
@@ -62,8 +62,8 @@ type GuardrailObservation struct {
 	// The unique guardrail ID. Generated if not specified.
 	GuardrailID *string `json:"guardrailId,omitempty" tf:"guardrail_id,omitempty"`
 
-	// (String) A JSON-encoded string containing additional metadata or information about the guardrail.
-	// JSON string containing additional metadata for the guardrail.
+	// (String) A JSON-encoded object containing additional metadata or information about the guardrail.
+	// JSON object string containing additional metadata for the guardrail.
 	GuardrailInfo *string `json:"guardrailInfo,omitempty" tf:"guardrail_info,omitempty"`
 
 	// (String) A unique name for the guardrail.
@@ -73,12 +73,8 @@ type GuardrailObservation struct {
 	// The unique identifier for the guardrail (same as guardrail_id).
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// (String) A JSON-encoded string containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). When reading back from the API, only the keys originally configured by the user are preserved, preventing the API's default values from appearing in state.
-	// JSON string containing additional provider-specific parameters for the guardrail.
-	LitellmParams *string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
-
-	// (String) When the guardrail is applied. Must be one of:
-	// When to apply the guardrail. Can be a single value or JSON array (e.g., 'pre_call', 'post_call', 'during_call', '["pre_call", "post_call"]').
+	// (String) When the guardrail is applied. Accepts one mode string (for example pre_call, during_call, post_call, or logging_only), a JSON array of mode strings, or a JSON Mode object. A Mode object requires tags, mapping each request tag to a mode string or string array, and may include default as a mode string or string array. JSON forms are validated, sent as native arrays/objects, and preserve semantically equivalent configured formatting on read-back.
+	// When to apply the guardrail. Accepts a mode string, a JSON string array, or a JSON Mode object with required tags and optional default routing.
 	Mode *string `json:"mode,omitempty" tf:"mode,omitempty"`
 }
 
@@ -99,8 +95,8 @@ type GuardrailParameters struct {
 	// +kubebuilder:validation:Optional
 	GuardrailID *string `json:"guardrailId,omitempty" tf:"guardrail_id,omitempty"`
 
-	// (String) A JSON-encoded string containing additional metadata or information about the guardrail.
-	// JSON string containing additional metadata for the guardrail.
+	// (String) A JSON-encoded object containing additional metadata or information about the guardrail.
+	// JSON object string containing additional metadata for the guardrail.
 	// +kubebuilder:validation:Optional
 	GuardrailInfo *string `json:"guardrailInfo,omitempty" tf:"guardrail_info,omitempty"`
 
@@ -109,13 +105,13 @@ type GuardrailParameters struct {
 	// +kubebuilder:validation:Optional
 	GuardrailName *string `json:"guardrailName,omitempty" tf:"guardrail_name,omitempty"`
 
-	// (String) A JSON-encoded string containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). When reading back from the API, only the keys originally configured by the user are preserved, preventing the API's default values from appearing in state.
-	// JSON string containing additional provider-specific parameters for the guardrail.
+	// (Sensitive String) A JSON-encoded object containing provider-specific parameters. This field stores only additional configuration specific to the guardrail provider (it does not include guardrail, mode, or default_on, which are top-level attributes). Top-level API defaults are excluded during read-back. Within configured objects and arrays, null fields added by LiteLLM are ignored unless they were explicitly configured; non-null additions and missing or changed configured values remain visible as drift.
+	// JSON object string containing additional provider-specific parameters for the guardrail.
 	// +kubebuilder:validation:Optional
-	LitellmParams *string `json:"litellmParams,omitempty" tf:"litellm_params,omitempty"`
+	LitellmParamsSecretRef *v2.SecretKeySelector `json:"litellmParamsSecretRef,omitempty" tf:"-"`
 
-	// (String) When the guardrail is applied. Must be one of:
-	// When to apply the guardrail. Can be a single value or JSON array (e.g., 'pre_call', 'post_call', 'during_call', '["pre_call", "post_call"]').
+	// (String) When the guardrail is applied. Accepts one mode string (for example pre_call, during_call, post_call, or logging_only), a JSON array of mode strings, or a JSON Mode object. A Mode object requires tags, mapping each request tag to a mode string or string array, and may include default as a mode string or string array. JSON forms are validated, sent as native arrays/objects, and preserve semantically equivalent configured formatting on read-back.
+	// When to apply the guardrail. Accepts a mode string, a JSON string array, or a JSON Mode object with required tags and optional default routing.
 	// +kubebuilder:validation:Optional
 	Mode *string `json:"mode,omitempty" tf:"mode,omitempty"`
 }

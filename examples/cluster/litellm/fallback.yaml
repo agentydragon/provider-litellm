@@ -10,5 +10,6 @@ spec:
   forProvider:
     model: gpt-4o-mini-proxy
     fallbackType: general
+    # Must name deployments other than `model` itself.
     fallbackModels:
-      - gpt-4o-mini-proxy
+      - gpt-4o-mini-fallback

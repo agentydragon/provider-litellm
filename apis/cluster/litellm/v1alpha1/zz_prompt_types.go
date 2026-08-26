@@ -27,6 +27,10 @@ type PromptInitParameters struct {
 	// Content for dotprompt integration (Firebase Genkit format).
 	DotpromptContent *string `json:"dotpromptContent,omitempty" tf:"dotprompt_content,omitempty"`
 
+	// Environment-scoped ownership dimension. Defaults to "development". Changing it replaces the resource without deleting versions in any other environment.
+	// Environment-scoped prompt identity. Defaults to development; changing it creates a separately owned logical prompt.
+	Environment *string `json:"environment,omitempty" tf:"environment,omitempty"`
+
 	// When true, ignores the model specified in the prompt manager and uses the caller's model instead.
 	// If true, ignore the model specified in the prompt manager.
 	IgnorePromptManagerModel *bool `json:"ignorePromptManagerModel,omitempty" tf:"ignore_prompt_manager_model,omitempty"`
@@ -39,12 +43,12 @@ type PromptInitParameters struct {
 	// The prompt integration provider (e.g., 'langfuse', 'humanloop', 'promptlayer', 'dotprompt').
 	PromptIntegration *string `json:"promptIntegration,omitempty" tf:"prompt_integration,omitempty"`
 
-	// The type of prompt storage (e.g., "db" for database-stored prompts).
-	// Type of prompt: 'config' or 'db'.
+	// The prompt definition location. LiteLLM v1.98 accepts "config" or "db"; API-managed creates use "db" when omitted. The provider rejects new config creates because v1.98 cannot update or delete them, while existing/imported config prompts remain readable.
+	// Type of prompt: config or db.
 	PromptType *string `json:"promptType,omitempty" tf:"prompt_type,omitempty"`
 
 	// Provider-specific query parameters to pass through.
-	// JSON string of provider-specific query parameters.
+	// JSON object string of provider-specific query parameters.
 	ProviderSpecificQueryParams *string `json:"providerSpecificQueryParams,omitempty" tf:"provider_specific_query_params,omitempty"`
 }
 
@@ -54,11 +58,19 @@ type PromptObservation struct {
 	// Base URL for the prompt provider API.
 	APIBase *string `json:"apiBase,omitempty" tf:"api_base,omitempty"`
 
+	// Creation timestamp of the selected latest version.
+	// Creation timestamp of the selected latest version.
+	CreatedAt *string `json:"createdAt,omitempty" tf:"created_at,omitempty"`
+
 	// The dotprompt-formatted content for the prompt. Supports YAML frontmatter for model configuration and Mustache-style {{variable}} template syntax.
 	// Content for dotprompt integration (Firebase Genkit format).
 	DotpromptContent *string `json:"dotpromptContent,omitempty" tf:"dotprompt_content,omitempty"`
 
-	// The identifier of the prompt.
+	// Environment-scoped ownership dimension. Defaults to "development". Changing it replaces the resource without deleting versions in any other environment.
+	// Environment-scoped prompt identity. Defaults to development; changing it creates a separately owned logical prompt.
+	Environment *string `json:"environment,omitempty" tf:"environment,omitempty"`
+
+	// The base prompt identifier. This remains equal to prompt_id for backward compatibility; the full managed identity is the pair (prompt_id, environment).
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
 	// When true, ignores the model specified in the prompt manager and uses the caller's model instead.
@@ -73,13 +85,21 @@ type PromptObservation struct {
 	// The prompt integration provider (e.g., 'langfuse', 'humanloop', 'promptlayer', 'dotprompt').
 	PromptIntegration *string `json:"promptIntegration,omitempty" tf:"prompt_integration,omitempty"`
 
-	// The type of prompt storage (e.g., "db" for database-stored prompts).
-	// Type of prompt: 'config' or 'db'.
+	// The prompt definition location. LiteLLM v1.98 accepts "config" or "db"; API-managed creates use "db" when omitted. The provider rejects new config creates because v1.98 cannot update or delete them, while existing/imported config prompts remain readable.
+	// Type of prompt: config or db.
 	PromptType *string `json:"promptType,omitempty" tf:"prompt_type,omitempty"`
 
 	// Provider-specific query parameters to pass through.
-	// JSON string of provider-specific query parameters.
+	// JSON object string of provider-specific query parameters.
 	ProviderSpecificQueryParams *string `json:"providerSpecificQueryParams,omitempty" tf:"provider_specific_query_params,omitempty"`
+
+	// Last-update timestamp of the selected latest version.
+	// Last-update timestamp of the selected latest version.
+	UpdatedAt *string `json:"updatedAt,omitempty" tf:"updated_at,omitempty"`
+
+	// The latest positive version owned in this environment. Each successful update appends a new version.
+	// Latest version currently owned in this environment. Updates append a new version.
+	Version *float64 `json:"version,omitempty" tf:"version,omitempty"`
 }
 
 type PromptParameters struct {
@@ -99,6 +119,11 @@ type PromptParameters struct {
 	// +kubebuilder:validation:Optional
 	DotpromptContent *string `json:"dotpromptContent,omitempty" tf:"dotprompt_content,omitempty"`
 
+	// Environment-scoped ownership dimension. Defaults to "development". Changing it replaces the resource without deleting versions in any other environment.
+	// Environment-scoped prompt identity. Defaults to development; changing it creates a separately owned logical prompt.
+	// +kubebuilder:validation:Optional
+	Environment *string `json:"environment,omitempty" tf:"environment,omitempty"`
+
 	// When true, ignores the model specified in the prompt manager and uses the caller's model instead.
 	// If true, ignore the model specified in the prompt manager.
 	// +kubebuilder:validation:Optional
@@ -114,13 +139,13 @@ type PromptParameters struct {
 	// +kubebuilder:validation:Optional
 	PromptIntegration *string `json:"promptIntegration,omitempty" tf:"prompt_integration,omitempty"`
 
-	// The type of prompt storage (e.g., "db" for database-stored prompts).
-	// Type of prompt: 'config' or 'db'.
+	// The prompt definition location. LiteLLM v1.98 accepts "config" or "db"; API-managed creates use "db" when omitted. The provider rejects new config creates because v1.98 cannot update or delete them, while existing/imported config prompts remain readable.
+	// Type of prompt: config or db.
 	// +kubebuilder:validation:Optional
 	PromptType *string `json:"promptType,omitempty" tf:"prompt_type,omitempty"`
 
 	// Provider-specific query parameters to pass through.
-	// JSON string of provider-specific query parameters.
+	// JSON object string of provider-specific query parameters.
 	// +kubebuilder:validation:Optional
 	ProviderSpecificQueryParams *string `json:"providerSpecificQueryParams,omitempty" tf:"provider_specific_query_params,omitempty"`
 }

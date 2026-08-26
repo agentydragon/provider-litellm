@@ -31,8 +31,8 @@ type MCPServerInitParameters struct {
 	// Arguments for the command (stdio transport).
 	Args []*string `json:"args,omitempty" tf:"args,omitempty"`
 
-	// (String) The authentication type. Defaults to "none". Supported values: none, bearer_token, bearer, basic, api_key, authorization, oauth2. When using a value other than "none", the API requires credentials to be provided.
-	// Authentication type (none, bearer_token, bearer, basic, api_key, authorization, oauth2).
+	// (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
+	// Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
 	AuthType *string `json:"authType,omitempty" tf:"auth_type,omitempty"`
 
 	// (String) OAuth2 authorization URL (used with oauth2 auth type).
@@ -73,12 +73,16 @@ type MCPServerInitParameters struct {
 	// Name of the MCP server.
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 
-	// (Bool) Skip MCP server URL reachability validation during creation/update.
-	// Skip MCP server URL reachability validation during creation/update.
+	// (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
+	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
 	SkipURLValidation *bool `json:"skipUrlValidation,omitempty" tf:"skip_url_validation,omitempty"`
 
-	// (String) The MCP specification version. Defaults to "2024-11-05".
-	// MCP specification version.
+	// (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
+	// Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+	SpecPath *string `json:"specPath,omitempty" tf:"spec_path,omitempty"`
+
+	// (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
+	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
 	SpecVersion *string `json:"specVersion,omitempty" tf:"spec_version,omitempty"`
 
 	// (Map of String) Static HTTP headers that are always included in requests.
@@ -94,8 +98,8 @@ type MCPServerInitParameters struct {
 	// Transport type for the MCP server (http, sse, stdio).
 	Transport *string `json:"transport,omitempty" tf:"transport,omitempty"`
 
-	// (String) The URL endpoint of the MCP server.
-	// URL of the MCP server.
+	// (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
+	// URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
 }
 
@@ -117,8 +121,8 @@ type MCPServerObservation struct {
 	// Arguments for the command (stdio transport).
 	Args []*string `json:"args,omitempty" tf:"args,omitempty"`
 
-	// (String) The authentication type. Defaults to "none". Supported values: none, bearer_token, bearer, basic, api_key, authorization, oauth2. When using a value other than "none", the API requires credentials to be provided.
-	// Authentication type (none, bearer_token, bearer, basic, api_key, authorization, oauth2).
+	// (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
+	// Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
 	AuthType *string `json:"authType,omitempty" tf:"auth_type,omitempty"`
 
 	// (String) OAuth2 authorization URL (used with oauth2 auth type).
@@ -172,12 +176,16 @@ type MCPServerObservation struct {
 	// Name of the MCP server.
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 
-	// (Bool) Skip MCP server URL reachability validation during creation/update.
-	// Skip MCP server URL reachability validation during creation/update.
+	// (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
+	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
 	SkipURLValidation *bool `json:"skipUrlValidation,omitempty" tf:"skip_url_validation,omitempty"`
 
-	// (String) The MCP specification version. Defaults to "2024-11-05".
-	// MCP specification version.
+	// (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
+	// Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+	SpecPath *string `json:"specPath,omitempty" tf:"spec_path,omitempty"`
+
+	// (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
+	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
 	SpecVersion *string `json:"specVersion,omitempty" tf:"spec_version,omitempty"`
 
 	// (Map of String) Static HTTP headers that are always included in requests.
@@ -193,8 +201,8 @@ type MCPServerObservation struct {
 	// Transport type for the MCP server (http, sse, stdio).
 	Transport *string `json:"transport,omitempty" tf:"transport,omitempty"`
 
-	// (String) The URL endpoint of the MCP server.
-	// URL of the MCP server.
+	// (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
+	// URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
 }
 
@@ -220,8 +228,8 @@ type MCPServerParameters struct {
 	// +kubebuilder:validation:Optional
 	Args []*string `json:"args,omitempty" tf:"args,omitempty"`
 
-	// (String) The authentication type. Defaults to "none". Supported values: none, bearer_token, bearer, basic, api_key, authorization, oauth2. When using a value other than "none", the API requires credentials to be provided.
-	// Authentication type (none, bearer_token, bearer, basic, api_key, authorization, oauth2).
+	// (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
+	// Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
 	// +kubebuilder:validation:Optional
 	AuthType *string `json:"authType,omitempty" tf:"auth_type,omitempty"`
 
@@ -235,7 +243,7 @@ type MCPServerParameters struct {
 	// +kubebuilder:validation:Optional
 	Command *string `json:"command,omitempty" tf:"command,omitempty"`
 
-	// (Map of String, Sensitive) Credentials for authenticating with the MCP server. This attribute is marked as sensitive and will not be displayed in plan output.
+	// (Map of String, Sensitive) Credentials for authenticating with the MCP server. For static api_key, bearer_token, basic, authorization, and token modes, LiteLLM v1.98 reads the secret from auth_value; keys named token or api_key are ignored. OAuth2 uses fields such as client_id and client_secret. This attribute is marked as sensitive and will not be displayed in plan output.
 	// Credentials map for the MCP server authentication.
 	// +kubebuilder:validation:Optional
 	CredentialsSecretRef *v2.SecretReference `json:"credentialsSecretRef,omitempty" tf:"-"`
@@ -275,13 +283,18 @@ type MCPServerParameters struct {
 	// +kubebuilder:validation:Optional
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 
-	// (Bool) Skip MCP server URL reachability validation during creation/update.
-	// Skip MCP server URL reachability validation during creation/update.
+	// (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
+	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
 	// +kubebuilder:validation:Optional
 	SkipURLValidation *bool `json:"skipUrlValidation,omitempty" tf:"skip_url_validation,omitempty"`
 
-	// (String) The MCP specification version. Defaults to "2024-11-05".
-	// MCP specification version.
+	// (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
+	// Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+	// +kubebuilder:validation:Optional
+	SpecPath *string `json:"specPath,omitempty" tf:"spec_path,omitempty"`
+
+	// (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
+	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
 	// +kubebuilder:validation:Optional
 	SpecVersion *string `json:"specVersion,omitempty" tf:"spec_version,omitempty"`
 
@@ -301,8 +314,8 @@ type MCPServerParameters struct {
 	// +kubebuilder:validation:Optional
 	Transport *string `json:"transport,omitempty" tf:"transport,omitempty"`
 
-	// (String) The URL endpoint of the MCP server.
-	// URL of the MCP server.
+	// (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
+	// URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
 	// +kubebuilder:validation:Optional
 	URL *string `json:"url,omitempty" tf:"url,omitempty"`
 }
@@ -444,7 +457,6 @@ type MCPServer struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.serverName) || (has(self.initProvider) && has(self.initProvider.serverName))",message="spec.forProvider.serverName is a required parameter"
 	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.transport) || (has(self.initProvider) && has(self.initProvider.transport))",message="spec.forProvider.transport is a required parameter"
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.url) || (has(self.initProvider) && has(self.initProvider.url))",message="spec.forProvider.url is a required parameter"
 	Spec   MCPServerSpec   `json:"spec"`
 	Status MCPServerStatus `json:"status,omitempty"`
 }

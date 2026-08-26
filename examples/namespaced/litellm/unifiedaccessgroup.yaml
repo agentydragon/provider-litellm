@@ -14,3 +14,7 @@ spec:
       - gpt-4o-mini-proxy
     assignedTeamIdsRefs:
       - name: example-team
+    accessMcpServerIdsRefs:
+      - name: example-mcp-server
+    accessAgentIdsRefs:
+      - name: example-agent

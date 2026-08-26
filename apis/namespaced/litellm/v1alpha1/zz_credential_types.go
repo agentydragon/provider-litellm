@@ -15,15 +15,23 @@ import (
 
 type CredentialInitParameters struct {
 
-	// Map of additional non-sensitive metadata about the credential.
-	// Additional information about the credential.
+	// Original map(string) metadata surface.
+	// Legacy string-only credential metadata. Its public map(string), Optional, and Computed contract is preserved. Use credential_info_json for heterogeneous values.
 	// +mapType=granular
 	CredentialInfo map[string]*string `json:"credentialInfo,omitempty" tf:"credential_info,omitempty"`
 
+	// Canonical heterogeneous JSON object.
+	// Canonical JSON object for heterogeneous credential metadata. Legacy and JSON keys are merged; overlapping keys must have exactly equal values.
+	CredentialInfoJSON *string `json:"credentialInfoJson,omitempty" tf:"credential_info_json,omitempty"`
+
 	CredentialValues map[string]*string `json:"credentialValuesSecretRef,omitempty" tf:"-"`
 
-	// Model ID of an existing model registered in LiteLLM to associate with this credential.
-	// Model ID associated with this credential.
+	// Canonical heterogeneous JSON object.
+	// Canonical JSON object for heterogeneous sensitive credential values. Legacy and JSON keys are merged; overlapping keys must have exactly equal values.
+	CredentialValuesJSONSecretRef *v2.LocalSecretKeySelector `json:"credentialValuesJsonSecretRef,omitempty" tf:"-"`
+
+	// Create-only model deployment source.
+	// Create-only model deployment ID. LiteLLM uses it in preference to configured credential values. Any change, including an unknown planned value, requires replacement.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Model
 	ModelID *string `json:"modelId,omitempty" tf:"model_id,omitempty"`
 
@@ -38,34 +46,54 @@ type CredentialInitParameters struct {
 
 type CredentialObservation struct {
 
-	// Map of additional non-sensitive metadata about the credential.
-	// Additional information about the credential.
+	// Original map(string) metadata surface.
+	// Legacy string-only credential metadata. Its public map(string), Optional, and Computed contract is preserved. Use credential_info_json for heterogeneous values.
 	// +mapType=granular
 	CredentialInfo map[string]*string `json:"credentialInfo,omitempty" tf:"credential_info,omitempty"`
 
-	// The identifier of the credential.
+	// Canonical heterogeneous JSON object.
+	// Canonical JSON object for heterogeneous credential metadata. Legacy and JSON keys are merged; overlapping keys must have exactly equal values.
+	CredentialInfoJSON *string `json:"credentialInfoJson,omitempty" tf:"credential_info_json,omitempty"`
+
+	// is "imported", and credential_values_active is false.
+	// Effective ownership source: credential_values, model_id, or imported.
+	CredentialSource *string `json:"credentialSource,omitempty" tf:"credential_source,omitempty"`
+
+	// Whether configured credential_values and credential_values_json were the active create source. False when model_id won or the resource was imported metadata-only.
+	CredentialValuesActive *bool `json:"credentialValuesActive,omitempty" tf:"credential_values_active,omitempty"`
+
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// Model ID of an existing model registered in LiteLLM to associate with this credential.
-	// Model ID associated with this credential.
+	// Create-only model deployment source.
+	// Create-only model deployment ID. LiteLLM uses it in preference to configured credential values. Any change, including an unknown planned value, requires replacement.
 	ModelID *string `json:"modelId,omitempty" tf:"model_id,omitempty"`
 }
 
 type CredentialParameters struct {
 
-	// Map of additional non-sensitive metadata about the credential.
-	// Additional information about the credential.
+	// Original map(string) metadata surface.
+	// Legacy string-only credential metadata. Its public map(string), Optional, and Computed contract is preserved. Use credential_info_json for heterogeneous values.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	CredentialInfo map[string]*string `json:"credentialInfo,omitempty" tf:"credential_info,omitempty"`
 
-	// Map of sensitive credential values such as API keys and tokens.
-	// Sensitive credential values (API keys, tokens, etc.).
+	// Canonical heterogeneous JSON object.
+	// Canonical JSON object for heterogeneous credential metadata. Legacy and JSON keys are merged; overlapping keys must have exactly equal values.
 	// +kubebuilder:validation:Optional
-	CredentialValuesSecretRef v2.LocalSecretReference `json:"credentialValuesSecretRef" tf:"-"`
+	CredentialInfoJSON *string `json:"credentialInfoJson,omitempty" tf:"credential_info_json,omitempty"`
 
-	// Model ID of an existing model registered in LiteLLM to associate with this credential.
-	// Model ID associated with this credential.
+	// Canonical heterogeneous JSON object.
+	// Canonical JSON object for heterogeneous sensitive credential values. Legacy and JSON keys are merged; overlapping keys must have exactly equal values.
+	// +kubebuilder:validation:Optional
+	CredentialValuesJSONSecretRef *v2.LocalSecretKeySelector `json:"credentialValuesJsonSecretRef,omitempty" tf:"-"`
+
+	// Original map(string) values surface. With no model_id, its merge with credential_values_json must be non-empty.
+	// Legacy string-only sensitive credential values. Its map(string) type and state representation are preserved while the argument is now optional so model-only configuration and metadata-only import are representable. Use credential_values_json for heterogeneous values.
+	// +kubebuilder:validation:Optional
+	CredentialValuesSecretRef *v2.LocalSecretReference `json:"credentialValuesSecretRef,omitempty" tf:"-"`
+
+	// Create-only model deployment source.
+	// Create-only model deployment ID. LiteLLM uses it in preference to configured credential values. Any change, including an unknown planned value, requires replacement.
 	// +crossplane:generate:reference:type=github.com/thecodingsheikh/provider-litellm/apis/namespaced/litellm/v1alpha1.Model
 	// +kubebuilder:validation:Optional
 	ModelID *string `json:"modelId,omitempty" tf:"model_id,omitempty"`
@@ -106,7 +134,7 @@ type CredentialStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// Credential is the Schema for the Credentials API. Manages a LiteLLM credential for storing sensitive authentication information. Credentials can be used to securely store API keys, tokens, and other sensitive data that can be referenced by models.
+// Credential is the Schema for the Credentials API. Manages a LiteLLM credential while preserving the provider's original string-map interface. API- or operator-added keys are not silently adopted.
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
@@ -115,9 +143,8 @@ type CredentialStatus struct {
 type Credential struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.credentialValuesSecretRef)",message="spec.forProvider.credentialValuesSecretRef is a required parameter"
-	Spec   CredentialSpec   `json:"spec"`
-	Status CredentialStatus `json:"status,omitempty"`
+	Spec              CredentialSpec   `json:"spec"`
+	Status            CredentialStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

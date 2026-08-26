@@ -21,7 +21,7 @@ func (mg *Agent) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this Agent
 func (tr *Agent) GetConnectionDetailsMapping() map[string]string {
-	return nil
+	return map[string]string{"litellm_params": "litellmParamsSecretRef", "litellm_params_json": "litellmParamsJsonSecretRef", "static_headers": "staticHeadersSecretRef"}
 }
 
 // GetObservation of this Agent

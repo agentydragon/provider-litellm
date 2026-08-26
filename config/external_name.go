@@ -84,6 +84,10 @@ var ExternalNameConfigs = map[string]config.ExternalName{
 	// `terraform import litellm_fallback.example "gpt-3.5-turbo:general"`.
 	"litellm_fallback": config.TemplatedStringAsIdentifier("", "{{ .parameters.model }}:{{ .parameters.fallback_type }}"),
 
+	// Canonical lowercase UUID allocated by LiteLLM:
+	// `terraform import litellm_jwt_key_mapping.example <uuid>`.
+	"litellm_jwt_key_mapping": config.IdentifierFromProvider,
+
 	// Provider-generated identifiers with no settable argument.
 	"litellm_agent":                config.IdentifierFromProvider,
 	"litellm_project":              config.IdentifierFromProvider,

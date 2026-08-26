@@ -35,7 +35,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: TeamMemberAdd is the Schema for the TeamMemberAdds API. Manages
-          a batch of members within a LiteLLM team. Adding or removing
+          an explicitly owned batch of members in a LiteLLM team.
         properties:
           apiVersion:
             description: |-
@@ -61,33 +61,33 @@ spec:
                 properties:
                   maxBudgetInTeam:
                     description: |-
-                      The maximum budget allocated to members within the team.
-                      Maximum budget for members in the team.
+                      Maximum budget applied to every member owned by this resource. Omission is the backward-compatible unmanaged mode; null does not detect drift or clear remote budgets.
+                      Maximum budget applied to every member owned by this batch. When omitted, member budgets are unmanaged and remote budget drift is not read into state.
                     type: number
                   member:
-                    description: Team members.
+                    description: One or more explicitly owned team members.
                     items:
                       properties:
                         role:
                           description: |-
-                            The role of the user within the team. Valid values: admin, user.
+                            Team role: admin or user.
                             Role (admin, user).
                           type: string
                         userEmail:
                           description: |-
-                            The email address of the user to add.
-                            User email.
+                            User email. At least one identity field must be non-empty.
+                            User email. At least one of user_id or user_email must be non-empty.
                           type: string
                         userId:
                           description: |-
-                            The ID of the user to add.
-                            User ID.
+                            User ID. At least one identity field must be non-empty. For an email-only block, the provider records LiteLLM's canonical ID in state after a successful add or authoritative roster read; it does not add the ID to configuration.
+                            User ID. At least one of user_id or user_email must be non-empty. For email-only ownership, the provider stores LiteLLM's canonical user ID after it resolves the roster entry.
                           type: string
                       type: object
                     type: array
                   teamId:
                     description: |-
-                      The ID of the team. Changing this forces creation of a new resource.
+                      Team ID.
                       Team ID.
                     type: string
                   teamIdRef:
@@ -186,27 +186,27 @@ spec:
                 properties:
                   maxBudgetInTeam:
                     description: |-
-                      The maximum budget allocated to members within the team.
-                      Maximum budget for members in the team.
+                      Maximum budget applied to every member owned by this resource. Omission is the backward-compatible unmanaged mode; null does not detect drift or clear remote budgets.
+                      Maximum budget applied to every member owned by this batch. When omitted, member budgets are unmanaged and remote budget drift is not read into state.
                     type: number
                   member:
-                    description: Team members.
+                    description: One or more explicitly owned team members.
                     items:
                       properties:
                         role:
                           description: |-
-                            The role of the user within the team. Valid values: admin, user.
+                            Team role: admin or user.
                             Role (admin, user).
                           type: string
                         userEmail:
                           description: |-
-                            The email address of the user to add.
-                            User email.
+                            User email. At least one identity field must be non-empty.
+                            User email. At least one of user_id or user_email must be non-empty.
                           type: string
                         userId:
                           description: |-
-                            The ID of the user to add.
-                            User ID.
+                            User ID. At least one identity field must be non-empty. For an email-only block, the provider records LiteLLM's canonical ID in state after a successful add or authoritative roster read; it does not add the ID to configuration.
+                            User ID. At least one of user_id or user_email must be non-empty. For email-only ownership, the provider stores LiteLLM's canonical user ID after it resolves the roster entry.
                           type: string
                       type: object
                     type: array
@@ -275,37 +275,38 @@ spec:
               atProvider:
                 properties:
                   id:
-                    description: The ID of this resource.
+                    description: The historical resource ID, equal to team_id. It
+                      remains unchanged by this lifecycle implementation.
                     type: string
                   maxBudgetInTeam:
                     description: |-
-                      The maximum budget allocated to members within the team.
-                      Maximum budget for members in the team.
+                      Maximum budget applied to every member owned by this resource. Omission is the backward-compatible unmanaged mode; null does not detect drift or clear remote budgets.
+                      Maximum budget applied to every member owned by this batch. When omitted, member budgets are unmanaged and remote budget drift is not read into state.
                     type: number
                   member:
-                    description: Team members.
+                    description: One or more explicitly owned team members.
                     items:
                       properties:
                         role:
                           description: |-
-                            The role of the user within the team. Valid values: admin, user.
+                            Team role: admin or user.
                             Role (admin, user).
                           type: string
                         userEmail:
                           description: |-
-                            The email address of the user to add.
-                            User email.
+                            User email. At least one identity field must be non-empty.
+                            User email. At least one of user_id or user_email must be non-empty.
                           type: string
                         userId:
                           description: |-
-                            The ID of the user to add.
-                            User ID.
+                            User ID. At least one identity field must be non-empty. For an email-only block, the provider records LiteLLM's canonical ID in state after a successful add or authoritative roster read; it does not add the ID to configuration.
+                            User ID. At least one of user_id or user_email must be non-empty. For email-only ownership, the provider stores LiteLLM's canonical user ID after it resolves the roster entry.
                           type: string
                       type: object
                     type: array
                   teamId:
                     description: |-
-                      The ID of the team. Changing this forces creation of a new resource.
+                      Team ID.
                       Team ID.
                     type: string
                 type: object
