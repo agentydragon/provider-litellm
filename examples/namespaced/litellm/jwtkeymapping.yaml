@@ -16,7 +16,10 @@ spec:
     jwtClaimValueSecretRef:
       name: jwt-claim-value
       key: value
-# NOTE: creating a JWT key mapping requires the write-only `key_wo` argument,
-# which Terraform only supports from 1.11. This provider is pinned to Terraform
-# 1.5.7 because 1.6 and later are BSL licensed, so this resource can currently
-# be imported and observed but not created. See the README's known limitations.
+    # Creating a mapping needs the token of an existing key, supplied through
+    # the write-only key_wo argument. A Key publishes its token to the Secret
+    # named by writeConnectionSecretToRef.
+    keyWoSecretRef:
+      name: example-key-connection
+      key: attribute.key
+    keyWoVersion: "1"

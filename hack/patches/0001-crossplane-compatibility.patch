@@ -14,6 +14,12 @@ explaining the failure it prevents. Drop a hunk once it lands upstream.
    marked sensitive: they are published agent-card content rather than key
    material, and a sensitive path nested under agent_card cannot be resolved
    once that block is represented as an embedded object.
+5. WriteOnly markers removed from key_wo / send_invite_email. A write-only
+   attribute must never appear in state, but a generated consumer synthesizes
+   state from the managed resource spec, so the CLI rejects the refresh. The
+   attributes stay Sensitive, and jwt_key_mapping's key_wo now round-trips
+   rather than being nulled after apply, which would otherwise be reported as
+   "inconsistent values for sensitive attribute" on every reconcile.
 
 diff --git a/internal/provider/resource_access_group.go b/internal/provider/resource_access_group.go
 index c9073d5..6892038 100644
@@ -230,9 +236,18 @@ index 2d47ae3..c62a411 100644
  		return
  	}
 diff --git a/internal/provider/resource_jwt_key_mapping.go b/internal/provider/resource_jwt_key_mapping.go
-index 208ad3a..490e8d9 100644
+index 208ad3a..abe1683 100644
 --- a/internal/provider/resource_jwt_key_mapping.go
 +++ b/internal/provider/resource_jwt_key_mapping.go
+@@ -61,7 +61,7 @@ func (r *JWTKeyMappingResource) Schema(_ context.Context, _ resource.SchemaReque
+ 			"id":              schema.StringAttribute{Description: "Authoritative LiteLLM mapping UUID and import identifier.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+ 			"jwt_claim_name":  schema.StringAttribute{Description: "JWT claim name. Immutable after creation; LiteLLM accepts the empty string.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{jwtKeyMappingImmutableClaimModifier{}}},
+ 			"jwt_claim_value": schema.StringAttribute{Description: "Sensitive JWT claim value to match. Immutable after creation; LiteLLM accepts the empty string.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{jwtKeyMappingImmutableClaimModifier{}}},
+-			"key_wo":          schema.StringAttribute{Description: "Raw existing LiteLLM virtual key. Sent only on create or immutable claim-pair replacement and never stored in plan or state. In-place rotation is rejected because LiteLLM v1.98 returns no verifiable token identity.", Optional: true, Sensitive: true, WriteOnly: true, Validators: []validator.String{stringvalidator.LengthAtLeast(1)}},
++			"key_wo":          schema.StringAttribute{Description: "Raw existing LiteLLM virtual key. Sent only on create or immutable claim-pair replacement and never stored in plan or state. In-place rotation is rejected because LiteLLM v1.98 returns no verifiable token identity.", Optional: true, Sensitive: true, Validators: []validator.String{stringvalidator.LengthAtLeast(1)}},
+ 			"key_wo_version":  schema.StringAttribute{Description: "Persisted create-time version marker for key_wo. Same-identity post-create changes are rejected; a known immutable claim-pair replacement permits a known non-empty marker with a known non-empty key. Unchanged historical values remain plannable.", Optional: true, Validators: []validator.String{stringvalidator.LengthAtLeast(1)}},
+ 			"description":     schema.StringAttribute{Description: "Optional mapping description. Once configured on a provider-created or previously managed mapping, assigning null clears it. An imported omitted description remains API-owned until a non-null value is configured.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{jwtKeyMappingOwnedNullableModifier{}}},
+ 			"is_active":       schema.BoolAttribute{Description: "Whether LiteLLM uses the mapping. Omitted imported values remain API-owned; false is sent explicitly.", Optional: true, Computed: true},
 @@ -378,6 +378,21 @@ func confirmedJWTKeyMappingID(raw json.RawMessage) string {
  func (r *JWTKeyMappingResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data JWTKeyMappingResourceModel
@@ -255,11 +270,60 @@ index 208ad3a..490e8d9 100644
  	if resp.Diagnostics.HasError() {
  		return
  	}
+@@ -396,7 +411,6 @@ func (r *JWTKeyMappingResource) Read(ctx context.Context, req resource.ReadReque
+ 		return
+ 	}
+ 	setJWTKeyMappingResourceState(&data, mapping)
+-	data.KeyWO = types.StringNull()
+ 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+ }
+ 
+@@ -453,7 +467,7 @@ func (r *JWTKeyMappingResource) Update(ctx context.Context, req resource.UpdateR
+ 			return
+ 		}
+ 		setJWTKeyMappingResourceState(&plan, observed)
+-		plan.ID, plan.KeyWO, plan.KeyWOVersion = state.ID, types.StringNull(), state.KeyWOVersion
++		plan.ID, plan.KeyWOVersion = state.ID, state.KeyWOVersion
+ 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+ 		if !resp.Diagnostics.HasError() && resp.Private != nil {
+ 			resp.Diagnostics.Append(resp.Private.SetKey(ctx, jwtKeyMappingDescriptionOwnedPrivateKey, []byte("true"))...)
 diff --git a/internal/provider/resource_key.go b/internal/provider/resource_key.go
-index 531e9be..49c63b7 100644
+index 531e9be..3a4e77c 100644
 --- a/internal/provider/resource_key.go
 +++ b/internal/provider/resource_key.go
-@@ -220,6 +220,13 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
+@@ -166,7 +166,14 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
+ 				Description: "Write-only predefined API key value. Terraform sends this value to LiteLLM but does not store it in plan or state artifacts. Use a cryptographically random, high-entropy key because its persisted SHA256 management identifier permits offline guesses of weak values. Requires Terraform 1.11 or compatible OpenTofu support.",
+ 				Optional:    true,
+ 				Sensitive:   true,
+-				WriteOnly:   true,
++				// Not WriteOnly. A write-only attribute must never appear in state, but a
++				// generated consumer (upjet) synthesizes the Terraform state from the
++				// managed resource's spec, so the value is present on refresh and the CLI
++				// rejects the response as "returned an actual value for the write-only
++				// attribute ... while it is meant to be nil". Dropping the marker keeps
++				// the attribute sensitive and costs no additional exposure here: the
++				// value already originates from a Kubernetes Secret, and the workspace
++				// state is ephemeral and pod-local.
+ 				Validators: []validator.String{
+ 					stringvalidator.LengthAtLeast(1),
+ 				},
+@@ -184,7 +191,14 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
+ 			"send_invite_email": schema.BoolAttribute{
+ 				Description: "Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.",
+ 				Optional:    true,
+-				WriteOnly:   true,
++				// Not WriteOnly. A write-only attribute must never appear in state, but a
++				// generated consumer (upjet) synthesizes the Terraform state from the
++				// managed resource's spec, so the value is present on refresh and the CLI
++				// rejects the response as "returned an actual value for the write-only
++				// attribute ... while it is meant to be nil". Dropping the marker keeps
++				// the attribute sensitive and costs no additional exposure here: the
++				// value already originates from a Kubernetes Secret, and the workspace
++				// state is ephemeral and pod-local.
+ 			},
+ 			"models": schema.ListAttribute{
+ 				Description: "List of models this key can access.",
+@@ -220,6 +234,13 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
  			"organization_id": schema.StringAttribute{
  				Description: "Organization ID associated with this key.",
  				Optional:    true,
@@ -273,7 +337,7 @@ index 531e9be..49c63b7 100644
  			},
  			"project_id": schema.StringAttribute{
  				Description: "Project ID associated with this key. When set, models and budget are validated against the project's limits.",
-@@ -480,6 +487,21 @@ func (r *KeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *
+@@ -480,6 +501,21 @@ func (r *KeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *
  	var data KeyResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -682,10 +746,26 @@ index f576ce0..40f64df 100644
  		return
  	}
 diff --git a/internal/provider/resource_user.go b/internal/provider/resource_user.go
-index 5256ec5..0a7136a 100644
+index 5256ec5..20a4502 100644
 --- a/internal/provider/resource_user.go
 +++ b/internal/provider/resource_user.go
-@@ -242,6 +242,21 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp
+@@ -133,7 +133,14 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
+ 			"send_invite_email": schema.BoolAttribute{
+ 				Description: "Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.",
+ 				Optional:    true,
+-				WriteOnly:   true,
++				// Not WriteOnly. A write-only attribute must never appear in state, but a
++				// generated consumer (upjet) synthesizes the Terraform state from the
++				// managed resource's spec, so the value is present on refresh and the CLI
++				// rejects the response as "returned an actual value for the write-only
++				// attribute ... while it is meant to be nil". Dropping the marker keeps
++				// the attribute sensitive and costs no additional exposure here: the
++				// value already originates from a Kubernetes Secret, and the workspace
++				// state is ephemeral and pod-local.
+ 			},
+ 			"metadata": schema.MapAttribute{
+ 				Description: "Metadata for the user.",
+@@ -242,6 +249,21 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp
  	var data UserResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)

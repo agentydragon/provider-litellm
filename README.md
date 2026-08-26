@@ -174,7 +174,7 @@ groups.
 | `Prompt` | A managed prompt template | Verified |
 | `Fallback` | A fallback chain for a model (general, context window, content policy) | Verified |
 | `VectorStore` | A vector store registered with the proxy | Verified |
-| `JWTKeyMapping` | Maps a JWT claim to an existing virtual key | Needs Terraform >= 1.11 |
+| `JWTKeyMapping` | Maps a JWT claim to an existing virtual key | Verified |
 | `Key` | A virtual API key with its own budget and model scope | Verified |
 | `KeyBlock` | Blocks a virtual key | Verified |
 | `MCPServer` | An MCP server registered on the gateway | Verified |
@@ -188,18 +188,15 @@ Full schema reference for every field is on the
 
 ### Known limitations
 
-All 24 resources are configured and generated. 22 were verified `Ready` end to end
-against a live LiteLLM proxy, covering create, observe and delete, with every
-configured cross-resource reference resolving. Two cannot work here, for reasons
-outside this provider:
+All 24 resources are configured and generated. 23 were verified `Ready` end to end
+against a live LiteLLM proxy in **both** API groups -- cluster-scoped
+(`litellm.crossplane.io`) and namespaced (`litellm.m.crossplane.io`) -- covering
+create, observe and delete, with every configured cross-resource reference
+resolving. One cannot work here:
 
 - **`Project`** — LiteLLM answers `/project/new` with
   `403 Project management is an enterprise feature`. It works only against a
   LiteLLM Enterprise deployment.
-- **`JWTKeyMapping`** — creating a mapping requires the write-only `key_wo`
-  argument, and write-only attributes need Terraform 1.11 or later. This provider
-  is pinned to Terraform 1.5.7 because 1.6 and later are BSL licensed and cannot be
-  redistributed here, so the resource can be observed and imported but not created.
 
 Two upstream LiteLLM server bugs are also worth knowing about, since neither is
 something this provider can work around:
@@ -210,6 +207,15 @@ something this provider can work around:
   shipped example leaves it unset.
 - Assigning a `Model` to a team returns a 403 on non-enterprise deployments, so
   `Model.teamId` is available as a reference but not exercised by the examples.
+
+### OpenTofu
+
+The provider embeds **OpenTofu**, not Terraform. Terraform is BSL licensed from
+1.6 onward and this image redistributes the binary, so shipping it is not
+permitted; OpenTofu is the MPL-2.0 fork and is CLI compatible. It is installed as
+`terraform` because that is the executable name upjet invokes. Using OpenTofu also
+provides write-only attribute support, which `JWTKeyMapping` and `Key.keyWo`
+require and which Terraform 1.5.7 could not offer.
 
 ## Versioning
 
@@ -238,7 +244,7 @@ with the [LiteLLM Helm chart](https://docs.litellm.ai/docs/proxy/deploy) or the 
 Terraform modules, then point a `ProviderConfig` at it.
 
 **Which LiteLLM versions are supported?**
-Verified against LiteLLM 1.99.0. Anything exposing the same management API should work.
+Verified against LiteLLM 1.99.0 using OpenTofu 1.12.6. Anything exposing the same management API should work.
 
 **Can I self-host the package?**
 Yes. `make build` produces an xpkg you can push to any OCI registry, and

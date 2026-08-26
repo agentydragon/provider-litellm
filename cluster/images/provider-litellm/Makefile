@@ -28,7 +28,7 @@ img.build.shared:
 	@# Stage the source-built Terraform provider binaries into the build context.
 	@for p in $(subst $(COMMA),$(SPACE),$(subst /,_,$(IMAGE_PLATFORMS))); do \
 		mkdir -p $(IMAGE_TEMP_DIR)/tf-provider/$$p || exit 1; \
-		cp $(TERRAFORM_PROVIDER_MIRROR)/registry.terraform.io/$(TERRAFORM_PROVIDER_SOURCE)/$(TERRAFORM_PROVIDER_VERSION)/$$p/$(TERRAFORM_NATIVE_PROVIDER_BINARY) \
+		cp $(TERRAFORM_PROVIDER_MIRROR)/registry.opentofu.org/$(TERRAFORM_PROVIDER_SOURCE)/$(TERRAFORM_PROVIDER_VERSION)/$$p/$(TERRAFORM_NATIVE_PROVIDER_BINARY) \
 			$(IMAGE_TEMP_DIR)/tf-provider/$$p/ || exit 1; \
 	done
 	@docker buildx build $(BUILD_ARGS) \

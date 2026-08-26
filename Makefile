@@ -4,11 +4,16 @@
 PROJECT_NAME ?= provider-litellm
 PROJECT_REPO ?= github.com/thecodingsheikh/$(PROJECT_NAME)
 
-export TERRAFORM_VERSION ?= 1.5.7
-
-# Do not allow a version of terraform greater than 1.5.x, due to versions 1.6+ being
-# licensed under BSL, which is not permitted.
-TERRAFORM_VERSION_VALID := $(shell [ "$(TERRAFORM_VERSION)" = "`printf "$(TERRAFORM_VERSION)\n1.6" | sort -V | head -n1`" ] && echo 1 || echo 0)
+# OpenTofu, not Terraform. HashiCorp relicensed Terraform under the BSL at 1.6,
+# and this provider redistributes the binary inside its container image, so
+# shipping 1.6+ is not permitted. OpenTofu is the MPL-2.0 fork and is CLI
+# compatible, so upjet drives it unchanged -- it is installed as `terraform`
+# because that is the executable name upjet invokes.
+#
+# It also unblocks write-only attributes (OpenTofu >= 1.11), which the upstream
+# provider needs for litellm_jwt_key_mapping and litellm_key's key_wo.
+export TERRAFORM_VERSION ?= 1.12.6
+OPENTOFU_DOWNLOAD_URL ?= https://github.com/opentofu/opentofu/releases/download/v$(TERRAFORM_VERSION)/tofu_$(TERRAFORM_VERSION)_$(SAFEHOST_PLATFORM).zip
 
 export TERRAFORM_PROVIDER_SOURCE ?= ncecere/litellm
 export TERRAFORM_PROVIDER_REPO ?= https://github.com/ncecere/terraform-provider-litellm
@@ -118,19 +123,21 @@ TERRAFORM_PROVIDER_SCHEMA := config/schema.json
 export TERRAFORM_PROVIDER_SRC := $(WORK_DIR)/tf-provider-src
 export TERRAFORM_PROVIDER_MIRROR := $(WORK_DIR)/tf-mirror
 
+# Retained as a build.init hook; the BSL ceiling no longer applies because the
+# binary is OpenTofu rather than Terraform.
 check-terraform-version:
-ifneq ($(TERRAFORM_VERSION_VALID),1)
-	$(error invalid TERRAFORM_VERSION $(TERRAFORM_VERSION), must be less than 1.6.0 since that version introduced a not permitted BSL license))
-endif
+	@:
 
 $(TERRAFORM): check-terraform-version
-	@$(INFO) installing terraform $(HOSTOS)-$(HOSTARCH)
+	@$(INFO) installing opentofu $(TERRAFORM_VERSION) $(HOSTOS)-$(HOSTARCH)
 	@mkdir -p $(TOOLS_HOST_DIR)/tmp-terraform
-	@curl -fsSL https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_$(SAFEHOST_PLATFORM).zip -o $(TOOLS_HOST_DIR)/tmp-terraform/terraform.zip
-	@unzip $(TOOLS_HOST_DIR)/tmp-terraform/terraform.zip -d $(TOOLS_HOST_DIR)/tmp-terraform
-	@mv $(TOOLS_HOST_DIR)/tmp-terraform/terraform $(TERRAFORM)
+	@curl -fsSL $(OPENTOFU_DOWNLOAD_URL) -o $(TOOLS_HOST_DIR)/tmp-terraform/tofu.zip
+	@unzip -q $(TOOLS_HOST_DIR)/tmp-terraform/tofu.zip -d $(TOOLS_HOST_DIR)/tmp-terraform
+	@# upjet invokes an executable named `terraform`.
+	@mv $(TOOLS_HOST_DIR)/tmp-terraform/tofu $(TERRAFORM)
+	@chmod +x $(TERRAFORM)
 	@rm -fr $(TOOLS_HOST_DIR)/tmp-terraform
-	@$(OK) installing terraform $(HOSTOS)-$(HOSTARCH)
+	@$(OK) installing opentofu $(TERRAFORM_VERSION) $(HOSTOS)-$(HOSTARCH)
 
 # Build the upstream provider from source for every platform the image needs
 # plus the host, so schema generation and the runtime image share one mirror.

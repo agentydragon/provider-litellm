@@ -25,9 +25,11 @@ PLATFORMS=("$@")
 [ ${#PLATFORMS[@]} -gt 0 ] || { echo "at least one platform required" >&2; exit 1; }
 
 BINARY="terraform-provider-litellm_v${VERSION}"
-# The mirror is keyed by the registry address the provider is published under,
-# which is also the source address Terraform resolves.
-SOURCE_PATH="registry.terraform.io/ncecere/litellm"
+# The mirror is keyed by the registry host the CLI resolves an unqualified
+# source against. This build ships OpenTofu, whose default host is
+# registry.opentofu.org -- laying the mirror out under registry.terraform.io
+# makes OpenTofu report "no available releases match the given constraints".
+SOURCE_PATH="registry.opentofu.org/ncecere/litellm"
 
 if [ ! -d "${SRC}/.git" ]; then
   echo "cloning ${REPO} @ ${REF}"
