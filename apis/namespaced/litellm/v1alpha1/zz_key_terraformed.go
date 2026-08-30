@@ -21,7 +21,7 @@ func (mg *Key) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this Key
 func (tr *Key) GetConnectionDetailsMapping() map[string]string {
-	return map[string]string{"key": "keySecretRef", "key_wo": "keyWoSecretRef", "metadata": "metadataSecretRef"}
+	return map[string]string{"config_json": "configJsonSecretRef", "key": "keySecretRef", "key_wo": "keyWoSecretRef", "metadata": "metadataSecretRef", "metadata_json": "metadataJsonSecretRef", "permissions_json": "permissionsJsonSecretRef"}
 }
 
 // GetObservation of this Key
@@ -125,5 +125,5 @@ func (tr *Key) LateInitialize(attrs []byte) (bool, error) {
 
 // GetTerraformSchemaVersion returns the associated Terraform schema version
 func (tr *Key) GetTerraformSchemaVersion() int {
-	return 1
+	return 2
 }

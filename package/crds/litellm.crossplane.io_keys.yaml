@@ -194,10 +194,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Map of configuration options.
+                      Map of string configuration options.
                       Key-specific configuration.
                     type: object
                     x-kubernetes-map-type: granular
+                  configJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous configuration. Top-level keys cannot overlap config.
+                      Additional key configuration as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   duration:
                     description: |-
                       Duration for which this key is valid (e.g., "30d", "90d").
@@ -275,6 +294,25 @@ spec:
                       Maximum number of parallel requests allowed.
                       Maximum parallel requests allowed.
                     type: number
+                  metadataJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous metadata. It is independently recursively owned, cannot overlap metadata or dedicated metadata fields, and requires caller-selected key or key_wo identity on create.
+                      Additional key metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   metadataSecretRef:
                     description: |-
                       Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API. When LiteLLM returns nested credentials as litellm_enc:: or another recognized redaction marker, the provider retains the corresponding configured leaf while continuing to refresh unmasked metadata values for drift.
@@ -406,10 +444,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Map of permissions.
+                      Map of string permissions.
                       Key permissions.
                     type: object
                     x-kubernetes-map-type: granular
+                  permissionsJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous permissions. Top-level keys cannot overlap permissions.
+                      Additional key permissions as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   projectId:
                     description: |-
                       Project ID associated with this key. When set, models and budget are validated against the project's limits.
@@ -619,7 +676,7 @@ spec:
                   serviceAccountId:
                     description: |-
                       Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
-                      Service account ID for team-owned keys.
+                      Service account ID for team-owned keys. LiteLLM v1.98 does not update this identity in place.
                     type: string
                   softBudget:
                     description: |-
@@ -937,10 +994,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Map of configuration options.
+                      Map of string configuration options.
                       Key-specific configuration.
                     type: object
                     x-kubernetes-map-type: granular
+                  configJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous configuration. Top-level keys cannot overlap config.
+                      Additional key configuration as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   duration:
                     description: |-
                       Duration for which this key is valid (e.g., "30d", "90d").
@@ -1018,6 +1094,25 @@ spec:
                       Maximum number of parallel requests allowed.
                       Maximum parallel requests allowed.
                     type: number
+                  metadataJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous metadata. It is independently recursively owned, cannot overlap metadata or dedicated metadata fields, and requires caller-selected key or key_wo identity on create.
+                      Additional key metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   metadataSecretRef:
                     additionalProperties:
                       type: string
@@ -1138,10 +1233,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Map of permissions.
+                      Map of string permissions.
                       Key permissions.
                     type: object
                     x-kubernetes-map-type: granular
+                  permissionsJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous permissions. Top-level keys cannot overlap permissions.
+                      Additional key permissions as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   projectId:
                     description: |-
                       Project ID associated with this key. When set, models and budget are validated against the project's limits.
@@ -1351,7 +1465,7 @@ spec:
                   serviceAccountId:
                     description: |-
                       Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
-                      Service account ID for team-owned keys.
+                      Service account ID for team-owned keys. LiteLLM v1.98 does not update this identity in place.
                     type: string
                   softBudget:
                     description: |-
@@ -1673,7 +1787,7 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Map of configuration options.
+                      Map of string configuration options.
                       Key-specific configuration.
                     type: object
                     x-kubernetes-map-type: granular
@@ -1763,7 +1877,7 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Map of permissions.
+                      Map of string permissions.
                       Key permissions.
                     type: object
                     x-kubernetes-map-type: granular
@@ -1902,7 +2016,7 @@ spec:
                   serviceAccountId:
                     description: |-
                       Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
-                      Service account ID for team-owned keys.
+                      Service account ID for team-owned keys. LiteLLM v1.98 does not update this identity in place.
                     type: string
                   softBudget:
                     description: |-

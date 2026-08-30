@@ -12,4 +12,8 @@ spec:
     serverName: crossplane_example
     description: Example MCP server managed by Crossplane
     transport: http
-    url: https://mcp.example.com/mcp
+    # v2.1.0 marks the MCP server URL sensitive, so it is read from a Secret.
+    urlSecretRef:
+      name: mcp-server-url
+      key: url
+      namespace: crossplane-system

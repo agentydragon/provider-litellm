@@ -177,10 +177,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Organization metadata. Use jsonencode() for complex values.
+                      (Map of String) Organization metadata. Use jsonencode() for complex object or array values; scalar-looking strings retain string identity.
                       Metadata for the organization.
                     type: object
                     x-kubernetes-map-type: granular
+                  metadataJsonSecretRef:
+                    description: |-
+                      (String, Sensitive) Non-null JSON object for lossless heterogeneous metadata. Top-level keys cannot overlap metadata, model_rpm_limit, or model_tpm_limit. Configuring it during create requires organization_id.
+                      Additional organization metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   modelRpmLimit:
                     additionalProperties:
                       type: number
@@ -348,10 +367,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Organization metadata. Use jsonencode() for complex values.
+                      (Map of String) Organization metadata. Use jsonencode() for complex object or array values; scalar-looking strings retain string identity.
                       Metadata for the organization.
                     type: object
                     x-kubernetes-map-type: granular
+                  metadataJsonSecretRef:
+                    description: |-
+                      (String, Sensitive) Non-null JSON object for lossless heterogeneous metadata. Top-level keys cannot overlap metadata, model_rpm_limit, or model_tpm_limit. Configuring it during create requires organization_id.
+                      Additional organization metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   modelRpmLimit:
                     additionalProperties:
                       type: number
@@ -536,7 +574,7 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Organization metadata. Use jsonencode() for complex values.
+                      (Map of String) Organization metadata. Use jsonencode() for complex object or array values; scalar-looking strings retain string identity.
                       Metadata for the organization.
                     type: object
                     x-kubernetes-map-type: granular

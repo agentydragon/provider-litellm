@@ -28,10 +28,18 @@ type ModelInitParameters struct {
 	// +mapType=granular
 	AdditionalLitellmParams map[string]*string `json:"additionalLitellmParams,omitempty" tf:"additional_litellm_params,omitempty"`
 
+	// a lossless JSON-object sibling for heterogeneous custom litellm_params values. Use it when the legacy additional_litellm_params map(string) cannot preserve native types.
+	// Sensitive lossless JSON-object sibling for heterogeneous litellm_params. Keys cannot overlap additional_litellm_params, dedicated model attributes, credentials removed by /model/info, or model-budget fields. Any change replaces the model so LiteLLM cannot retain removed nested values.
+	AdditionalLitellmParamsJSONSecretRef *v2.LocalSecretKeySelector `json:"additionalLitellmParamsJsonSecretRef,omitempty" tf:"-"`
+
 	// map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
 	// Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
 	// +mapType=granular
 	AdditionalModelInfo map[string]*string `json:"additionalModelInfo,omitempty" tf:"additional_model_info,omitempty"`
+
+	// a lossless JSON-object sibling for heterogeneous custom model_info values. Use this attribute when string coercion in additional_model_info cannot preserve the intended type.
+	// Sensitive lossless JSON-object sibling for heterogeneous model_info fields. Keys cannot overlap additional_model_info or fields managed by dedicated attributes. Any change replaces the model so LiteLLM cannot retain removed nested values.
+	AdditionalModelInfoJSONSecretRef *v2.LocalSecretKeySelector `json:"additionalModelInfoJsonSecretRef,omitempty" tf:"-"`
 
 	// string (Sensitive). AWS access key ID for AWS-based models.
 	// AWS access key ID for Bedrock.
@@ -304,11 +312,21 @@ type ModelParameters struct {
 	// +mapType=granular
 	AdditionalLitellmParams map[string]*string `json:"additionalLitellmParams,omitempty" tf:"additional_litellm_params,omitempty"`
 
+	// a lossless JSON-object sibling for heterogeneous custom litellm_params values. Use it when the legacy additional_litellm_params map(string) cannot preserve native types.
+	// Sensitive lossless JSON-object sibling for heterogeneous litellm_params. Keys cannot overlap additional_litellm_params, dedicated model attributes, credentials removed by /model/info, or model-budget fields. Any change replaces the model so LiteLLM cannot retain removed nested values.
+	// +kubebuilder:validation:Optional
+	AdditionalLitellmParamsJSONSecretRef *v2.LocalSecretKeySelector `json:"additionalLitellmParamsJsonSecretRef,omitempty" tf:"-"`
+
 	// map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM's model cost map, so that /model/info and /v1/models advertise the model's capabilities to clients.
 	// Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	AdditionalModelInfo map[string]*string `json:"additionalModelInfo,omitempty" tf:"additional_model_info,omitempty"`
+
+	// a lossless JSON-object sibling for heterogeneous custom model_info values. Use this attribute when string coercion in additional_model_info cannot preserve the intended type.
+	// Sensitive lossless JSON-object sibling for heterogeneous model_info fields. Keys cannot overlap additional_model_info or fields managed by dedicated attributes. Any change replaces the model so LiteLLM cannot retain removed nested values.
+	// +kubebuilder:validation:Optional
+	AdditionalModelInfoJSONSecretRef *v2.LocalSecretKeySelector `json:"additionalModelInfoJsonSecretRef,omitempty" tf:"-"`
 
 	// string (Sensitive). AWS access key ID for AWS-based models.
 	// AWS access key ID for Bedrock.

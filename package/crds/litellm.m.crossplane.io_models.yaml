@@ -75,6 +75,20 @@ spec:
                       Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
                     type: object
                     x-kubernetes-map-type: granular
+                  additionalLitellmParamsJsonSecretRef:
+                    description: |-
+                      a lossless JSON-object sibling for heterogeneous custom litellm_params values. Use it when the legacy additional_litellm_params map(string) cannot preserve native types.
+                      Sensitive lossless JSON-object sibling for heterogeneous litellm_params. Keys cannot overlap additional_litellm_params, dedicated model attributes, credentials removed by /model/info, or model-budget fields. Any change replaces the model so LiteLLM cannot retain removed nested values.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   additionalModelInfo:
                     additionalProperties:
                       type: string
@@ -83,6 +97,20 @@ spec:
                       Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
                     type: object
                     x-kubernetes-map-type: granular
+                  additionalModelInfoJsonSecretRef:
+                    description: |-
+                      a lossless JSON-object sibling for heterogeneous custom model_info values. Use this attribute when string coercion in additional_model_info cannot preserve the intended type.
+                      Sensitive lossless JSON-object sibling for heterogeneous model_info fields. Keys cannot overlap additional_model_info or fields managed by dedicated attributes. Any change replaces the model so LiteLLM cannot retain removed nested values.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   apiVersion:
                     description: |-
                       string. The API version to use for the model provider.
@@ -487,6 +515,20 @@ spec:
                       Additional parameters to pass to litellm_params. Removing configured keys replaces the model so LiteLLM cannot silently retain them.
                     type: object
                     x-kubernetes-map-type: granular
+                  additionalLitellmParamsJsonSecretRef:
+                    description: |-
+                      a lossless JSON-object sibling for heterogeneous custom litellm_params values. Use it when the legacy additional_litellm_params map(string) cannot preserve native types.
+                      Sensitive lossless JSON-object sibling for heterogeneous litellm_params. Keys cannot overlap additional_litellm_params, dedicated model attributes, credentials removed by /model/info, or model-budget fields. Any change replaces the model so LiteLLM cannot retain removed nested values.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   additionalModelInfo:
                     additionalProperties:
                       type: string
@@ -495,6 +537,20 @@ spec:
                       Additional fields to store in model_info, e.g. capability flags (supports_vision, supports_function_calling, supports_reasoning, …) for models missing from LiteLLM's model cost map. Values are strings and are converted to native JSON types (int, float, bool, JSON) for the API. Only keys configured here are managed; fields LiteLLM derives from its model cost map are left alone.
                     type: object
                     x-kubernetes-map-type: granular
+                  additionalModelInfoJsonSecretRef:
+                    description: |-
+                      a lossless JSON-object sibling for heterogeneous custom model_info values. Use this attribute when string coercion in additional_model_info cannot preserve the intended type.
+                      Sensitive lossless JSON-object sibling for heterogeneous model_info fields. Keys cannot overlap additional_model_info or fields managed by dedicated attributes. Any change replaces the model so LiteLLM cannot retain removed nested values.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   apiVersion:
                     description: |-
                       string. The API version to use for the model provider.

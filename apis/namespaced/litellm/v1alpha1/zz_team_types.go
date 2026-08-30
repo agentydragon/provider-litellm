@@ -106,10 +106,14 @@ type TeamInitParameters struct {
 	// Maximum budget for the team.
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+	// Legacy metadata map. Values are strings; use jsonencode() for historically supported objects and arrays.
 	// Arbitrary metadata for the team.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap legacy, dedicated, or server-owned metadata roots.
+	// Additional team metadata as a semantic JSON object.
+	MetadataJSONSecretRef *v2.LocalSecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
 
 	// A map of alias names to model names.
 	// Model alias mappings for the team.
@@ -225,7 +229,7 @@ type TeamObservation struct {
 	// Maximum budget for the team.
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+	// Legacy metadata map. Values are strings; use jsonencode() for historically supported objects and arrays.
 	// Arbitrary metadata for the team.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
@@ -337,11 +341,16 @@ type TeamParameters struct {
 	// +kubebuilder:validation:Optional
 	MaxBudget *float64 `json:"maxBudget,omitempty" tf:"max_budget,omitempty"`
 
-	// A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+	// Legacy metadata map. Values are strings; use jsonencode() for historically supported objects and arrays.
 	// Arbitrary metadata for the team.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap legacy, dedicated, or server-owned metadata roots.
+	// Additional team metadata as a semantic JSON object.
+	// +kubebuilder:validation:Optional
+	MetadataJSONSecretRef *v2.LocalSecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
 
 	// A map of alias names to model names.
 	// Model alias mappings for the team.

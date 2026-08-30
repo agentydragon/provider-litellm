@@ -39,10 +39,14 @@ type ProjectInitParameters struct {
 	// Maximum parallel requests allowed.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Metadata; use jsonencode() for complex values.
+	// Legacy metadata map; use jsonencode() for historically supported object and array values.
 	// Metadata for the project. Values are strings; use jsonencode() for complex values.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap metadata, tags, model_rpm_limit, or model_tpm_limit.
+	// Additional project metadata as a semantic JSON object.
+	MetadataJSONSecretRef *v2.LocalSecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
 
 	// Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
 	// Legacy per-model budget map shape retained for schema compatibility.
@@ -134,7 +138,7 @@ type ProjectObservation struct {
 	// Maximum parallel requests allowed.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Metadata; use jsonencode() for complex values.
+	// Legacy metadata map; use jsonencode() for historically supported object and array values.
 	// Metadata for the project. Values are strings; use jsonencode() for complex values.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
@@ -221,11 +225,16 @@ type ProjectParameters struct {
 	// +kubebuilder:validation:Optional
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// Metadata; use jsonencode() for complex values.
+	// Legacy metadata map; use jsonencode() for historically supported object and array values.
 	// Metadata for the project. Values are strings; use jsonencode() for complex values.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap metadata, tags, model_rpm_limit, or model_tpm_limit.
+	// Additional project metadata as a semantic JSON object.
+	// +kubebuilder:validation:Optional
+	MetadataJSONSecretRef *v2.LocalSecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
 
 	// Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.
 	// Legacy per-model budget map shape retained for schema compatibility.

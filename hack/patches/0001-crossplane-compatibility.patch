@@ -2,6 +2,8 @@ Upstream fixes required for the observe-before-create model that generated
 consumers (upjet/Crossplane) use. Each hunk carries an inline comment
 explaining the failure it prevents. Drop a hunk once it lands upstream.
 
+Rebased onto v2.1.0; none of these were fixed in that release.
+
 1. Reads guarded against an empty identifier, so a resource that does not
    exist yet is reported absent instead of issuing a degenerate request
    (empty query parameter, or a URL collapsing to a trailing slash that
@@ -20,12 +22,22 @@ explaining the failure it prevents. Drop a hunk once it lands upstream.
    attributes stay Sensitive, and jwt_key_mapping's key_wo now round-trips
    rather than being nulled after apply, which would otherwise be reported as
    "inconsistent values for sensitive attribute" on every reconcile.
+6. litellm_mcp_server.env_vars: sensitivity moved from the list to its nested
+   `value` leaf. upjet cannot build a type for a sensitive list of objects.
+7. litellm_team: a create that was accepted but whose identity then 404s now
+   reports absence instead of retaining recovery state. A create rejected
+   outright -- 400 "Organization not found" while a dependency is still being
+   created -- lands in that branch, and holding the state makes a transient
+   ordering failure permanent for a convergent consumer.
+8. litellm_prompt: LiteLLM answers an unknown prompt with a 400 whose body says
+   "Prompt <id> not found". Upstream declines to treat that as durable absence,
+   which leaves the resource uncreatable for a consumer that observes first.
 
 diff --git a/internal/provider/resource_access_group.go b/internal/provider/resource_access_group.go
-index c9073d5..6892038 100644
+index 58dd3d9..79e7bdb 100644
 --- a/internal/provider/resource_access_group.go
 +++ b/internal/provider/resource_access_group.go
-@@ -124,6 +124,21 @@ func (r *AccessGroupResource) Read(ctx context.Context, req resource.ReadRequest
+@@ -125,6 +125,21 @@ func (r *AccessGroupResource) Read(ctx context.Context, req resource.ReadRequest
  	var data AccessGroupResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -48,20 +60,12 @@ index c9073d5..6892038 100644
  		return
  	}
 diff --git a/internal/provider/resource_agent.go b/internal/provider/resource_agent.go
-index 31ffb5a..27ed8f8 100644
+index ac1deca..936ab29 100644
 --- a/internal/provider/resource_agent.go
 +++ b/internal/provider/resource_agent.go
-@@ -276,11 +276,18 @@ func (r *AgentResource) Schema(ctx context.Context, req resource.SchemaRequest,
- 					},
+@@ -276,10 +276,10 @@ func (r *AgentResource) Schema(ctx context.Context, req resource.SchemaRequest,
  					"signatures": schema.ListNestedBlock{
  						Description: "Ordered JWS signatures. Duplicate entries are preserved. An empty list explicitly clears signatures.",
-+						// Not marked Sensitive: a JWS protected header, signature
-+						// and header are published as part of the agent card and
-+						// carry no key material, so treating them as secrets buys
-+						// nothing. It also breaks generated consumers, which build
-+						// a sensitive field path of agent_card[*].signatures[*].*
-+						// that cannot be resolved once agent_card is represented
-+						// as an embedded object rather than a singleton list.
  						NestedObject: schema.NestedBlockObject{Attributes: map[string]schema.Attribute{
 -							"protected":   schema.StringAttribute{Description: "JWS protected header.", Required: true, Sensitive: true},
 -							"signature":   schema.StringAttribute{Description: "JWS signature.", Required: true, Sensitive: true},
@@ -74,23 +78,20 @@ index 31ffb5a..27ed8f8 100644
  						}},
  					},
  					"skills": schema.ListNestedBlock{
-@@ -327,8 +334,13 @@ func (r *AgentResource) Schema(ctx context.Context, req resource.SchemaRequest,
+@@ -326,8 +326,10 @@ func (r *AgentResource) Schema(ctx context.Context, req resource.SchemaRequest,
  								"security_json": schema.StringAttribute{
  									Description: "Strict JSON bridge for ordered A2A security requirements, including explicit JSON null. Conflicts with security.",
  									Optional:    true,
 -									Sensitive:   true,
 -									Validators:  []validator.String{agentJSONNullOrSecurityValidator{}},
-+									// Not Sensitive, for the same reason as the
-+									// signatures block above: A2A security
-+									// requirements name schemes and scopes that are
-+									// published in the agent card, and the sibling
-+									// non-JSON `security` attribute is not marked
-+									// sensitive either.
++									// Not Sensitive: A2A security requirements name schemes and
++									// scopes published in the agent card, and the sibling
++									// non-JSON `security` attribute is not sensitive either.
 +									Validators: []validator.String{agentJSONNullOrSecurityValidator{}},
  								},
  							},
  						},
-@@ -458,6 +470,21 @@ func setAgentIdentityOnlyCreateState(ctx context.Context, resp *resource.CreateR
+@@ -466,6 +468,21 @@ func setAgentIdentityOnlyCreateState(ctx context.Context, resp *resource.CreateR
  func (r *AgentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data AgentResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -109,9 +110,9 @@ index 31ffb5a..27ed8f8 100644
 +		resp.State.RemoveResource(ctx)
 +		return
 +	}
+ 	prior := cloneAgentResourceModel(data)
  	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
  	resp.Diagnostics.Append(privateDiags...)
- 	bundle, ownershipDiags := readAgentOwnershipBundle(ctx, req.Private)
 diff --git a/internal/provider/resource_budget.go b/internal/provider/resource_budget.go
 index b653b32..d03e35e 100644
 --- a/internal/provider/resource_budget.go
@@ -158,10 +159,10 @@ index b653b32..d03e35e 100644
  		return fmt.Errorf("budget read response did not contain exactly one budget")
  	}
 diff --git a/internal/provider/resource_credential.go b/internal/provider/resource_credential.go
-index b199bec..69ef175 100644
+index 627aa7b..42c6560 100644
 --- a/internal/provider/resource_credential.go
 +++ b/internal/provider/resource_credential.go
-@@ -513,6 +513,21 @@ func buildCredentialCreateRequest(ctx context.Context, data CredentialResourceMo
+@@ -511,6 +511,21 @@ func buildCredentialCreateRequest(ctx context.Context, data CredentialResourceMo
  func (r *CredentialResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data CredentialResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -184,10 +185,10 @@ index b199bec..69ef175 100644
  		return
  	}
 diff --git a/internal/provider/resource_fallback.go b/internal/provider/resource_fallback.go
-index 237e53a..300d739 100644
+index b1ddc6a..ab7589d 100644
 --- a/internal/provider/resource_fallback.go
 +++ b/internal/provider/resource_fallback.go
-@@ -134,6 +134,21 @@ func (r *FallbackResource) Create(ctx context.Context, req resource.CreateReques
+@@ -149,6 +149,21 @@ func (r *FallbackResource) Create(ctx context.Context, req resource.CreateReques
  func (r *FallbackResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data FallbackResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -210,10 +211,10 @@ index 237e53a..300d739 100644
  		return
  	}
 diff --git a/internal/provider/resource_guardrail.go b/internal/provider/resource_guardrail.go
-index 2d47ae3..c62a411 100644
+index 7006caa..24eff95 100644
 --- a/internal/provider/resource_guardrail.go
 +++ b/internal/provider/resource_guardrail.go
-@@ -171,6 +171,21 @@ func (r *GuardrailResource) Read(ctx context.Context, req resource.ReadRequest,
+@@ -172,6 +172,21 @@ func (r *GuardrailResource) Read(ctx context.Context, req resource.ReadRequest,
  	var data GuardrailResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -288,10 +289,10 @@ index 208ad3a..abe1683 100644
  		if !resp.Diagnostics.HasError() && resp.Private != nil {
  			resp.Diagnostics.Append(resp.Private.SetKey(ctx, jwtKeyMappingDescriptionOwnedPrivateKey, []byte("true"))...)
 diff --git a/internal/provider/resource_key.go b/internal/provider/resource_key.go
-index 531e9be..3a4e77c 100644
+index 70d194b..fce99c9 100644
 --- a/internal/provider/resource_key.go
 +++ b/internal/provider/resource_key.go
-@@ -166,7 +166,14 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
+@@ -195,7 +195,14 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
  				Description: "Write-only predefined API key value. Terraform sends this value to LiteLLM but does not store it in plan or state artifacts. Use a cryptographically random, high-entropy key because its persisted SHA256 management identifier permits offline guesses of weak values. Requires Terraform 1.11 or compatible OpenTofu support.",
  				Optional:    true,
  				Sensitive:   true,
@@ -307,7 +308,7 @@ index 531e9be..3a4e77c 100644
  				Validators: []validator.String{
  					stringvalidator.LengthAtLeast(1),
  				},
-@@ -184,7 +191,14 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
+@@ -213,7 +220,14 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
  			"send_invite_email": schema.BoolAttribute{
  				Description: "Create-only action flag that asks LiteLLM to asynchronously email the key's existing user. Requires user_id. It is write-only, is never sent during Update, and does not confirm delivery.",
  				Optional:    true,
@@ -323,7 +324,7 @@ index 531e9be..3a4e77c 100644
  			},
  			"models": schema.ListAttribute{
  				Description: "List of models this key can access.",
-@@ -220,6 +234,13 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
+@@ -249,6 +263,13 @@ func (r *KeyResource) Schema(ctx context.Context, req resource.SchemaRequest, re
  			"organization_id": schema.StringAttribute{
  				Description: "Organization ID associated with this key.",
  				Optional:    true,
@@ -337,7 +338,7 @@ index 531e9be..3a4e77c 100644
  			},
  			"project_id": schema.StringAttribute{
  				Description: "Project ID associated with this key. When set, models and budget are validated against the project's limits.",
-@@ -480,6 +501,21 @@ func (r *KeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *
+@@ -714,6 +735,21 @@ func (r *KeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *
  	var data KeyResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -357,10 +358,10 @@ index 531e9be..3a4e77c 100644
 +		return
 +	}
  	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
- 	resp.Diagnostics.Append(privateDiags...)
- 	if resp.Diagnostics.HasError() {
+ 	acceptedCreateMarker, acceptedCreateDiags := req.Private.GetKey(ctx, keyAcceptedCreateRecoveryPrivateKey)
+ 	pendingUpdateMarker, pendingUpdateDiags := req.Private.GetKey(ctx, keyPendingUpdatePrivateKey)
 diff --git a/internal/provider/resource_key_block.go b/internal/provider/resource_key_block.go
-index ad22e92..19d5da4 100644
+index cf7b9ff..5d4cf2f 100644
 --- a/internal/provider/resource_key_block.go
 +++ b/internal/provider/resource_key_block.go
 @@ -286,6 +286,21 @@ func (r *KeyBlockResource) Read(ctx context.Context, req resource.ReadRequest, r
@@ -386,12 +387,35 @@ index ad22e92..19d5da4 100644
  		return
  	}
 diff --git a/internal/provider/resource_mcp_server.go b/internal/provider/resource_mcp_server.go
-index e6a5d7d..1acacca 100644
+index 970aed8..fb5f41d 100644
 --- a/internal/provider/resource_mcp_server.go
 +++ b/internal/provider/resource_mcp_server.go
-@@ -671,6 +671,21 @@ func (r *MCPServerResource) Read(ctx context.Context, req resource.ReadRequest,
+@@ -404,8 +404,12 @@ func (r *MCPServerResource) Schema(ctx context.Context, req resource.SchemaReque
+ 				Description: "Ordered LiteLLM MCP environment-variable definitions.",
+ 				Optional:    true,
+ 				Computed:    true,
+-				Sensitive:   true,
+-				Validators:  []validator.List{mcpEnvVarsValidator{}},
++				// Sensitivity moved to the nested `value` attribute, which is the
++				// only leaf that carries a secret; name, scope and description are
++				// metadata. A generated consumer (upjet) cannot represent a
++				// sensitive list of objects -- it supports only string, []string
++				// and map[string]string -- and refuses to build the type at all.
++				Validators: []validator.List{mcpEnvVarsValidator{}},
+ 				NestedObject: schema.NestedAttributeObject{Attributes: map[string]schema.Attribute{
+ 					"name": schema.StringAttribute{
+ 						Description: "Environment-variable name.",
+@@ -416,6 +420,7 @@ func (r *MCPServerResource) Schema(ctx context.Context, req resource.SchemaReque
+ 						Description: "Admin-provided value or user-scope placeholder.",
+ 						Optional:    true,
+ 						Computed:    true,
++						Sensitive:   true,
+ 						Default:     stringdefault.StaticString(""),
+ 					},
+ 					"scope": schema.StringAttribute{
+@@ -1478,6 +1483,21 @@ func (r *MCPServerResource) Create(ctx context.Context, req resource.CreateReque
+ func (r *MCPServerResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data MCPServerResourceModel
- 
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 +
 +	// A resource whose state carries no identifier does not exist remotely.
@@ -410,12 +434,12 @@ index e6a5d7d..1acacca 100644
 +	}
  	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
  	resp.Diagnostics.Append(privateDiags...)
- 	ownership, ownershipDiags := readMCPInfoProvenance(ctx, req.Private)
+ 	fieldImportedMarker, fieldImportDiags := req.Private.GetKey(ctx, mcpFieldImportedPrivateKey)
 diff --git a/internal/provider/resource_model.go b/internal/provider/resource_model.go
-index 77f4f5a..82c6a0c 100644
+index 45b9ebc..87970d5 100644
 --- a/internal/provider/resource_model.go
 +++ b/internal/provider/resource_model.go
-@@ -604,6 +604,21 @@ func (r *ModelResource) Read(ctx context.Context, req resource.ReadRequest, resp
+@@ -839,6 +839,21 @@ func (r *ModelResource) Read(ctx context.Context, req resource.ReadRequest, resp
  	var data ModelResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -438,10 +462,10 @@ index 77f4f5a..82c6a0c 100644
  		return
  	}
 diff --git a/internal/provider/resource_organization.go b/internal/provider/resource_organization.go
-index 09deae2..35cd295 100644
+index 63294c5..906112a 100644
 --- a/internal/provider/resource_organization.go
 +++ b/internal/provider/resource_organization.go
-@@ -195,6 +195,21 @@ func (r *OrganizationResource) Create(ctx context.Context, req resource.CreateRe
+@@ -329,6 +329,21 @@ func (r *OrganizationResource) Create(ctx context.Context, req resource.CreateRe
  func (r *OrganizationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data OrganizationResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -460,14 +484,14 @@ index 09deae2..35cd295 100644
 +		resp.State.RemoveResource(ctx)
 +		return
 +	}
- 	marker, privateDiagnostics := req.Private.GetKey(ctx, numericImportedPrivateKey)
- 	resp.Diagnostics.Append(privateDiagnostics...)
- 	if resp.Diagnostics.HasError() {
+ 	var importMarker, provenanceRaw, acceptedRaw, pendingRaw []byte
+ 	var importDiagnostics, provenanceDiagnostics, acceptedDiagnostics, pendingDiagnostics diag.Diagnostics
+ 	if req.Private != nil {
 diff --git a/internal/provider/resource_organization_member.go b/internal/provider/resource_organization_member.go
-index 43c7d7e..de278ec 100644
+index b7f3b7f..2660643 100644
 --- a/internal/provider/resource_organization_member.go
 +++ b/internal/provider/resource_organization_member.go
-@@ -695,6 +695,21 @@ func (r *OrganizationMemberResource) Create(ctx context.Context, req resource.Cr
+@@ -700,6 +700,21 @@ func (r *OrganizationMemberResource) Create(ctx context.Context, req resource.Cr
  func (r *OrganizationMemberResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data OrganizationMemberResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -490,10 +514,10 @@ index 43c7d7e..de278ec 100644
  	resp.Diagnostics.Append(privateDiags...)
  	if resp.Diagnostics.HasError() {
 diff --git a/internal/provider/resource_project.go b/internal/provider/resource_project.go
-index d2a5b6a..6c1f285 100644
+index be0cc86..337fc43 100644
 --- a/internal/provider/resource_project.go
 +++ b/internal/provider/resource_project.go
-@@ -258,6 +258,21 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
+@@ -363,6 +363,21 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
  func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data ProjectResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -512,11 +536,11 @@ index d2a5b6a..6c1f285 100644
 +		resp.State.RemoveResource(ctx)
 +		return
 +	}
- 	marker, privateDiagnostics := req.Private.GetKey(ctx, numericImportedPrivateKey)
- 	resp.Diagnostics.Append(privateDiagnostics...)
- 	if resp.Diagnostics.HasError() {
+ 	var importRaw, provenanceRaw, acceptedRaw, pendingRaw, pendingBudgetRaw []byte
+ 	var importDiagnostics, provenanceDiagnostics, acceptedDiagnostics, pendingDiagnostics, pendingBudgetDiagnostics diag.Diagnostics
+ 	if req.Private != nil {
 diff --git a/internal/provider/resource_prompt.go b/internal/provider/resource_prompt.go
-index 1654dc4..66a6666 100644
+index e1f8e12..269c95f 100644
 --- a/internal/provider/resource_prompt.go
 +++ b/internal/provider/resource_prompt.go
 @@ -203,6 +203,21 @@ func (r *PromptResource) Read(ctx context.Context, req resource.ReadRequest, res
@@ -541,11 +565,30 @@ index 1654dc4..66a6666 100644
  	if resp.Diagnostics.HasError() {
  		return
  	}
+@@ -214,9 +229,15 @@ func (r *PromptResource) Read(ctx context.Context, req resource.ReadRequest, res
+ 	}
+ 	imported := string(importedMarker) == "true"
+ 	if err := r.refreshPrompt(ctx, &data, imported); err != nil {
+-		// LiteLLM v1.98 does not expose whether a singular 400/404 or a
+-		// versions-route 404 came from Prisma or its process-local registry.
+-		// No current response can therefore prove durable absence safely.
++		// LiteLLM answers an unknown prompt with a 400 whose body states
++		// "Prompt <id> not found[ in environment <env>]". Upstream declines to
++		// treat that as durable absence, but a consumer that observes before it
++		// creates then never gets past this read, so the prompt can never be
++		// created. The body is explicit enough to act on.
++		if isPromptAbsentError(err) {
++			resp.State.RemoveResource(ctx)
++			return
++		}
+ 		resp.Diagnostics.AddError("Prompt Read Error", "Unable to read and validate the scoped prompt. Response and request details were omitted.")
+ 		return
+ 	}
 diff --git a/internal/provider/resource_search_tool.go b/internal/provider/resource_search_tool.go
-index 368e0d7..c1cbf3f 100644
+index 0ff376b..8533a66 100644
 --- a/internal/provider/resource_search_tool.go
 +++ b/internal/provider/resource_search_tool.go
-@@ -160,6 +160,21 @@ func (r *SearchToolResource) Read(ctx context.Context, req resource.ReadRequest,
+@@ -161,6 +161,21 @@ func (r *SearchToolResource) Read(ctx context.Context, req resource.ReadRequest,
  	var data SearchToolResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -568,7 +611,7 @@ index 368e0d7..c1cbf3f 100644
  	resp.Diagnostics.Append(privateDiags...)
  	if resp.Diagnostics.HasError() {
 diff --git a/internal/provider/resource_tag.go b/internal/provider/resource_tag.go
-index f7a49c5..1b46a03 100644
+index d052209..ebc8a90 100644
 --- a/internal/provider/resource_tag.go
 +++ b/internal/provider/resource_tag.go
 @@ -2,7 +2,10 @@ package provider
@@ -582,7 +625,7 @@ index f7a49c5..1b46a03 100644
  
  	"github.com/hashicorp/terraform-plugin-framework/attr"
  	"github.com/hashicorp/terraform-plugin-framework/path"
-@@ -359,6 +362,21 @@ func (r *TagResource) Create(ctx context.Context, req resource.CreateRequest, re
+@@ -362,6 +365,21 @@ func (r *TagResource) Create(ctx context.Context, req resource.CreateRequest, re
  func (r *TagResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data TagResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -604,7 +647,7 @@ index f7a49c5..1b46a03 100644
  	marker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
  	resp.Diagnostics.Append(privateDiags...)
  	uncertain, privateDiags := req.Private.GetKey(ctx, tagUncertainCreatePrivateKey)
-@@ -666,6 +684,12 @@ func (r *TagResource) tagNameVisibleInList(ctx context.Context, tagName string)
+@@ -669,6 +687,12 @@ func (r *TagResource) tagNameVisibleInList(ctx context.Context, tagName string)
  func (r *TagResource) fetchTagInfo(ctx context.Context, tagName string) (interface{}, error) {
  	var raw interface{}
  	err := r.client.DoRequestWithResponse(ctx, "POST", "/tag/info", map[string]interface{}{"names": []string{tagName}}, &raw)
@@ -617,7 +660,7 @@ index f7a49c5..1b46a03 100644
  	return raw, err
  }
  
-@@ -683,7 +707,7 @@ func selectTagInfoObject(raw interface{}, tagName string, requireKeyed bool) (ma
+@@ -686,7 +710,7 @@ func selectTagInfoObject(raw interface{}, tagName string, requireKeyed bool) (ma
  			return nil, fmt.Errorf("tag import read response is missing the authoritative keyed envelope")
  		}
  		if len(value) == 0 {
@@ -626,7 +669,7 @@ index f7a49c5..1b46a03 100644
  		}
  		return value, nil
  	case []interface{}:
-@@ -1007,3 +1031,14 @@ func tagChangedFieldMismatch(desired, prior, actual *TagResourceModel) (string,
+@@ -1022,3 +1046,14 @@ func tagChangedFieldMismatch(desired, prior, actual *TagResourceModel) (string,
  	}
  	return "", false
  }
@@ -642,12 +685,12 @@ index f7a49c5..1b46a03 100644
 +	return strings.Contains(text, "tags not found")
 +}
 diff --git a/internal/provider/resource_team.go b/internal/provider/resource_team.go
-index 4f5df3c..e07b120 100644
+index d9dfe18..aa29ff6 100644
 --- a/internal/provider/resource_team.go
 +++ b/internal/provider/resource_team.go
-@@ -388,6 +388,21 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp
+@@ -614,6 +614,21 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
+ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data TeamResourceModel
- 
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 +
 +	// A resource whose state carries no identifier does not exist remotely.
@@ -664,14 +707,34 @@ index 4f5df3c..e07b120 100644
 +		resp.State.RemoveResource(ctx)
 +		return
 +	}
- 	importedMarker, privateDiags := req.Private.GetKey(ctx, numericImportedPrivateKey)
- 	resp.Diagnostics.Append(privateDiags...)
- 	if resp.Diagnostics.HasError() {
+ 	var importedRaw, provenanceRaw, acceptedRaw, pendingRaw, pendingMemberRaw []byte
+ 	if req.Private != nil {
+ 		for _, entry := range []struct {
+@@ -652,9 +667,16 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp
+ 			return
+ 		}
+ 		if IsNotFoundError(err) && ownership.acceptedCreate {
+-			resp.State = req.State
+-			resp.Private = req.Private
+-			resp.Diagnostics.AddError("Team Creation Not Yet Confirmed", "The accepted team identity is not yet authoritatively readable. Recovery state was retained to prevent duplicate creation.")
++			// Report absence rather than holding recovery state. A create that
++			// was accepted but whose identity then 404s has not taken effect --
++			// LiteLLM is not eventually consistent here, and a create rejected
++			// outright (for example 400 "Organization not found" when a
++			// dependency is not ready yet) lands in exactly this branch. Holding
++			// the recovery state makes that transient ordering failure permanent:
++			// a convergent consumer such as Crossplane retries forever and the
++			// team is never created. Removing it lets the next reconcile create
++			// the team once its dependency exists.
++			resp.State.RemoveResource(ctx)
+ 			return
+ 		}
+ 		resp.State = req.State
 diff --git a/internal/provider/resource_team_block.go b/internal/provider/resource_team_block.go
-index 7ff56ea..9ce651c 100644
+index f769f15..9ed25d3 100644
 --- a/internal/provider/resource_team_block.go
 +++ b/internal/provider/resource_team_block.go
-@@ -110,6 +110,21 @@ func (r *TeamBlockResource) Read(ctx context.Context, req resource.ReadRequest,
+@@ -111,6 +111,21 @@ func (r *TeamBlockResource) Read(ctx context.Context, req resource.ReadRequest,
  	var data TeamBlockResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -694,10 +757,10 @@ index 7ff56ea..9ce651c 100644
  		return
  	}
 diff --git a/internal/provider/resource_team_member.go b/internal/provider/resource_team_member.go
-index 9a557ae..b6d9c40 100644
+index c1f0644..ac61da3 100644
 --- a/internal/provider/resource_team_member.go
 +++ b/internal/provider/resource_team_member.go
-@@ -933,6 +933,21 @@ func (r *TeamMemberResource) Create(ctx context.Context, req resource.CreateRequ
+@@ -934,6 +934,21 @@ func (r *TeamMemberResource) Create(ctx context.Context, req resource.CreateRequ
  func (r *TeamMemberResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data TeamMemberResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -720,10 +783,10 @@ index 9a557ae..b6d9c40 100644
  		return
  	}
 diff --git a/internal/provider/resource_unified_access_group.go b/internal/provider/resource_unified_access_group.go
-index f576ce0..40f64df 100644
+index fe33c52..1192073 100644
 --- a/internal/provider/resource_unified_access_group.go
 +++ b/internal/provider/resource_unified_access_group.go
-@@ -356,6 +356,21 @@ func (r *UnifiedAccessGroupResource) recoverUnifiedAccessGroupCreate(
+@@ -376,6 +376,21 @@ func (r *UnifiedAccessGroupResource) recoverUnifiedAccessGroupCreate(
  func (r *UnifiedAccessGroupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
  	var data UnifiedAccessGroupResourceModel
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -746,10 +809,10 @@ index f576ce0..40f64df 100644
  		return
  	}
 diff --git a/internal/provider/resource_user.go b/internal/provider/resource_user.go
-index 5256ec5..20a4502 100644
+index 5d59409..6cbc5e9 100644
 --- a/internal/provider/resource_user.go
 +++ b/internal/provider/resource_user.go
-@@ -133,7 +133,14 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
+@@ -136,7 +136,14 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
  			"send_invite_email": schema.BoolAttribute{
  				Description: "Create-only action flag that asks LiteLLM to asynchronously email this user. Requires user_email. It is write-only, is never sent during Update, and does not confirm delivery.",
  				Optional:    true,
@@ -765,7 +828,7 @@ index 5256ec5..20a4502 100644
  			},
  			"metadata": schema.MapAttribute{
  				Description: "Metadata for the user.",
-@@ -242,6 +249,21 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp
+@@ -249,6 +256,21 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp
  	var data UserResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -788,10 +851,10 @@ index 5256ec5..20a4502 100644
  	resp.Diagnostics.Append(privateDiags...)
  	if resp.Diagnostics.HasError() {
 diff --git a/internal/provider/resource_vector_store.go b/internal/provider/resource_vector_store.go
-index 16b64c0..0bf10d0 100644
+index 2fae7a7..02a56c8 100644
 --- a/internal/provider/resource_vector_store.go
 +++ b/internal/provider/resource_vector_store.go
-@@ -267,6 +267,21 @@ func (r *VectorStoreResource) Read(ctx context.Context, req resource.ReadRequest
+@@ -272,6 +272,21 @@ func (r *VectorStoreResource) Read(ctx context.Context, req resource.ReadRequest
  	var data VectorStoreResourceModel
  
  	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)

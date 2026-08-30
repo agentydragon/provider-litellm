@@ -21,7 +21,7 @@ func (mg *Project) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this Project
 func (tr *Project) GetConnectionDetailsMapping() map[string]string {
-	return nil
+	return map[string]string{"metadata_json": "metadataJsonSecretRef"}
 }
 
 // GetObservation of this Project
@@ -125,5 +125,5 @@ func (tr *Project) LateInitialize(attrs []byte) (bool, error) {
 
 // GetTerraformSchemaVersion returns the associated Terraform schema version
 func (tr *Project) GetTerraformSchemaVersion() int {
-	return 0
+	return 1
 }

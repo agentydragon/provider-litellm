@@ -10,4 +10,7 @@ spec:
   forProvider:
     serverName: my_mcp_server
     transport: sse
-    url: https://example.com/mcp
+    urlSecretRef:
+      key: example-key
+      name: example-secret
+      namespace: upbound-system

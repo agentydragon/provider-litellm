@@ -244,7 +244,7 @@ with the [LiteLLM Helm chart](https://docs.litellm.ai/docs/proxy/deploy) or the 
 Terraform modules, then point a `ProviderConfig` at it.
 
 **Which LiteLLM versions are supported?**
-Verified against LiteLLM 1.99.0 using OpenTofu 1.12.6. Anything exposing the same management API should work.
+Verified against LiteLLM 1.99.0 using OpenTofu 1.12.6 and ncecere/litellm v2.1.0. Anything exposing the same management API should work.
 
 **Can I self-host the package?**
 Yes. `make build` produces an xpkg you can push to any OCI registry, and

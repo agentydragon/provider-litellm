@@ -21,7 +21,7 @@ func (mg *Model) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this Model
 func (tr *Model) GetConnectionDetailsMapping() map[string]string {
-	return map[string]string{"aws_access_key_id": "awsAccessKeyIdSecretRef", "aws_role_name": "awsRoleNameSecretRef", "aws_secret_access_key": "awsSecretAccessKeySecretRef", "aws_session_name": "awsSessionNameSecretRef", "model_api_key": "modelApiKeySecretRef", "vertex_location": "vertexLocationSecretRef", "vertex_project": "vertexProjectSecretRef"}
+	return map[string]string{"additional_litellm_params_json": "additionalLitellmParamsJsonSecretRef", "additional_model_info_json": "additionalModelInfoJsonSecretRef", "aws_access_key_id": "awsAccessKeyIdSecretRef", "aws_role_name": "awsRoleNameSecretRef", "aws_secret_access_key": "awsSecretAccessKeySecretRef", "aws_session_name": "awsSessionNameSecretRef", "model_api_key": "modelApiKeySecretRef", "vertex_location": "vertexLocationSecretRef", "vertex_project": "vertexProjectSecretRef"}
 }
 
 // GetObservation of this Model

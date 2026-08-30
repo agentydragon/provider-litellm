@@ -573,6 +573,16 @@ resources:
                   "tpm_limit": 50000,
                   "tpm_limit_type": "best_effort_throughput"
                 }
+            - name: structured
+              manifest: |-
+                {
+                  "config_json": "${jsonencode({\n    feature_flags = [\"streaming\", \"cache\"]\n    retries       = 3\n  })}",
+                  "key": "${var.structured_litellm_key}",
+                  "metadata_json": "${jsonencode({\n    deployment = {\n      production = true\n      revision   = 9007199254740993\n      owner      = null\n    }\n  })}",
+                  "permissions_json": "${jsonencode({\n    routes = {\n      allow = [\"/chat/completions\"]\n    }\n  })}"
+                }
+              references:
+                key: var.structured_litellm_key
             - name: routed
               manifest: |-
                 {
@@ -624,7 +634,8 @@ resources:
             blocked: '- (Optional) Whether this key is blocked.'
             budget_duration: '- (Optional) Duration for the budget (e.g., "30d", "7d").'
             budget_id: '- (Optional) Budget ID to associate with this key.'
-            config: '- (Optional) Map of configuration options.'
+            config: '- (Optional) Map of string configuration options.'
+            config_json: '- (Optional, Sensitive) Non-null JSON object for lossless heterogeneous configuration. Top-level keys cannot overlap config.'
             duration: '- (Optional) Duration for which this key is valid (e.g., "30d", "90d").'
             enforced_params: '- (Optional) List of enforced parameters for this key.'
             fallbacks: ', context_window_fallbacks, num_retries, timeout, model_group_retry_policy, routing_strategy, enable_tag_filtering, and model_group_alias. Other accepted fields are exposed for API fidelity and future LiteLLM behavior.'
@@ -637,12 +648,14 @@ resources:
             max_budget: '- (Optional) Maximum budget for this key.'
             max_parallel_requests: '- (Optional) Maximum number of parallel requests allowed.'
             metadata: '- (Optional, Sensitive) Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API. The entire map is marked sensitive because metadata commonly contains credentials; Terraform redacts it from normal CLI output while retaining it in state. When LiteLLM returns nested credentials as litellm_enc:: or another recognized redaction marker, the provider retains the corresponding configured leaf while continuing to refresh unmasked metadata values for drift.'
+            metadata_json: '- (Optional, Sensitive) Non-null JSON object for lossless heterogeneous metadata. It is independently recursively owned, cannot overlap metadata or dedicated metadata fields, and requires caller-selected key or key_wo identity on create.'
             model_max_budget: '- (Optional) Map of maximum budget per model. Note: Requires LiteLLM Enterprise license.'
             model_rpm_limit: '- (Optional) Map of requests per minute limit per model.'
             model_tpm_limit: '- (Optional) Map of tokens per minute limit per model.'
             models: '- (Optional) List of models that can be used with this key.'
             organization_id: '- (Optional) Organization ID associated with this key.'
-            permissions: '- (Optional) Map of permissions.'
+            permissions: '- (Optional) Map of string permissions.'
+            permissions_json: '- (Optional, Sensitive) Non-null JSON object for lossless heterogeneous permissions. Top-level keys cannot overlap permissions.'
             project_id: '- (Optional) Project ID associated with this key. When set, models and budget are validated against the project''s limits.'
             prompts: '- (Optional) List of prompt IDs associated with this key.'
             router_settings: '- (Optional) Complete key-specific router-settings document. Omitting the block leaves remote settings unmanaged. A configured block replaces the complete document on update rather than merging individual fields. Supported LiteLLM v1.98.0 fields:'
@@ -721,6 +734,14 @@ resources:
                   "transport": "sse",
                   "url": "https://example.com/mcp"
                 }
+            - name: custom_identity
+              manifest: |-
+                {
+                  "alias": "inventory tools",
+                  "server_id": "inventory.tools",
+                  "transport": "http",
+                  "url": "https://example.com/mcp"
+                }
             - name: full
               manifest: |-
                 {
@@ -739,6 +760,19 @@ resources:
                   "env": {
                     "ENV_VAR": "value"
                   },
+                  "env_vars": [
+                    {
+                      "description": "Shared upstream API key",
+                      "name": "GLOBAL_API_KEY",
+                      "scope": "global",
+                      "value": "${var.global_api_key}"
+                    },
+                    {
+                      "description": "Personal upstream API key",
+                      "name": "USER_API_KEY",
+                      "scope": "user"
+                    }
+                  ],
                   "mcp_access_groups": [
                     "dev_team"
                   ],
@@ -809,52 +843,104 @@ resources:
                   ],
                   "auth_type": "oauth2",
                   "authorization_url": "https://auth.example.com/oauth/authorize",
+                  "available_on_public_internet": false,
+                  "byok_api_key_help_url": "https://example.com/help/api-key",
+                  "byok_description": [
+                    "Create a personal API key in the upstream service."
+                  ],
                   "credentials": {
                     "client_id": "${var.oauth_client_id}",
                     "client_secret": "${var.oauth_client_secret}"
                   },
+                  "delegate_auth_to_upstream": true,
                   "extra_headers": [
                     "X-API-Version"
                   ],
+                  "instructions": "Use read-only tools unless write access is explicitly requested.",
+                  "is_byok": true,
+                  "max_concurrent_requests": 3,
+                  "oauth2_flow": "authorization_code",
+                  "oauth_scopes": [
+                    "mcp.read",
+                    "mcp.write"
+                  ],
                   "registration_url": "https://auth.example.com/oauth/register",
                   "server_name": "oauth_protected_server",
+                  "source_url": "https://github.com/example/mcp-server",
                   "static_headers": {
                     "Accept": "application/json"
                   },
+                  "timeout": 15.5,
                   "token_url": "https://auth.example.com/oauth/token",
+                  "tool_name_to_description": {
+                    "read_data": "Read records",
+                    "write_data": "Write records"
+                  },
+                  "tool_name_to_display_name": {
+                    "read_data": "Read_Data",
+                    "write_data": "Write_Data"
+                  },
                   "transport": "http",
                   "url": "https://api.example.com/mcp"
                 }
         argumentDocs:
-            alias: '- (String) An alias for the server. Must not contain hyphens.'
+            alias: '- (String, Computed) An optional server alias. Non-empty configured aliases are sent with ASCII spaces normalized to underscores, while state preserves configured spelling when the API value is semantically equal. When alias is omitted on Create and server_name is set, LiteLLM defaults alias from the name; when both are omitted, server_id is the fallback.'
             allow_all_keys: '- (Bool) Whether all API keys are allowed to access this MCP server.'
             allowed_tools: '- (List of String) List of tool names that are allowed to be used from this server.'
-            args: '- (List of String) Arguments to pass to the command for stdio transport.'
+            args: '- (List of String, Sensitive) Arguments to pass to the command for stdio transport.'
+            audience: '- (String, Computed) Canonical audience for oauth2_token_exchange, oauth2_id_jag, or explicit OAuth2 client_credentials. Empty strings are rejected and removal sends null.'
             auth_type: '- (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.'
-            authorization_url: '- (String) OAuth2 authorization URL (used with oauth2 auth type).'
-            command: '- (String) Command to execute for stdio transport.'
+            authorization_url: '- (String, Sensitive) OAuth2 authorization URL (used with oauth2 auth type).'
+            available_on_public_internet: '- (Bool, Computed) IP-classification hint used by LiteLLM. Explicit false is preserved. Removing owned configuration restores LiteLLM''s durable true default. This is not a complete security boundary, especially when untrusted reverse-proxy headers affect client-IP classification.'
+            byok_api_key_help_url: '- (String, Computed) Informational URL for BYOK API-key setup. Removing owned configuration sends null.'
+            byok_description: '- (List of String, Computed) Instructions shown for BYOK setup. An empty list is an explicit clear.'
+            command: '- (String, Sensitive) Command to execute for stdio transport.'
             created_at: '- Timestamp of when the MCP server was created.'
             created_by: '- The user or system that created the MCP server.'
-            credentials: '- (Map of String, Sensitive) Credentials for authenticating with the MCP server. For static api_key, bearer_token, basic, authorization, and token modes, LiteLLM v1.98 reads the secret from auth_value; keys named token or api_key are ignored. OAuth2 uses fields such as client_id and client_secret. This attribute is marked as sensitive and will not be displayed in plan output.'
+            credentials: '- (Map of String, Sensitive) Credentials for authenticating with the MCP server. For static api_key, bearer_token, basic, authorization, and token modes, LiteLLM v1.98 reads the secret from auth_value; keys named token or api_key are ignored. OAuth modes use fields such as client_id, client_secret, token_endpoint_auth_method, and optional upstream_resource. Legacy token_exchange_endpoint, audience, subject_token_type, and token_exchange_profile keys remain accepted for existing HCL, but new configurations should use the canonical sibling arguments below. A canonical sibling and its legacy map key cannot be configured together. The resource keeps the complete map sensitive, while the singular data source may expose only LiteLLM''s separately reviewed upstream_resource scalar.'
+            dcr_bridge: '- (Bool, Computed) Enables LiteLLM''s dynamic-client-registration bridge. true requires auth_type = "true_passthrough" or "oauth_delegate". Removing owned configuration sends null, which is distinct from an explicit false value.'
+            delegate_auth_to_upstream: '- (Bool, Computed) Lets clients complete authentication directly with an upstream OAuth2 MCP server. true requires auth_type = "oauth2" and an explicit oauth2_flow = "authorization_code". The provider does not infer a safe interactive boundary from omitted or redacted credentials because LiteLLM can stamp an omitted M2M-shaped flow as client_credentials. Removing owned configuration restores false.'
             description: '- (String) A human-readable description of the MCP server.'
-            env: '- (Map of String) Environment variables to set when running the MCP server.'
+            env: '- (Map of String, Sensitive) Environment variables to set when running the MCP server.'
+            env_vars: '- (List of Object, Computed, Sensitive) Ordered environment-variable definitions used by LiteLLM when interpolating ${NAME} references in static headers. name is required and must match [A-Za-z_][A-Za-z0-9_]*; names must be unique. value defaults to an empty string, scope defaults to global and accepts global or user, and description is optional. LiteLLM encrypts global values at rest. User-scoped values are admin placeholders; each user''s actual secret is managed through separate LiteLLM endpoints. An empty list is an explicit clear. API null/omission is treated as role masking and does not erase known state.'
             extra_headers: '- (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.'
+            field_ownership_generation: '- A non-sensitive computed generation for presence-aware ownership of MCP fields, including the v1.98 parity, advanced runtime, sensitive environment-variable, and canonical token-exchange additions. It forces Apply for ownership-only takeover or removal without changing identity.'
             id: '- The unique identifier for the MCP server (same as server_id).'
+            instructions: '- (String, Computed) Server instructions. An explicitly configured empty string is preserved; removing owned configuration sends null.'
+            is_byok: '- (Bool, Computed) Enables LiteLLM''s per-user bring-your-own-key workflow. Per-user credentials use separate LiteLLM endpoints and are not stored in this resource. Removing owned configuration restores false.'
+            issuer: '- (String, Computed, Sensitive) Canonical OAuth issuer anchor for oauth2, true_passthrough, oauth_delegate, or oauth2_token_exchange. Empty strings are rejected; removing owned configuration sends null. LiteLLM role masking returns null/omission, which preserves known resource state. This role-masked value is intentionally absent from data sources.'
             logo_url: '- (String, Optional) URL to the server''s logo image.'
+            max_concurrent_requests: '- (Int64, Computed) Outbound request limit. Configure 1–2147483647; omission/null is the canonical writable unlimited form. Reads and imports preserve exact non-positive values set outside Terraform because LiteLLM also treats those representations as unlimited.'
             mcp_access_groups: '- (List of String) Access groups that are allowed to use this MCP server.'
             mcp_info.default_cost_per_query: '- (Float64, Optional) Default cost per query for all tools.'
             mcp_info.mcp_server_cost_info: block to monitor spending on MCP tool usage.
             mcp_info.tool_name_to_cost_per_query: '- (Map of Float64, Optional) Per-tool cost overrides, mapping tool names to their cost per query.'
-            registration_url: '- (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).'
-            server_id: '- The server identifier assigned by LiteLLM.'
-            server_name: '- (String) The name of the MCP server. Must not contain hyphens.'
+            mcp_info_clear_paths: '- (List of String, Optional, Sensitive) Canonical RFC 6901 object-member pointers that record explicit tombstones. Root pointers, array traversal, duplicates, equal paths, and ancestor/descendant conflicts are rejected.'
+            mcp_info_json: '- (String, Optional, Computed, Sensitive) A complete non-null JSON object for whole-document MCP info ownership. The empty object ({}) means an explicit whole-document clear. It conflicts with mcp_info, mcp_info_overrides_json, and mcp_info_clear_paths.'
+            mcp_info_overrides_json: '- (String, Optional, Sensitive) A recursively selective non-null JSON object. Scalars, arrays, nested null, and nested empty objects are atomic owned values; a non-empty nested object owns only its recursively selected members.'
+            mcp_info_ownership_generation: '- A non-sensitive computed generation that changes when MCP info ownership intent changes, including equal-value takeover. It forces Apply without making the resource ID unknown.'
+            oauth_passthrough: '- (Bool, Computed) Enables upstream OAuth discovery and challenge passthrough for an unauthenticated server. true requires auth_type = "none" and an Authorization member in extra_headers (matched case-insensitively). Removing owned configuration restores false.'
+            oauth_scopes: '- (List of String, Sensitive) Write-only OAuth scopes stored by LiteLLM at credentials.scopes. LiteLLM v1.98 strips this member from every management response, so imports leave it null and data sources do not expose it. An explicit empty list clears owned scopes. Configure scopes only through this argument; credentials["scopes"] is rejected because the legacy credentials map cannot represent a native list.'
+            oauth2_flow: '- (String, Computed) Stored OAuth2 flow: client_credentials or authorization_code. LiteLLM can stamp a flow when it is omitted; the provider adopts the returned value rather than inferring it locally. Removing owned configuration sends null.'
+            registration_url: '- (String, Sensitive) OAuth2 dynamic client registration URL (used with oauth2 auth type).'
+            server_id: '- (String, Computed, Forces Replacement) A create-only server identity. It must be a non-empty manageable path segment and cannot be ./.. or LiteLLM''s reserved all-team-mcpservers/all-proxy-mcpservers identities. When omitted, the provider selects a stable generated identity. Adding or changing a configured value replaces the resource; existing generated-ID configurations and imports can continue omitting it without replacement.'
+            server_name: '- (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.'
             skip_url_validation: '- (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).'
-            spec_path: '- (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.'
+            source_url: '- (String, Computed) Informational source URL associated with the MCP server. Removing owned configuration sends null.'
+            spec_path: '- (String, Sensitive) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.'
             spec_version: '- (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.'
-            static_headers: '- (Map of String) Static HTTP headers that are always included in requests.'
-            token_url: '- (String) OAuth2 token URL (used with oauth2 auth type).'
+            static_headers: '- (Map of String, Sensitive) Static HTTP headers that are always included in requests.'
+            subject_token_type: '- (String, Computed) Canonical RFC 8693 subject-token type for oauth2_token_exchange or oauth2_id_jag. Omission leaves LiteLLM''s runtime default in effect; the provider does not synthesize one.'
+            timeout: '- (Float64, Computed) Finite timeout in seconds. A configured value must be greater than zero; omission/null restores LiteLLM''s runtime default.'
+            token_exchange_endpoint: '- (String, Computed, Sensitive) Canonical token-exchange endpoint for oauth2_token_exchange or oauth2_id_jag. Canonical token-exchange configuration requires explicit known non-empty client_id and client_secret credentials. Empty strings are rejected and removal sends null.'
+            token_exchange_profile: '- (String, Computed) Canonical token-exchange profile: rfc8693 or entra_obo. entra_obo requires explicit known non-empty client credentials, a known token_exchange_endpoint or token_url, and a non-empty oauth_scopes list. Canonical audience and subject_token_type are rejected with this profile because Entra does not use them.'
+            token_url: '- (String, Sensitive) OAuth2 token URL. It may also supply the token endpoint for token exchange when token_exchange_endpoint is omitted.'
+            tool_name_to_description: '- (Map of String, Computed) Tool description overrides with arbitrary string values. An empty map is an explicit clear.'
+            tool_name_to_display_name: '- (Map of String, Computed) Tool display-name overrides. Each value may be empty or contain only ASCII letters, digits, underscores, and hyphens. An empty map is an explicit clear.'
             transport: '- (String) The transport protocol. Must be one of: http, sse, stdio.'
-            url: '- (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.'
+            updated_at: '- Timestamp of the latest server update. Null/omission under role redaction preserves a known prior value; a first restricted create/import resolves it to null.'
+            updated_by: '- The user or system that last updated the server, with the same role-redaction retention semantics as updated_at.'
+            url: '- (String, Sensitive) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.'
         importStatements:
             - terraform import litellm_mcp_server.example <server-id>
     litellm_model:
@@ -1017,6 +1103,17 @@ resources:
                 }
               references:
                 model_api_key: var.openai_api_key
+            - name: typed_params
+              manifest: |-
+                {
+                  "additional_litellm_params": {
+                    "legacy_disjoint": "legacy-value"
+                  },
+                  "additional_litellm_params_json": "${jsonencode({\n    native_false = false\n    large_number = 9007199254740993\n    options = {\n      null_text  = \"null\"\n      api_secret = \"authoritative-plaintext\"\n      items      = [1, true, \"1\"]\n    }\n  })}",
+                  "base_model": "gpt-4o-mini",
+                  "custom_llm_provider": "openai",
+                  "model_name": "typed-params"
+                }
             - name: kimi_k3
               manifest: |-
                 {
@@ -1029,14 +1126,30 @@ resources:
                   "mode": "chat",
                   "model_name": "kimi-k3"
                 }
+            - name: typed_metadata
+              manifest: |-
+                {
+                  "additional_model_info": {
+                    "owner": "platform"
+                  },
+                  "additional_model_info_json": "${jsonencode({\n    native_false = false\n    large_number = 9007199254740993\n    nested = {\n      nullable = null\n      items    = [1, true, \"1\"]\n    }\n  })}",
+                  "base_model": "gpt-4o-mini",
+                  "custom_llm_provider": "openai",
+                  "model_name": "typed-metadata"
+                }
         argumentDocs:
+            '"****"': remain observable values; model_info does not apply a credential-mask heuristic.
             '"16384"': -> 16384, "0.75" -> 0.75)
             '"true"': / "false" (strings) -> boolean true / false
+            /model/info: masking layer stringifies it, so its persisted type cannot be confirmed. Direct numeric, boolean, or null values beneath sensitive-named map keys are also rejected because that layer converts them to masked strings; native numbers and booleans inside sensitive lists remain supported. The exact string "None" and an empty string directly beneath a sensitive-named map key are rejected because they are indistinguishable from that lossy null conversion. Decimal and exponent values must round-trip exactly through LiteLLM's Python-float behavior; lossy values such as 1.0000000000000001 are rejected before any request.
             '[': or {) are parsed as JSON objects/arrays
+            '{}': is an explicitly managed empty view.
             access_groups: '- (Optional) list(string). List of access groups this model belongs to. Teams and keys with access to these groups can use this model. See LiteLLM Access Groups for more details.'
             additional_drop_params: is provided as a JSON array string, it specifies parameters to remove from the final litellm_params before sending to the API
             additional_litellm_params: '- (Optional) map(string). A map of arbitrary additional parameters that will be merged into the litellm_params object sent to the LiteLLM API. This is intended for provider-specific or experimental options not exposed as dedicated arguments.'
+            additional_litellm_params_json: '- (Optional, Computed, Sensitive) a lossless JSON-object sibling for heterogeneous custom litellm_params values. Use it when the legacy additional_litellm_params map(string) cannot preserve native types.'
             additional_model_info: '- (Optional) map(string). A map of arbitrary additional fields that will be merged into the model_info object sent to the LiteLLM API. The main use case is declaring capability flags (supports_vision, supports_function_calling, supports_reasoning, supports_response_schema, …) for models that are missing from LiteLLM''s model cost map, so that /model/info and /v1/models advertise the model''s capabilities to clients.'
+            additional_model_info_json: '- (Optional, Computed, Sensitive) a lossless JSON-object sibling for heterogeneous custom model_info values. Use this attribute when string coercion in additional_model_info cannot preserve the intended type.'
             api_version: '- (Optional) string. The API version to use for the model provider.'
             aws_access_key_id: '- (Optional) string (Sensitive). AWS access key ID for AWS-based models.'
             aws_region_name: '- (Optional) string. AWS region name for AWS-based models.'
@@ -1045,6 +1158,7 @@ resources:
             aws_session_name: '- (Optional) string (Sensitive). AWS session name for cross-account access scenarios.'
             base_model: '- (Required) string. The actual model identifier from the provider (e.g., "gpt-4", "claude-2").'
             custom_llm_provider: '- (Required) string. The LLM provider for this model (e.g., "openai", "anthropic", "azure", "bedrock").'
+            float64: or string coercion. LiteLLM v1.98 omits arbitrary top-level null members when serializing ModelInfo, so the provider rejects them before any request; place a null inside a nested object or array when its presence is significant. Integers remain exact. Decimal/exponent values must survive LiteLLM v1.98's Python-float request/persistence round trip exactly; lossy values such as 1.0000000000000001 are rejected before any request instead of causing perpetual drift.
             id: '- The ID of the model configuration.'
             input_cost_per_million_tokens: '- (Optional) float. Cost per million input tokens. The provider converts this to a per-token cost sent to the API.'
             input_cost_per_pixel: '- (Optional) float. Cost applied per input pixel for models that charge by image size. Removing an owned value replaces the model.'
@@ -1108,6 +1222,16 @@ resources:
                   "soft_budget": 800,
                   "tpm_limit": 200000
                 }
+            - name: structured
+              manifest: |-
+                {
+                  "metadata": {
+                    "owner": "platform"
+                  },
+                  "metadata_json": "${jsonencode({\n    deployment = {\n      production = true\n      revision   = 9007199254740993\n      owner      = null\n      regions    = [\"us-east\", \"us-west\"]\n      options    = {}\n    }\n  })}",
+                  "organization_alias": "production-platform",
+                  "organization_id": "org-production-platform"
+                }
             - name: legacy_compatible
               manifest: |-
                 {
@@ -1126,7 +1250,8 @@ resources:
             litellm_budget_table: ; similarly named top-level fields are not authoritative. Structured model_max_budget is deferred because its GenericBudgetConfig values cannot be represented accurately as map(float64).
             max_budget: '- (Float64) Hard budget limit.'
             max_parallel_requests: '- (Int64) Concurrent request limit.'
-            metadata: '- (Map of String) Organization metadata. Use jsonencode() for complex values.'
+            metadata: '- (Map of String) Organization metadata. Use jsonencode() for complex object or array values; scalar-looking strings retain string identity.'
+            metadata_json: '- (String, Sensitive) Non-null JSON object for lossless heterogeneous metadata. Top-level keys cannot overlap metadata, model_rpm_limit, or model_tpm_limit. Configuring it during create requires organization_id.'
             model_rpm_limit: '- (Map of Int64) Per-model RPM limits stored in organization metadata.'
             model_tpm_limit: '- (Map of Int64) Per-model TPM limits stored in organization metadata.'
             models: '- (List of String) Models the organization may use. Configure [] to clear the list.'
@@ -1226,6 +1351,18 @@ resources:
                 }
               references:
                 team_id: litellm_team.platform.id
+            - name: structured
+              manifest: |-
+                {
+                  "metadata": {
+                    "owner": "platform"
+                  },
+                  "metadata_json": "${jsonencode({\n    deployment = {\n      production = true\n      revision   = 9007199254740993\n      owner      = null\n      regions    = [\"us-east\", \"us-west\"]\n      options    = {}\n    }\n  })}",
+                  "project_alias": "structured-metadata",
+                  "team_id": "${litellm_team.platform.id}"
+                }
+              references:
+                team_id: litellm_team.platform.id
         argumentDocs:
             /project/update: calls _check_team_project_limits before updating the related budget row, enforcing parent-team model, hard-budget, TPM, and RPM constraints. Every non-null budget change is sent through that route; the provider never uses /budget/update as an unchecked shortcut for a positive change.
             blocked: '- (Optional Bool) Whether the project is blocked.'
@@ -1239,7 +1376,8 @@ resources:
             litellm_budget_table: ; similarly named top-level fields are ignored. Unconfigured structured model_max_budget values are not exposed through the legacy map(float64) attribute.
             max_budget: '- (Optional Float64) Hard budget limit.'
             max_parallel_requests: '- (Optional Int64) Concurrent request limit.'
-            metadata: '- (Optional Map of String) Metadata; use jsonencode() for complex values.'
+            metadata: '- (Optional Map of String) Legacy metadata map; use jsonencode() for historically supported object and array values.'
+            metadata_json: '- (Optional, Sensitive String) Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap metadata, tags, model_rpm_limit, or model_tpm_limit.'
             model_max_budget: '- (Optional Map of Float64) Legacy schema-compatible shape. Existing scalar-map state remains readable and can be cleared, but new non-empty additions and changes are rejected because LiteLLM v1.98 requires structured GenericBudgetConfig objects.'
             model_rpm_limit: '- (Optional Map of Int64) Per-model RPM limits stored in metadata.'
             model_tpm_limit: '- (Optional Map of Int64) Per-model TPM limits stored in metadata.'
@@ -1507,6 +1645,15 @@ resources:
                   "tpm_limit": 100000,
                   "tpm_limit_type": "guaranteed_throughput"
                 }
+            - name: structured
+              manifest: |-
+                {
+                  "metadata": {
+                    "owner": "platform"
+                  },
+                  "metadata_json": "${jsonencode({\n    deployment = {\n      production = true\n      revision   = 9007199254740993\n      owner      = null\n      regions    = [\"us-east\", \"us-west\"]\n      options    = {}\n    }\n  })}",
+                  "team_alias": "structured-metadata"
+                }
             - name: with_fallbacks
               manifest: |-
                 {
@@ -1555,7 +1702,8 @@ resources:
             id: '- The Terraform resource identifier. It always matches team_id.'
             litellm_team_member: resource. See the litellm_team_member resource documentation for details on managing team membership.
             max_budget: '- (Optional) Maximum budget allocated to the team.'
-            metadata: '- (Optional) A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.'
+            metadata: '- (Optional) Legacy metadata map. Values are strings; use jsonencode() for historically supported objects and arrays.'
+            metadata_json: '- (Optional, Sensitive) Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap legacy, dedicated, or server-owned metadata roots.'
             model: '- (Required) The primary model name to configure fallbacks for.'
             model_aliases: '- (Optional) A map of alias names to model names.'
             model_rpm_limit: '- (Optional) A map of model names to per-model RPM limits.'

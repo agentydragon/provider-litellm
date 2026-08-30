@@ -53,10 +53,14 @@ type KeyInitParameters struct {
 	// +kubebuilder:validation:Optional
 	BudgetIDSelector *v2.Selector `json:"budgetIdSelector,omitempty" tf:"-"`
 
-	// Map of configuration options.
+	// Map of string configuration options.
 	// Key-specific configuration.
 	// +mapType=granular
 	Config map[string]*string `json:"config,omitempty" tf:"config,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous configuration. Top-level keys cannot overlap config.
+	// Additional key configuration as a semantic JSON object.
+	ConfigJSONSecretRef *v2.SecretKeySelector `json:"configJsonSecretRef,omitempty" tf:"-"`
 
 	// Duration for which this key is valid (e.g., "30d", "90d").
 	// Key validity duration.
@@ -96,6 +100,10 @@ type KeyInitParameters struct {
 
 	Metadata map[string]*string `json:"metadataSecretRef,omitempty" tf:"-"`
 
+	// Non-null JSON object for lossless heterogeneous metadata. It is independently recursively owned, cannot overlap metadata or dedicated metadata fields, and requires caller-selected key or key_wo identity on create.
+	// Additional key metadata as a semantic JSON object.
+	MetadataJSONSecretRef *v2.SecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
+
 	// Map of maximum budget per model. Note: Requires LiteLLM Enterprise license.
 	// Per-model budget limits.
 	// +mapType=granular
@@ -128,10 +136,14 @@ type KeyInitParameters struct {
 	// +kubebuilder:validation:Optional
 	OrganizationIDSelector *v2.Selector `json:"organizationIdSelector,omitempty" tf:"-"`
 
-	// Map of permissions.
+	// Map of string permissions.
 	// Key permissions.
 	// +mapType=granular
 	Permissions map[string]*string `json:"permissions,omitempty" tf:"permissions,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous permissions. Top-level keys cannot overlap permissions.
+	// Additional key permissions as a semantic JSON object.
+	PermissionsJSONSecretRef *v2.SecretKeySelector `json:"permissionsJsonSecretRef,omitempty" tf:"-"`
 
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
@@ -166,7 +178,7 @@ type KeyInitParameters struct {
 	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
 
 	// Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
-	// Service account ID for team-owned keys.
+	// Service account ID for team-owned keys. LiteLLM v1.98 does not update this identity in place.
 	ServiceAccountID *string `json:"serviceAccountId,omitempty" tf:"service_account_id,omitempty"`
 
 	// Soft budget warning threshold.
@@ -243,7 +255,7 @@ type KeyObservation struct {
 	// Budget ID to associate with this key.
 	BudgetID *string `json:"budgetId,omitempty" tf:"budget_id,omitempty"`
 
-	// Map of configuration options.
+	// Map of string configuration options.
 	// Key-specific configuration.
 	// +mapType=granular
 	Config map[string]*string `json:"config,omitempty" tf:"config,omitempty"`
@@ -302,7 +314,7 @@ type KeyObservation struct {
 	// Organization ID associated with this key.
 	OrganizationID *string `json:"organizationId,omitempty" tf:"organization_id,omitempty"`
 
-	// Map of permissions.
+	// Map of string permissions.
 	// Key permissions.
 	// +mapType=granular
 	Permissions map[string]*string `json:"permissions,omitempty" tf:"permissions,omitempty"`
@@ -331,7 +343,7 @@ type KeyObservation struct {
 	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
 
 	// Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
-	// Service account ID for team-owned keys.
+	// Service account ID for team-owned keys. LiteLLM v1.98 does not update this identity in place.
 	ServiceAccountID *string `json:"serviceAccountId,omitempty" tf:"service_account_id,omitempty"`
 
 	// Soft budget warning threshold.
@@ -406,11 +418,16 @@ type KeyParameters struct {
 	// +kubebuilder:validation:Optional
 	BudgetIDSelector *v2.Selector `json:"budgetIdSelector,omitempty" tf:"-"`
 
-	// Map of configuration options.
+	// Map of string configuration options.
 	// Key-specific configuration.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	Config map[string]*string `json:"config,omitempty" tf:"config,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous configuration. Top-level keys cannot overlap config.
+	// Additional key configuration as a semantic JSON object.
+	// +kubebuilder:validation:Optional
+	ConfigJSONSecretRef *v2.SecretKeySelector `json:"configJsonSecretRef,omitempty" tf:"-"`
 
 	// Duration for which this key is valid (e.g., "30d", "90d").
 	// Key validity duration.
@@ -457,6 +474,11 @@ type KeyParameters struct {
 	// +kubebuilder:validation:Optional
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
+	// Non-null JSON object for lossless heterogeneous metadata. It is independently recursively owned, cannot overlap metadata or dedicated metadata fields, and requires caller-selected key or key_wo identity on create.
+	// Additional key metadata as a semantic JSON object.
+	// +kubebuilder:validation:Optional
+	MetadataJSONSecretRef *v2.SecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
+
 	// Map of metadata associated with this key. Values are strings; use jsonencode() for complex values (objects, arrays) such as logging configuration — they will be sent as native JSON to the API. When LiteLLM returns nested credentials as litellm_enc:: or another recognized redaction marker, the provider retains the corresponding configured leaf while continuing to refresh unmasked metadata values for drift.
 	// Metadata for the key. Marked sensitive because values may contain API keys or other credentials.
 	// +kubebuilder:validation:Optional
@@ -499,11 +521,16 @@ type KeyParameters struct {
 	// +kubebuilder:validation:Optional
 	OrganizationIDSelector *v2.Selector `json:"organizationIdSelector,omitempty" tf:"-"`
 
-	// Map of permissions.
+	// Map of string permissions.
 	// Key permissions.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	Permissions map[string]*string `json:"permissions,omitempty" tf:"permissions,omitempty"`
+
+	// Non-null JSON object for lossless heterogeneous permissions. Top-level keys cannot overlap permissions.
+	// Additional key permissions as a semantic JSON object.
+	// +kubebuilder:validation:Optional
+	PermissionsJSONSecretRef *v2.SecretKeySelector `json:"permissionsJsonSecretRef,omitempty" tf:"-"`
 
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
 	// Project ID associated with this key. When set, models and budget are validated against the project's limits.
@@ -544,7 +571,7 @@ type KeyParameters struct {
 	SendInviteEmail *bool `json:"sendInviteEmail,omitempty" tf:"send_invite_email,omitempty"`
 
 	// Identifier for a team-owned service account. When set, the provider calls the service-account API and defaults key_alias to this value.
-	// Service account ID for team-owned keys.
+	// Service account ID for team-owned keys. LiteLLM v1.98 does not update this identity in place.
 	// +kubebuilder:validation:Optional
 	ServiceAccountID *string `json:"serviceAccountId,omitempty" tf:"service_account_id,omitempty"`
 

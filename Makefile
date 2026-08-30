@@ -18,12 +18,12 @@ OPENTOFU_DOWNLOAD_URL ?= https://github.com/opentofu/opentofu/releases/download/
 export TERRAFORM_PROVIDER_SOURCE ?= ncecere/litellm
 export TERRAFORM_PROVIDER_REPO ?= https://github.com/ncecere/terraform-provider-litellm
 # The provider is built from source at TERRAFORM_PROVIDER_REF rather than
-# downloaded from GitHub releases, because the upstream `issues` development
-# branch carries the fixes and resources this provider needs but publishes no
-# release artifact. Patches under hack/patches are applied on top of it; see
-# hack/build-terraform-provider.sh.
-export TERRAFORM_PROVIDER_REF ?= eb28657
-export TERRAFORM_PROVIDER_VERSION ?= 2.0.2-issues
+# downloaded from GitHub releases, because it is patched: see hack/patches for
+# the upstream fixes required by the observe-before-create model that upjet
+# uses, and hack/build-terraform-provider.sh for how they are applied. REF may
+# be a tag or a commit.
+export TERRAFORM_PROVIDER_REF ?= v2.1.0
+export TERRAFORM_PROVIDER_VERSION ?= 2.1.0
 export TERRAFORM_PROVIDER_DOWNLOAD_NAME ?= terraform-provider-litellm
 export TERRAFORM_NATIVE_PROVIDER_BINARY ?= terraform-provider-litellm_v$(TERRAFORM_PROVIDER_VERSION)
 export TERRAFORM_DOCS_PATH ?= docs/resources

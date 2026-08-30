@@ -13,10 +13,59 @@ import (
 	v2 "github.com/crossplane/crossplane/apis/v2/core/v2"
 )
 
+type EnvVarsInitParameters struct {
+
+	// (String) A human-readable description of the MCP server.
+	// Optional nullable environment-variable description.
+	Description *string `json:"description,omitempty" tf:"description,omitempty"`
+
+	// Environment-variable name.
+	Name *string `json:"name,omitempty" tf:"name,omitempty"`
+
+	// Value scope: global or user.
+	Scope *string `json:"scope,omitempty" tf:"scope,omitempty"`
+
+	// Admin-provided value or user-scope placeholder.
+	ValueSecretRef *v2.SecretKeySelector `json:"valueSecretRef,omitempty" tf:"-"`
+}
+
+type EnvVarsObservation struct {
+
+	// (String) A human-readable description of the MCP server.
+	// Optional nullable environment-variable description.
+	Description *string `json:"description,omitempty" tf:"description,omitempty"`
+
+	// Environment-variable name.
+	Name *string `json:"name,omitempty" tf:"name,omitempty"`
+
+	// Value scope: global or user.
+	Scope *string `json:"scope,omitempty" tf:"scope,omitempty"`
+}
+
+type EnvVarsParameters struct {
+
+	// (String) A human-readable description of the MCP server.
+	// Optional nullable environment-variable description.
+	// +kubebuilder:validation:Optional
+	Description *string `json:"description,omitempty" tf:"description,omitempty"`
+
+	// Environment-variable name.
+	// +kubebuilder:validation:Optional
+	Name *string `json:"name" tf:"name,omitempty"`
+
+	// Value scope: global or user.
+	// +kubebuilder:validation:Optional
+	Scope *string `json:"scope,omitempty" tf:"scope,omitempty"`
+
+	// Admin-provided value or user-scope placeholder.
+	// +kubebuilder:validation:Optional
+	ValueSecretRef *v2.SecretKeySelector `json:"valueSecretRef,omitempty" tf:"-"`
+}
+
 type MCPServerInitParameters struct {
 
-	// (String) An alias for the server. Must not contain hyphens.
-	// Alias for the MCP server.
+	// (String, Computed) An optional server alias. Non-empty configured aliases are sent with ASCII spaces normalized to underscores, while state preserves configured spelling when the API value is semantically equal. When alias is omitted on Create and server_name is set, LiteLLM defaults alias from the name; when both are omitted, server_id is the fallback.
+	// Alias for the MCP server. LiteLLM normalizes ASCII spaces to underscores and defaults an omitted alias from server_name.
 	Alias *string `json:"alias,omitempty" tf:"alias,omitempty"`
 
 	// (Bool) Whether all API keys are allowed to access this MCP server.
@@ -27,36 +76,74 @@ type MCPServerInitParameters struct {
 	// List of allowed tool names for this MCP server.
 	AllowedTools []*string `json:"allowedTools,omitempty" tf:"allowed_tools,omitempty"`
 
-	// (List of String) Arguments to pass to the command for stdio transport.
-	// Arguments for the command (stdio transport).
-	Args []*string `json:"args,omitempty" tf:"args,omitempty"`
+	Args []*string `json:"argsSecretRef,omitempty" tf:"-"`
+
+	// (String, Computed) Canonical audience for oauth2_token_exchange, oauth2_id_jag, or explicit OAuth2 client_credentials. Empty strings are rejected and removal sends null.
+	// Canonical OAuth audience used by RFC 8693 token exchange, ID-JAG, or OAuth2 client credentials.
+	Audience *string `json:"audience,omitempty" tf:"audience,omitempty"`
 
 	// (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
 	// Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
 	AuthType *string `json:"authType,omitempty" tf:"auth_type,omitempty"`
 
-	// (String) OAuth2 authorization URL (used with oauth2 auth type).
+	// (String, Sensitive) OAuth2 authorization URL (used with oauth2 auth type).
 	// OAuth authorization URL for the MCP server.
-	AuthorizationURL *string `json:"authorizationUrl,omitempty" tf:"authorization_url,omitempty"`
+	AuthorizationURLSecretRef *v2.SecretKeySelector `json:"authorizationUrlSecretRef,omitempty" tf:"-"`
 
-	// (String) Command to execute for stdio transport.
+	// (Bool, Computed) IP-classification hint used by LiteLLM. Explicit false is preserved. Removing owned configuration restores LiteLLM's durable true default. This is not a complete security boundary, especially when untrusted reverse-proxy headers affect client-IP classification.
+	// Whether the MCP server is available from the public internet. Removing configured ownership restores LiteLLM's durable true default.
+	AvailableOnPublicInternet *bool `json:"availableOnPublicInternet,omitempty" tf:"available_on_public_internet,omitempty"`
+
+	// (String, Computed) Informational URL for BYOK API-key setup. Removing owned configuration sends null.
+	// Bring-your-own-key API key help URL.
+	ByokAPIKeyHelpURL *string `json:"byokApiKeyHelpUrl,omitempty" tf:"byok_api_key_help_url,omitempty"`
+
+	// (List of String, Computed) Instructions shown for BYOK setup. An empty list is an explicit clear.
+	// Bring-your-own-key setup description lines.
+	ByokDescription []*string `json:"byokDescription,omitempty" tf:"byok_description,omitempty"`
+
+	// (String, Sensitive) Command to execute for stdio transport.
 	// Command to run for stdio transport.
-	Command *string `json:"command,omitempty" tf:"command,omitempty"`
+	CommandSecretRef *v2.SecretKeySelector `json:"commandSecretRef,omitempty" tf:"-"`
 
 	Credentials map[string]*string `json:"credentialsSecretRef,omitempty" tf:"-"`
+
+	// (Bool, Computed) Enables LiteLLM's dynamic-client-registration bridge. true requires auth_type = "true_passthrough" or "oauth_delegate". Removing owned configuration sends null, which is distinct from an explicit false value.
+	// Whether the dynamic client registration bridge is enabled.
+	DcrBridge *bool `json:"dcrBridge,omitempty" tf:"dcr_bridge,omitempty"`
+
+	// (Bool, Computed) Lets clients complete authentication directly with an upstream OAuth2 MCP server. true requires auth_type = "oauth2" and an explicit oauth2_flow = "authorization_code". The provider does not infer a safe interactive boundary from omitted or redacted credentials because LiteLLM can stamp an omitted M2M-shaped flow as client_credentials. Removing owned configuration restores false.
+	// Whether LiteLLM delegates authentication to the upstream MCP server.
+	DelegateAuthToUpstream *bool `json:"delegateAuthToUpstream,omitempty" tf:"delegate_auth_to_upstream,omitempty"`
 
 	// (String) A human-readable description of the MCP server.
 	// Description of the MCP server.
 	Description *string `json:"description,omitempty" tf:"description,omitempty"`
 
-	// (Map of String) Environment variables to set when running the MCP server.
-	// Environment variables for the command (stdio transport).
-	// +mapType=granular
-	Env map[string]*string `json:"env,omitempty" tf:"env,omitempty"`
+	Env map[string]*string `json:"envSecretRef,omitempty" tf:"-"`
+
+	// (List of Object, Computed, Sensitive) Ordered environment-variable definitions used by LiteLLM when interpolating ${NAME} references in static headers. name is required and must match [A-Za-z_][A-Za-z0-9_]*; names must be unique. value defaults to an empty string, scope defaults to global and accepts global or user, and description is optional. LiteLLM encrypts global values at rest. User-scoped values are admin placeholders; each user's actual secret is managed through separate LiteLLM endpoints. An empty list is an explicit clear. API null/omission is treated as role masking and does not erase known state.
+	EnvVars []EnvVarsInitParameters `json:"envVars,omitempty" tf:"env_vars,omitempty"`
 
 	// (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.
 	// Extra header names to forward to the MCP server.
 	ExtraHeaders []*string `json:"extraHeaders,omitempty" tf:"extra_headers,omitempty"`
+
+	// (String, Computed) Server instructions. An explicitly configured empty string is preserved; removing owned configuration sends null.
+	// Instructions associated with the MCP server. An empty string is a valid owned value.
+	Instructions *string `json:"instructions,omitempty" tf:"instructions,omitempty"`
+
+	// (Bool, Computed) Enables LiteLLM's per-user bring-your-own-key workflow. Per-user credentials use separate LiteLLM endpoints and are not stored in this resource. Removing owned configuration restores false.
+	// Whether this MCP server uses bring-your-own-key configuration.
+	IsByok *bool `json:"isByok,omitempty" tf:"is_byok,omitempty"`
+
+	// (String, Computed, Sensitive) Canonical OAuth issuer anchor for oauth2, true_passthrough, oauth_delegate, or oauth2_token_exchange. Empty strings are rejected; removing owned configuration sends null. LiteLLM role masking returns null/omission, which preserves known resource state. This role-masked value is intentionally absent from data sources.
+	// OAuth issuer anchor. LiteLLM may mask this value by role; null or omission on read does not prove a clear.
+	IssuerSecretRef *v2.SecretKeySelector `json:"issuerSecretRef,omitempty" tf:"-"`
+
+	// (Int64, Computed) Outbound request limit. Configure 1–2147483647; omission/null is the canonical writable unlimited form.
+	// Positive maximum number of concurrent requests.
+	MaxConcurrentRequests *float64 `json:"maxConcurrentRequests,omitempty" tf:"max_concurrent_requests,omitempty"`
 
 	// (List of String) Access groups that are allowed to use this MCP server.
 	// List of access groups for the MCP server.
@@ -65,48 +152,99 @@ type MCPServerInitParameters struct {
 	// MCP server information and configuration.
 	McpInfo []McpInfoInitParameters `json:"mcpInfo,omitempty" tf:"mcp_info,omitempty"`
 
-	// (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).
-	// OAuth registration URL for the MCP server.
-	RegistrationURL *string `json:"registrationUrl,omitempty" tf:"registration_url,omitempty"`
+	McpInfoClearPaths []*string `json:"mcpInfoClearPathsSecretRef,omitempty" tf:"-"`
 
-	// (String) The name of the MCP server. Must not contain hyphens.
-	// Name of the MCP server.
+	// (String, Optional, Computed, Sensitive) A complete non-null JSON object for whole-document MCP info ownership. The empty object ({}) means an explicit whole-document clear. It conflicts with mcp_info, mcp_info_overrides_json, and mcp_info_clear_paths.
+	// Sensitive complete MCP info JSON object. The root must be a non-null object; {} explicitly owns and clears the whole document. Authoritative reads expose the complete object without dropping unknown members or exact JSON numbers.
+	McpInfoJSONSecretRef *v2.SecretKeySelector `json:"mcpInfoJsonSecretRef,omitempty" tf:"-"`
+
+	// (String, Optional, Sensitive) A recursively selective non-null JSON object. Scalars, arrays, nested null, and nested empty objects are atomic owned values; a non-empty nested object owns only its recursively selected members.
+	// Sensitive recursive selective MCP info JSON object. Nested null is data and a nested empty object atomically replaces that member.
+	McpInfoOverridesJSONSecretRef *v2.SecretKeySelector `json:"mcpInfoOverridesJsonSecretRef,omitempty" tf:"-"`
+
+	// (String, Computed) Stored OAuth2 flow: client_credentials or authorization_code. LiteLLM can stamp a flow when it is omitted; the provider adopts the returned value rather than inferring it locally. Removing owned configuration sends null.
+	// OAuth2 flow stamped and returned by LiteLLM.
+	Oauth2Flow *string `json:"oauth2Flow,omitempty" tf:"oauth2_flow,omitempty"`
+
+	// (Bool, Computed) Enables upstream OAuth discovery and challenge passthrough for an unauthenticated server. true requires auth_type = "none" and an Authorization member in extra_headers (matched case-insensitively). Removing owned configuration restores false.
+	// Whether OAuth Authorization headers are passed through to the upstream MCP server.
+	OauthPassthrough *bool `json:"oauthPassthrough,omitempty" tf:"oauth_passthrough,omitempty"`
+
+	OauthScopes []*string `json:"oauthScopesSecretRef,omitempty" tf:"-"`
+
+	// (String, Sensitive) OAuth2 dynamic client registration URL (used with oauth2 auth type).
+	// OAuth registration URL for the MCP server.
+	RegistrationURLSecretRef *v2.SecretKeySelector `json:"registrationUrlSecretRef,omitempty" tf:"-"`
+
+	// (String, Computed, Forces Replacement) A create-only server identity. It must be a non-empty manageable path segment and cannot be ./.. or LiteLLM's reserved all-team-mcpservers/all-proxy-mcpservers identities. When omitted, the provider selects a stable generated identity. Adding or changing a configured value replaces the resource; existing generated-ID configurations and imports can continue omitting it without replacement.
+	// Create-only unique identifier for the MCP server. When omitted, the provider selects a stable generated identifier.
+	ServerID *string `json:"serverId,omitempty" tf:"server_id,omitempty"`
+
+	// (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
+	// Optional name of the MCP server. When name and alias are omitted, LiteLLM uses server_id as the tool-prefix fallback.
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 
 	// (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
 	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
 	SkipURLValidation *bool `json:"skipUrlValidation,omitempty" tf:"skip_url_validation,omitempty"`
 
-	// (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
+	// (String, Computed) Informational source URL associated with the MCP server. Removing owned configuration sends null.
+	// Source URL associated with the MCP server.
+	SourceURL *string `json:"sourceUrl,omitempty" tf:"source_url,omitempty"`
+
+	// (String, Sensitive) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
 	// Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
-	SpecPath *string `json:"specPath,omitempty" tf:"spec_path,omitempty"`
+	SpecPathSecretRef *v2.SecretKeySelector `json:"specPathSecretRef,omitempty" tf:"-"`
 
 	// (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
 	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
 	SpecVersion *string `json:"specVersion,omitempty" tf:"spec_version,omitempty"`
 
-	// (Map of String) Static HTTP headers that are always included in requests.
-	// Static headers to always include with requests.
-	// +mapType=granular
-	StaticHeaders map[string]*string `json:"staticHeaders,omitempty" tf:"static_headers,omitempty"`
+	StaticHeaders map[string]*string `json:"staticHeadersSecretRef,omitempty" tf:"-"`
 
-	// (String) OAuth2 token URL (used with oauth2 auth type).
+	// (String, Computed) Canonical RFC 8693 subject-token type for oauth2_token_exchange or oauth2_id_jag. Omission leaves LiteLLM's runtime default in effect; the provider does not synthesize one.
+	// Canonical RFC 8693 subject token type.
+	SubjectTokenType *string `json:"subjectTokenType,omitempty" tf:"subject_token_type,omitempty"`
+
+	// (Float64, Computed) Finite timeout in seconds. A configured value must be greater than zero; omission/null restores LiteLLM's runtime default.
+	// Positive finite request timeout.
+	Timeout *float64 `json:"timeout,omitempty" tf:"timeout,omitempty"`
+
+	// (String, Computed, Sensitive) Canonical token-exchange endpoint for oauth2_token_exchange or oauth2_id_jag. Canonical token-exchange configuration requires explicit known non-empty client_id and client_secret credentials. Empty strings are rejected and removal sends null.
+	// Canonical OAuth token-exchange endpoint. The legacy credentials key remains accepted as an alternative source, but the two sources cannot be configured together.
+	TokenExchangeEndpointSecretRef *v2.SecretKeySelector `json:"tokenExchangeEndpointSecretRef,omitempty" tf:"-"`
+
+	// (String, Computed) Canonical token-exchange profile: rfc8693 or entra_obo. entra_obo requires explicit known non-empty client credentials, a known token_exchange_endpoint or token_url, and a non-empty oauth_scopes list. Canonical audience and subject_token_type are rejected with this profile because Entra does not use them.
+	// Canonical token-exchange wire profile.
+	TokenExchangeProfile *string `json:"tokenExchangeProfile,omitempty" tf:"token_exchange_profile,omitempty"`
+
+	// (String, Sensitive) OAuth2 token URL. It may also supply the token endpoint for token exchange when token_exchange_endpoint is omitted.
 	// OAuth token URL for the MCP server.
-	TokenURL *string `json:"tokenUrl,omitempty" tf:"token_url,omitempty"`
+	TokenURLSecretRef *v2.SecretKeySelector `json:"tokenUrlSecretRef,omitempty" tf:"-"`
+
+	// (Map of String, Computed) Tool description overrides with arbitrary string values. An empty map is an explicit clear.
+	// Tool-name description overrides. Values are arbitrary strings and an empty map clears all overrides.
+	// +mapType=granular
+	ToolNameToDescription map[string]*string `json:"toolNameToDescription,omitempty" tf:"tool_name_to_description,omitempty"`
+
+	// (Map of String, Computed) Tool display-name overrides. Each value may be empty or contain only ASCII letters, digits, underscores, and hyphens. An empty map is an explicit clear.
+	// Tool-name display overrides. Empty values and an empty map are valid.
+	// +mapType=granular
+	ToolNameToDisplayName map[string]*string `json:"toolNameToDisplayName,omitempty" tf:"tool_name_to_display_name,omitempty"`
 
 	// (String) The transport protocol. Must be one of: http, sse, stdio.
 	// Transport type for the MCP server (http, sse, stdio).
 	Transport *string `json:"transport,omitempty" tf:"transport,omitempty"`
 
-	// (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
+	// (String, Sensitive) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
 	// URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
-	URL *string `json:"url,omitempty" tf:"url,omitempty"`
+	URLSecretRef *v2.SecretKeySelector `json:"urlSecretRef,omitempty" tf:"-"`
 }
 
 type MCPServerObservation struct {
 
-	// (String) An alias for the server. Must not contain hyphens.
-	// Alias for the MCP server.
+	// (String, Computed) An optional server alias. Non-empty configured aliases are sent with ASCII spaces normalized to underscores, while state preserves configured spelling when the API value is semantically equal. When alias is omitted on Create and server_name is set, LiteLLM defaults alias from the name; when both are omitted, server_id is the fallback.
+	// Alias for the MCP server. LiteLLM normalizes ASCII spaces to underscores and defaults an omitted alias from server_name.
 	Alias *string `json:"alias,omitempty" tf:"alias,omitempty"`
 
 	// (Bool) Whether all API keys are allowed to access this MCP server.
@@ -117,21 +255,25 @@ type MCPServerObservation struct {
 	// List of allowed tool names for this MCP server.
 	AllowedTools []*string `json:"allowedTools,omitempty" tf:"allowed_tools,omitempty"`
 
-	// (List of String) Arguments to pass to the command for stdio transport.
-	// Arguments for the command (stdio transport).
-	Args []*string `json:"args,omitempty" tf:"args,omitempty"`
+	// (String, Computed) Canonical audience for oauth2_token_exchange, oauth2_id_jag, or explicit OAuth2 client_credentials. Empty strings are rejected and removal sends null.
+	// Canonical OAuth audience used by RFC 8693 token exchange, ID-JAG, or OAuth2 client credentials.
+	Audience *string `json:"audience,omitempty" tf:"audience,omitempty"`
 
 	// (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
 	// Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
 	AuthType *string `json:"authType,omitempty" tf:"auth_type,omitempty"`
 
-	// (String) OAuth2 authorization URL (used with oauth2 auth type).
-	// OAuth authorization URL for the MCP server.
-	AuthorizationURL *string `json:"authorizationUrl,omitempty" tf:"authorization_url,omitempty"`
+	// (Bool, Computed) IP-classification hint used by LiteLLM. Explicit false is preserved. Removing owned configuration restores LiteLLM's durable true default. This is not a complete security boundary, especially when untrusted reverse-proxy headers affect client-IP classification.
+	// Whether the MCP server is available from the public internet. Removing configured ownership restores LiteLLM's durable true default.
+	AvailableOnPublicInternet *bool `json:"availableOnPublicInternet,omitempty" tf:"available_on_public_internet,omitempty"`
 
-	// (String) Command to execute for stdio transport.
-	// Command to run for stdio transport.
-	Command *string `json:"command,omitempty" tf:"command,omitempty"`
+	// (String, Computed) Informational URL for BYOK API-key setup. Removing owned configuration sends null.
+	// Bring-your-own-key API key help URL.
+	ByokAPIKeyHelpURL *string `json:"byokApiKeyHelpUrl,omitempty" tf:"byok_api_key_help_url,omitempty"`
+
+	// (List of String, Computed) Instructions shown for BYOK setup. An empty list is an explicit clear.
+	// Bring-your-own-key setup description lines.
+	ByokDescription []*string `json:"byokDescription,omitempty" tf:"byok_description,omitempty"`
 
 	// Timestamp of when the MCP server was created.
 	// Timestamp when the server was created.
@@ -141,21 +283,43 @@ type MCPServerObservation struct {
 	// User who created the server.
 	CreatedBy *string `json:"createdBy,omitempty" tf:"created_by,omitempty"`
 
+	// (Bool, Computed) Enables LiteLLM's dynamic-client-registration bridge. true requires auth_type = "true_passthrough" or "oauth_delegate". Removing owned configuration sends null, which is distinct from an explicit false value.
+	// Whether the dynamic client registration bridge is enabled.
+	DcrBridge *bool `json:"dcrBridge,omitempty" tf:"dcr_bridge,omitempty"`
+
+	// (Bool, Computed) Lets clients complete authentication directly with an upstream OAuth2 MCP server. true requires auth_type = "oauth2" and an explicit oauth2_flow = "authorization_code". The provider does not infer a safe interactive boundary from omitted or redacted credentials because LiteLLM can stamp an omitted M2M-shaped flow as client_credentials. Removing owned configuration restores false.
+	// Whether LiteLLM delegates authentication to the upstream MCP server.
+	DelegateAuthToUpstream *bool `json:"delegateAuthToUpstream,omitempty" tf:"delegate_auth_to_upstream,omitempty"`
+
 	// (String) A human-readable description of the MCP server.
 	// Description of the MCP server.
 	Description *string `json:"description,omitempty" tf:"description,omitempty"`
 
-	// (Map of String) Environment variables to set when running the MCP server.
-	// Environment variables for the command (stdio transport).
-	// +mapType=granular
-	Env map[string]*string `json:"env,omitempty" tf:"env,omitempty"`
+	// (List of Object, Computed, Sensitive) Ordered environment-variable definitions used by LiteLLM when interpolating ${NAME} references in static headers. name is required and must match [A-Za-z_][A-Za-z0-9_]*; names must be unique. value defaults to an empty string, scope defaults to global and accepts global or user, and description is optional. LiteLLM encrypts global values at rest. User-scoped values are admin placeholders; each user's actual secret is managed through separate LiteLLM endpoints. An empty list is an explicit clear. API null/omission is treated as role masking and does not erase known state.
+	EnvVars []EnvVarsObservation `json:"envVars,omitempty" tf:"env_vars,omitempty"`
 
 	// (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.
 	// Extra header names to forward to the MCP server.
 	ExtraHeaders []*string `json:"extraHeaders,omitempty" tf:"extra_headers,omitempty"`
 
+	// A non-sensitive computed generation for presence-aware ownership of MCP fields, including the v1.98 parity, advanced runtime, sensitive environment-variable, and canonical token-exchange additions. It forces Apply for ownership-only takeover or removal without changing identity.
+	// Internal non-sensitive generation of presence-aware MCP field ownership intent.
+	FieldOwnershipGeneration *float64 `json:"fieldOwnershipGeneration,omitempty" tf:"field_ownership_generation,omitempty"`
+
 	// The unique identifier for the MCP server (same as server_id).
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
+
+	// (String, Computed) Server instructions. An explicitly configured empty string is preserved; removing owned configuration sends null.
+	// Instructions associated with the MCP server. An empty string is a valid owned value.
+	Instructions *string `json:"instructions,omitempty" tf:"instructions,omitempty"`
+
+	// (Bool, Computed) Enables LiteLLM's per-user bring-your-own-key workflow. Per-user credentials use separate LiteLLM endpoints and are not stored in this resource. Removing owned configuration restores false.
+	// Whether this MCP server uses bring-your-own-key configuration.
+	IsByok *bool `json:"isByok,omitempty" tf:"is_byok,omitempty"`
+
+	// (Int64, Computed) Outbound request limit. Configure 1–2147483647; omission/null is the canonical writable unlimited form.
+	// Positive maximum number of concurrent requests.
+	MaxConcurrentRequests *float64 `json:"maxConcurrentRequests,omitempty" tf:"max_concurrent_requests,omitempty"`
 
 	// (List of String) Access groups that are allowed to use this MCP server.
 	// List of access groups for the MCP server.
@@ -164,52 +328,77 @@ type MCPServerObservation struct {
 	// MCP server information and configuration.
 	McpInfo []McpInfoObservation `json:"mcpInfo,omitempty" tf:"mcp_info,omitempty"`
 
-	// (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).
-	// OAuth registration URL for the MCP server.
-	RegistrationURL *string `json:"registrationUrl,omitempty" tf:"registration_url,omitempty"`
+	// A non-sensitive computed generation that changes when MCP info ownership intent changes, including equal-value takeover. It forces Apply without making the resource ID unknown.
+	// Internal non-sensitive generation of MCP info ownership intent.
+	McpInfoOwnershipGeneration *float64 `json:"mcpInfoOwnershipGeneration,omitempty" tf:"mcp_info_ownership_generation,omitempty"`
 
-	// The server identifier assigned by LiteLLM.
-	// Unique identifier for the MCP server.
+	// (String, Computed) Stored OAuth2 flow: client_credentials or authorization_code. LiteLLM can stamp a flow when it is omitted; the provider adopts the returned value rather than inferring it locally. Removing owned configuration sends null.
+	// OAuth2 flow stamped and returned by LiteLLM.
+	Oauth2Flow *string `json:"oauth2Flow,omitempty" tf:"oauth2_flow,omitempty"`
+
+	// (Bool, Computed) Enables upstream OAuth discovery and challenge passthrough for an unauthenticated server. true requires auth_type = "none" and an Authorization member in extra_headers (matched case-insensitively). Removing owned configuration restores false.
+	// Whether OAuth Authorization headers are passed through to the upstream MCP server.
+	OauthPassthrough *bool `json:"oauthPassthrough,omitempty" tf:"oauth_passthrough,omitempty"`
+
+	// (String, Computed, Forces Replacement) A create-only server identity. It must be a non-empty manageable path segment and cannot be ./.. or LiteLLM's reserved all-team-mcpservers/all-proxy-mcpservers identities. When omitted, the provider selects a stable generated identity. Adding or changing a configured value replaces the resource; existing generated-ID configurations and imports can continue omitting it without replacement.
+	// Create-only unique identifier for the MCP server. When omitted, the provider selects a stable generated identifier.
 	ServerID *string `json:"serverId,omitempty" tf:"server_id,omitempty"`
 
-	// (String) The name of the MCP server. Must not contain hyphens.
-	// Name of the MCP server.
+	// (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
+	// Optional name of the MCP server. When name and alias are omitted, LiteLLM uses server_id as the tool-prefix fallback.
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 
 	// (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
 	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
 	SkipURLValidation *bool `json:"skipUrlValidation,omitempty" tf:"skip_url_validation,omitempty"`
 
-	// (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
-	// Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
-	SpecPath *string `json:"specPath,omitempty" tf:"spec_path,omitempty"`
+	// (String, Computed) Informational source URL associated with the MCP server. Removing owned configuration sends null.
+	// Source URL associated with the MCP server.
+	SourceURL *string `json:"sourceUrl,omitempty" tf:"source_url,omitempty"`
 
 	// (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
 	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
 	SpecVersion *string `json:"specVersion,omitempty" tf:"spec_version,omitempty"`
 
-	// (Map of String) Static HTTP headers that are always included in requests.
-	// Static headers to always include with requests.
-	// +mapType=granular
-	StaticHeaders map[string]*string `json:"staticHeaders,omitempty" tf:"static_headers,omitempty"`
+	// (String, Computed) Canonical RFC 8693 subject-token type for oauth2_token_exchange or oauth2_id_jag. Omission leaves LiteLLM's runtime default in effect; the provider does not synthesize one.
+	// Canonical RFC 8693 subject token type.
+	SubjectTokenType *string `json:"subjectTokenType,omitempty" tf:"subject_token_type,omitempty"`
 
-	// (String) OAuth2 token URL (used with oauth2 auth type).
-	// OAuth token URL for the MCP server.
-	TokenURL *string `json:"tokenUrl,omitempty" tf:"token_url,omitempty"`
+	// (Float64, Computed) Finite timeout in seconds. A configured value must be greater than zero; omission/null restores LiteLLM's runtime default.
+	// Positive finite request timeout.
+	Timeout *float64 `json:"timeout,omitempty" tf:"timeout,omitempty"`
+
+	// (String, Computed) Canonical token-exchange profile: rfc8693 or entra_obo. entra_obo requires explicit known non-empty client credentials, a known token_exchange_endpoint or token_url, and a non-empty oauth_scopes list. Canonical audience and subject_token_type are rejected with this profile because Entra does not use them.
+	// Canonical token-exchange wire profile.
+	TokenExchangeProfile *string `json:"tokenExchangeProfile,omitempty" tf:"token_exchange_profile,omitempty"`
+
+	// (Map of String, Computed) Tool description overrides with arbitrary string values. An empty map is an explicit clear.
+	// Tool-name description overrides. Values are arbitrary strings and an empty map clears all overrides.
+	// +mapType=granular
+	ToolNameToDescription map[string]*string `json:"toolNameToDescription,omitempty" tf:"tool_name_to_description,omitempty"`
+
+	// (Map of String, Computed) Tool display-name overrides. Each value may be empty or contain only ASCII letters, digits, underscores, and hyphens. An empty map is an explicit clear.
+	// Tool-name display overrides. Empty values and an empty map are valid.
+	// +mapType=granular
+	ToolNameToDisplayName map[string]*string `json:"toolNameToDisplayName,omitempty" tf:"tool_name_to_display_name,omitempty"`
 
 	// (String) The transport protocol. Must be one of: http, sse, stdio.
 	// Transport type for the MCP server (http, sse, stdio).
 	Transport *string `json:"transport,omitempty" tf:"transport,omitempty"`
 
-	// (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
-	// URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
-	URL *string `json:"url,omitempty" tf:"url,omitempty"`
+	// Timestamp of the latest server update. Null/omission under role redaction preserves a known prior value; a first restricted create/import resolves it to null.
+	// Timestamp when the server was last updated.
+	UpdatedAt *string `json:"updatedAt,omitempty" tf:"updated_at,omitempty"`
+
+	// The user or system that last updated the server, with the same role-redaction retention semantics as updated_at.
+	// User who last updated the server.
+	UpdatedBy *string `json:"updatedBy,omitempty" tf:"updated_by,omitempty"`
 }
 
 type MCPServerParameters struct {
 
-	// (String) An alias for the server. Must not contain hyphens.
-	// Alias for the MCP server.
+	// (String, Computed) An optional server alias. Non-empty configured aliases are sent with ASCII spaces normalized to underscores, while state preserves configured spelling when the API value is semantically equal. When alias is omitted on Create and server_name is set, LiteLLM defaults alias from the name; when both are omitted, server_id is the fallback.
+	// Alias for the MCP server. LiteLLM normalizes ASCII spaces to underscores and defaults an omitted alias from server_name.
 	// +kubebuilder:validation:Optional
 	Alias *string `json:"alias,omitempty" tf:"alias,omitempty"`
 
@@ -223,46 +412,99 @@ type MCPServerParameters struct {
 	// +kubebuilder:validation:Optional
 	AllowedTools []*string `json:"allowedTools,omitempty" tf:"allowed_tools,omitempty"`
 
-	// (List of String) Arguments to pass to the command for stdio transport.
+	// (List of String, Sensitive) Arguments to pass to the command for stdio transport.
 	// Arguments for the command (stdio transport).
 	// +kubebuilder:validation:Optional
-	Args []*string `json:"args,omitempty" tf:"args,omitempty"`
+	ArgsSecretRef *[]v2.SecretKeySelector `json:"argsSecretRef,omitempty" tf:"-"`
+
+	// (String, Computed) Canonical audience for oauth2_token_exchange, oauth2_id_jag, or explicit OAuth2 client_credentials. Empty strings are rejected and removal sends null.
+	// Canonical OAuth audience used by RFC 8693 token exchange, ID-JAG, or OAuth2 client credentials.
+	// +kubebuilder:validation:Optional
+	Audience *string `json:"audience,omitempty" tf:"audience,omitempty"`
 
 	// (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
 	// Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
 	// +kubebuilder:validation:Optional
 	AuthType *string `json:"authType,omitempty" tf:"auth_type,omitempty"`
 
-	// (String) OAuth2 authorization URL (used with oauth2 auth type).
+	// (String, Sensitive) OAuth2 authorization URL (used with oauth2 auth type).
 	// OAuth authorization URL for the MCP server.
 	// +kubebuilder:validation:Optional
-	AuthorizationURL *string `json:"authorizationUrl,omitempty" tf:"authorization_url,omitempty"`
+	AuthorizationURLSecretRef *v2.SecretKeySelector `json:"authorizationUrlSecretRef,omitempty" tf:"-"`
 
-	// (String) Command to execute for stdio transport.
+	// (Bool, Computed) IP-classification hint used by LiteLLM. Explicit false is preserved. Removing owned configuration restores LiteLLM's durable true default. This is not a complete security boundary, especially when untrusted reverse-proxy headers affect client-IP classification.
+	// Whether the MCP server is available from the public internet. Removing configured ownership restores LiteLLM's durable true default.
+	// +kubebuilder:validation:Optional
+	AvailableOnPublicInternet *bool `json:"availableOnPublicInternet,omitempty" tf:"available_on_public_internet,omitempty"`
+
+	// (String, Computed) Informational URL for BYOK API-key setup. Removing owned configuration sends null.
+	// Bring-your-own-key API key help URL.
+	// +kubebuilder:validation:Optional
+	ByokAPIKeyHelpURL *string `json:"byokApiKeyHelpUrl,omitempty" tf:"byok_api_key_help_url,omitempty"`
+
+	// (List of String, Computed) Instructions shown for BYOK setup. An empty list is an explicit clear.
+	// Bring-your-own-key setup description lines.
+	// +kubebuilder:validation:Optional
+	ByokDescription []*string `json:"byokDescription,omitempty" tf:"byok_description,omitempty"`
+
+	// (String, Sensitive) Command to execute for stdio transport.
 	// Command to run for stdio transport.
 	// +kubebuilder:validation:Optional
-	Command *string `json:"command,omitempty" tf:"command,omitempty"`
+	CommandSecretRef *v2.SecretKeySelector `json:"commandSecretRef,omitempty" tf:"-"`
 
-	// (Map of String, Sensitive) Credentials for authenticating with the MCP server. For static api_key, bearer_token, basic, authorization, and token modes, LiteLLM v1.98 reads the secret from auth_value; keys named token or api_key are ignored. OAuth2 uses fields such as client_id and client_secret. This attribute is marked as sensitive and will not be displayed in plan output.
+	// (Map of String, Sensitive) Credentials for authenticating with the MCP server. For static api_key, bearer_token, basic, authorization, and token modes, LiteLLM v1.98 reads the secret from auth_value; keys named token or api_key are ignored. OAuth modes use fields such as client_id, client_secret, token_endpoint_auth_method, and optional upstream_resource. Legacy token_exchange_endpoint, audience, subject_token_type, and token_exchange_profile keys remain accepted for existing HCL, but new configurations should use the canonical sibling arguments below. A canonical sibling and its legacy map key cannot be configured together. The resource keeps the complete map sensitive, while the singular data source may expose only LiteLLM's separately reviewed upstream_resource scalar.
 	// Credentials map for the MCP server authentication.
 	// +kubebuilder:validation:Optional
 	CredentialsSecretRef *v2.SecretReference `json:"credentialsSecretRef,omitempty" tf:"-"`
+
+	// (Bool, Computed) Enables LiteLLM's dynamic-client-registration bridge. true requires auth_type = "true_passthrough" or "oauth_delegate". Removing owned configuration sends null, which is distinct from an explicit false value.
+	// Whether the dynamic client registration bridge is enabled.
+	// +kubebuilder:validation:Optional
+	DcrBridge *bool `json:"dcrBridge,omitempty" tf:"dcr_bridge,omitempty"`
+
+	// (Bool, Computed) Lets clients complete authentication directly with an upstream OAuth2 MCP server. true requires auth_type = "oauth2" and an explicit oauth2_flow = "authorization_code". The provider does not infer a safe interactive boundary from omitted or redacted credentials because LiteLLM can stamp an omitted M2M-shaped flow as client_credentials. Removing owned configuration restores false.
+	// Whether LiteLLM delegates authentication to the upstream MCP server.
+	// +kubebuilder:validation:Optional
+	DelegateAuthToUpstream *bool `json:"delegateAuthToUpstream,omitempty" tf:"delegate_auth_to_upstream,omitempty"`
 
 	// (String) A human-readable description of the MCP server.
 	// Description of the MCP server.
 	// +kubebuilder:validation:Optional
 	Description *string `json:"description,omitempty" tf:"description,omitempty"`
 
-	// (Map of String) Environment variables to set when running the MCP server.
+	// (Map of String, Sensitive) Environment variables to set when running the MCP server.
 	// Environment variables for the command (stdio transport).
 	// +kubebuilder:validation:Optional
-	// +mapType=granular
-	Env map[string]*string `json:"env,omitempty" tf:"env,omitempty"`
+	EnvSecretRef *v2.SecretReference `json:"envSecretRef,omitempty" tf:"-"`
+
+	// (List of Object, Computed, Sensitive) Ordered environment-variable definitions used by LiteLLM when interpolating ${NAME} references in static headers. name is required and must match [A-Za-z_][A-Za-z0-9_]*; names must be unique. value defaults to an empty string, scope defaults to global and accepts global or user, and description is optional. LiteLLM encrypts global values at rest. User-scoped values are admin placeholders; each user's actual secret is managed through separate LiteLLM endpoints. An empty list is an explicit clear. API null/omission is treated as role masking and does not erase known state.
+	// +kubebuilder:validation:Optional
+	EnvVars []EnvVarsParameters `json:"envVars,omitempty" tf:"env_vars,omitempty"`
 
 	// (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.
 	// Extra header names to forward to the MCP server.
 	// +kubebuilder:validation:Optional
 	ExtraHeaders []*string `json:"extraHeaders,omitempty" tf:"extra_headers,omitempty"`
+
+	// (String, Computed) Server instructions. An explicitly configured empty string is preserved; removing owned configuration sends null.
+	// Instructions associated with the MCP server. An empty string is a valid owned value.
+	// +kubebuilder:validation:Optional
+	Instructions *string `json:"instructions,omitempty" tf:"instructions,omitempty"`
+
+	// (Bool, Computed) Enables LiteLLM's per-user bring-your-own-key workflow. Per-user credentials use separate LiteLLM endpoints and are not stored in this resource. Removing owned configuration restores false.
+	// Whether this MCP server uses bring-your-own-key configuration.
+	// +kubebuilder:validation:Optional
+	IsByok *bool `json:"isByok,omitempty" tf:"is_byok,omitempty"`
+
+	// (String, Computed, Sensitive) Canonical OAuth issuer anchor for oauth2, true_passthrough, oauth_delegate, or oauth2_token_exchange. Empty strings are rejected; removing owned configuration sends null. LiteLLM role masking returns null/omission, which preserves known resource state. This role-masked value is intentionally absent from data sources.
+	// OAuth issuer anchor. LiteLLM may mask this value by role; null or omission on read does not prove a clear.
+	// +kubebuilder:validation:Optional
+	IssuerSecretRef *v2.SecretKeySelector `json:"issuerSecretRef,omitempty" tf:"-"`
+
+	// (Int64, Computed) Outbound request limit. Configure 1–2147483647; omission/null is the canonical writable unlimited form.
+	// Positive maximum number of concurrent requests.
+	// +kubebuilder:validation:Optional
+	MaxConcurrentRequests *float64 `json:"maxConcurrentRequests,omitempty" tf:"max_concurrent_requests,omitempty"`
 
 	// (List of String) Access groups that are allowed to use this MCP server.
 	// List of access groups for the MCP server.
@@ -273,13 +515,48 @@ type MCPServerParameters struct {
 	// +kubebuilder:validation:Optional
 	McpInfo []McpInfoParameters `json:"mcpInfo,omitempty" tf:"mcp_info,omitempty"`
 
-	// (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).
+	// (List of String, Optional, Sensitive) Canonical RFC 6901 object-member pointers that record explicit tombstones. Root pointers, array traversal, duplicates, equal paths, and ancestor/descendant conflicts are rejected.
+	// Sensitive list of canonical RFC 6901 object-member pointers to clear. Root and array traversal are not supported.
+	// +kubebuilder:validation:Optional
+	McpInfoClearPathsSecretRef *[]v2.SecretKeySelector `json:"mcpInfoClearPathsSecretRef,omitempty" tf:"-"`
+
+	// (String, Optional, Computed, Sensitive) A complete non-null JSON object for whole-document MCP info ownership. The empty object ({}) means an explicit whole-document clear. It conflicts with mcp_info, mcp_info_overrides_json, and mcp_info_clear_paths.
+	// Sensitive complete MCP info JSON object. The root must be a non-null object; {} explicitly owns and clears the whole document. Authoritative reads expose the complete object without dropping unknown members or exact JSON numbers.
+	// +kubebuilder:validation:Optional
+	McpInfoJSONSecretRef *v2.SecretKeySelector `json:"mcpInfoJsonSecretRef,omitempty" tf:"-"`
+
+	// (String, Optional, Sensitive) A recursively selective non-null JSON object. Scalars, arrays, nested null, and nested empty objects are atomic owned values; a non-empty nested object owns only its recursively selected members.
+	// Sensitive recursive selective MCP info JSON object. Nested null is data and a nested empty object atomically replaces that member.
+	// +kubebuilder:validation:Optional
+	McpInfoOverridesJSONSecretRef *v2.SecretKeySelector `json:"mcpInfoOverridesJsonSecretRef,omitempty" tf:"-"`
+
+	// (String, Computed) Stored OAuth2 flow: client_credentials or authorization_code. LiteLLM can stamp a flow when it is omitted; the provider adopts the returned value rather than inferring it locally. Removing owned configuration sends null.
+	// OAuth2 flow stamped and returned by LiteLLM.
+	// +kubebuilder:validation:Optional
+	Oauth2Flow *string `json:"oauth2Flow,omitempty" tf:"oauth2_flow,omitempty"`
+
+	// (Bool, Computed) Enables upstream OAuth discovery and challenge passthrough for an unauthenticated server. true requires auth_type = "none" and an Authorization member in extra_headers (matched case-insensitively). Removing owned configuration restores false.
+	// Whether OAuth Authorization headers are passed through to the upstream MCP server.
+	// +kubebuilder:validation:Optional
+	OauthPassthrough *bool `json:"oauthPassthrough,omitempty" tf:"oauth_passthrough,omitempty"`
+
+	// (List of String, Sensitive) Write-only OAuth scopes stored by LiteLLM at credentials.scopes. LiteLLM v1.98 strips this member from every management response, so imports leave it null and data sources do not expose it. An explicit empty list clears owned scopes. Configure scopes only through this argument; credentials["scopes"] is rejected because the legacy credentials map cannot represent a native list.
+	// Sensitive write-only OAuth scopes stored natively at credentials.scopes. LiteLLM v1.98 management reads never expose this value.
+	// +kubebuilder:validation:Optional
+	OauthScopesSecretRef *[]v2.SecretKeySelector `json:"oauthScopesSecretRef,omitempty" tf:"-"`
+
+	// (String, Sensitive) OAuth2 dynamic client registration URL (used with oauth2 auth type).
 	// OAuth registration URL for the MCP server.
 	// +kubebuilder:validation:Optional
-	RegistrationURL *string `json:"registrationUrl,omitempty" tf:"registration_url,omitempty"`
+	RegistrationURLSecretRef *v2.SecretKeySelector `json:"registrationUrlSecretRef,omitempty" tf:"-"`
 
-	// (String) The name of the MCP server. Must not contain hyphens.
-	// Name of the MCP server.
+	// (String, Computed, Forces Replacement) A create-only server identity. It must be a non-empty manageable path segment and cannot be ./.. or LiteLLM's reserved all-team-mcpservers/all-proxy-mcpservers identities. When omitted, the provider selects a stable generated identity. Adding or changing a configured value replaces the resource; existing generated-ID configurations and imports can continue omitting it without replacement.
+	// Create-only unique identifier for the MCP server. When omitted, the provider selects a stable generated identifier.
+	// +kubebuilder:validation:Optional
+	ServerID *string `json:"serverId,omitempty" tf:"server_id,omitempty"`
+
+	// (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
+	// Optional name of the MCP server. When name and alias are omitted, LiteLLM uses server_id as the tool-prefix fallback.
 	// +kubebuilder:validation:Optional
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 
@@ -288,36 +565,72 @@ type MCPServerParameters struct {
 	// +kubebuilder:validation:Optional
 	SkipURLValidation *bool `json:"skipUrlValidation,omitempty" tf:"skip_url_validation,omitempty"`
 
-	// (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
+	// (String, Computed) Informational source URL associated with the MCP server. Removing owned configuration sends null.
+	// Source URL associated with the MCP server.
+	// +kubebuilder:validation:Optional
+	SourceURL *string `json:"sourceUrl,omitempty" tf:"source_url,omitempty"`
+
+	// (String, Sensitive) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
 	// Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
 	// +kubebuilder:validation:Optional
-	SpecPath *string `json:"specPath,omitempty" tf:"spec_path,omitempty"`
+	SpecPathSecretRef *v2.SecretKeySelector `json:"specPathSecretRef,omitempty" tf:"-"`
 
 	// (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
 	// Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
 	// +kubebuilder:validation:Optional
 	SpecVersion *string `json:"specVersion,omitempty" tf:"spec_version,omitempty"`
 
-	// (Map of String) Static HTTP headers that are always included in requests.
+	// (Map of String, Sensitive) Static HTTP headers that are always included in requests.
 	// Static headers to always include with requests.
 	// +kubebuilder:validation:Optional
-	// +mapType=granular
-	StaticHeaders map[string]*string `json:"staticHeaders,omitempty" tf:"static_headers,omitempty"`
+	StaticHeadersSecretRef *v2.SecretReference `json:"staticHeadersSecretRef,omitempty" tf:"-"`
 
-	// (String) OAuth2 token URL (used with oauth2 auth type).
+	// (String, Computed) Canonical RFC 8693 subject-token type for oauth2_token_exchange or oauth2_id_jag. Omission leaves LiteLLM's runtime default in effect; the provider does not synthesize one.
+	// Canonical RFC 8693 subject token type.
+	// +kubebuilder:validation:Optional
+	SubjectTokenType *string `json:"subjectTokenType,omitempty" tf:"subject_token_type,omitempty"`
+
+	// (Float64, Computed) Finite timeout in seconds. A configured value must be greater than zero; omission/null restores LiteLLM's runtime default.
+	// Positive finite request timeout.
+	// +kubebuilder:validation:Optional
+	Timeout *float64 `json:"timeout,omitempty" tf:"timeout,omitempty"`
+
+	// (String, Computed, Sensitive) Canonical token-exchange endpoint for oauth2_token_exchange or oauth2_id_jag. Canonical token-exchange configuration requires explicit known non-empty client_id and client_secret credentials. Empty strings are rejected and removal sends null.
+	// Canonical OAuth token-exchange endpoint. The legacy credentials key remains accepted as an alternative source, but the two sources cannot be configured together.
+	// +kubebuilder:validation:Optional
+	TokenExchangeEndpointSecretRef *v2.SecretKeySelector `json:"tokenExchangeEndpointSecretRef,omitempty" tf:"-"`
+
+	// (String, Computed) Canonical token-exchange profile: rfc8693 or entra_obo. entra_obo requires explicit known non-empty client credentials, a known token_exchange_endpoint or token_url, and a non-empty oauth_scopes list. Canonical audience and subject_token_type are rejected with this profile because Entra does not use them.
+	// Canonical token-exchange wire profile.
+	// +kubebuilder:validation:Optional
+	TokenExchangeProfile *string `json:"tokenExchangeProfile,omitempty" tf:"token_exchange_profile,omitempty"`
+
+	// (String, Sensitive) OAuth2 token URL. It may also supply the token endpoint for token exchange when token_exchange_endpoint is omitted.
 	// OAuth token URL for the MCP server.
 	// +kubebuilder:validation:Optional
-	TokenURL *string `json:"tokenUrl,omitempty" tf:"token_url,omitempty"`
+	TokenURLSecretRef *v2.SecretKeySelector `json:"tokenUrlSecretRef,omitempty" tf:"-"`
+
+	// (Map of String, Computed) Tool description overrides with arbitrary string values. An empty map is an explicit clear.
+	// Tool-name description overrides. Values are arbitrary strings and an empty map clears all overrides.
+	// +kubebuilder:validation:Optional
+	// +mapType=granular
+	ToolNameToDescription map[string]*string `json:"toolNameToDescription,omitempty" tf:"tool_name_to_description,omitempty"`
+
+	// (Map of String, Computed) Tool display-name overrides. Each value may be empty or contain only ASCII letters, digits, underscores, and hyphens. An empty map is an explicit clear.
+	// Tool-name display overrides. Empty values and an empty map are valid.
+	// +kubebuilder:validation:Optional
+	// +mapType=granular
+	ToolNameToDisplayName map[string]*string `json:"toolNameToDisplayName,omitempty" tf:"tool_name_to_display_name,omitempty"`
 
 	// (String) The transport protocol. Must be one of: http, sse, stdio.
 	// Transport type for the MCP server (http, sse, stdio).
 	// +kubebuilder:validation:Optional
 	Transport *string `json:"transport,omitempty" tf:"transport,omitempty"`
 
-	// (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
+	// (String, Sensitive) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
 	// URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
 	// +kubebuilder:validation:Optional
-	URL *string `json:"url,omitempty" tf:"url,omitempty"`
+	URLSecretRef *v2.SecretKeySelector `json:"urlSecretRef,omitempty" tf:"-"`
 }
 
 type McpInfoInitParameters struct {
@@ -334,7 +647,7 @@ type McpInfoInitParameters struct {
 	// Cost information for MCP server tools.
 	McpServerCostInfo []McpServerCostInfoInitParameters `json:"mcpServerCostInfo,omitempty" tf:"mcp_server_cost_info,omitempty"`
 
-	// (String) The name of the MCP server. Must not contain hyphens.
+	// (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
 	// Server name in MCP info.
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 }
@@ -353,7 +666,7 @@ type McpInfoObservation struct {
 	// Cost information for MCP server tools.
 	McpServerCostInfo []McpServerCostInfoObservation `json:"mcpServerCostInfo,omitempty" tf:"mcp_server_cost_info,omitempty"`
 
-	// (String) The name of the MCP server. Must not contain hyphens.
+	// (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
 	// Server name in MCP info.
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
 }
@@ -375,7 +688,7 @@ type McpInfoParameters struct {
 	// +kubebuilder:validation:Optional
 	McpServerCostInfo []McpServerCostInfoParameters `json:"mcpServerCostInfo,omitempty" tf:"mcp_server_cost_info,omitempty"`
 
-	// (String) The name of the MCP server. Must not contain hyphens.
+	// (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
 	// Server name in MCP info.
 	// +kubebuilder:validation:Optional
 	ServerName *string `json:"serverName,omitempty" tf:"server_name,omitempty"`
@@ -455,7 +768,6 @@ type MCPServerStatus struct {
 type MCPServer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.serverName) || (has(self.initProvider) && has(self.initProvider.serverName))",message="spec.forProvider.serverName is a required parameter"
 	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.transport) || (has(self.initProvider) && has(self.initProvider.transport))",message="spec.forProvider.transport is a required parameter"
 	Spec   MCPServerSpec   `json:"spec"`
 	Status MCPServerStatus `json:"status,omitempty"`

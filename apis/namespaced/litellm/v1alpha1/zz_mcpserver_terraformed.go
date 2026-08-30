@@ -21,7 +21,7 @@ func (mg *MCPServer) GetTerraformResourceType() string {
 
 // GetConnectionDetailsMapping for this MCPServer
 func (tr *MCPServer) GetConnectionDetailsMapping() map[string]string {
-	return map[string]string{"credentials": "credentialsSecretRef"}
+	return map[string]string{"args[*]": "argsSecretRef[*]", "authorization_url": "authorizationUrlSecretRef", "command": "commandSecretRef", "credentials": "credentialsSecretRef", "env": "envSecretRef", "env_vars[*].value": "envVars[*].valueSecretRef", "issuer": "issuerSecretRef", "mcp_info_clear_paths[*]": "mcpInfoClearPathsSecretRef[*]", "mcp_info_json": "mcpInfoJsonSecretRef", "mcp_info_overrides_json": "mcpInfoOverridesJsonSecretRef", "oauth_scopes[*]": "oauthScopesSecretRef[*]", "registration_url": "registrationUrlSecretRef", "spec_path": "specPathSecretRef", "static_headers": "staticHeadersSecretRef", "token_exchange_endpoint": "tokenExchangeEndpointSecretRef", "token_url": "tokenUrlSecretRef", "url": "urlSecretRef"}
 }
 
 // GetObservation of this MCPServer
@@ -125,5 +125,5 @@ func (tr *MCPServer) LateInitialize(attrs []byte) (bool, error) {
 
 // GetTerraformSchemaVersion returns the associated Terraform schema version
 func (tr *MCPServer) GetTerraformSchemaVersion() int {
-	return 1
+	return 8
 }

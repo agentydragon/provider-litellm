@@ -44,10 +44,14 @@ type OrganizationInitParameters struct {
 	// Maximum parallel requests for the organization budget.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// (Map of String) Organization metadata. Use jsonencode() for complex values.
+	// (Map of String) Organization metadata. Use jsonencode() for complex object or array values; scalar-looking strings retain string identity.
 	// Metadata for the organization.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+
+	// (String, Sensitive) Non-null JSON object for lossless heterogeneous metadata. Top-level keys cannot overlap metadata, model_rpm_limit, or model_tpm_limit. Configuring it during create requires organization_id.
+	// Additional organization metadata as a semantic JSON object.
+	MetadataJSONSecretRef *v2.SecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
 
 	// (Map of Int64) Per-model RPM limits stored in organization metadata.
 	// The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.
@@ -113,7 +117,7 @@ type OrganizationObservation struct {
 	// Maximum parallel requests for the organization budget.
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// (Map of String) Organization metadata. Use jsonencode() for complex values.
+	// (Map of String) Organization metadata. Use jsonencode() for complex object or array values; scalar-looking strings retain string identity.
 	// Metadata for the organization.
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
@@ -189,11 +193,16 @@ type OrganizationParameters struct {
 	// +kubebuilder:validation:Optional
 	MaxParallelRequests *float64 `json:"maxParallelRequests,omitempty" tf:"max_parallel_requests,omitempty"`
 
-	// (Map of String) Organization metadata. Use jsonencode() for complex values.
+	// (Map of String) Organization metadata. Use jsonencode() for complex object or array values; scalar-looking strings retain string identity.
 	// Metadata for the organization.
 	// +kubebuilder:validation:Optional
 	// +mapType=granular
 	Metadata map[string]*string `json:"metadata,omitempty" tf:"metadata,omitempty"`
+
+	// (String, Sensitive) Non-null JSON object for lossless heterogeneous metadata. Top-level keys cannot overlap metadata, model_rpm_limit, or model_tpm_limit. Configuring it during create requires organization_id.
+	// Additional organization metadata as a semantic JSON object.
+	// +kubebuilder:validation:Optional
+	MetadataJSONSecretRef *v2.SecretKeySelector `json:"metadataJsonSecretRef,omitempty" tf:"-"`
 
 	// (Map of Int64) Per-model RPM limits stored in organization metadata.
 	// The RPM limit per model. Updated through v1.98's transactional complete-metadata replacement so owned keys can clear safely.

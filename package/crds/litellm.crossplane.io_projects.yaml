@@ -108,10 +108,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Metadata; use jsonencode() for complex values.
+                      Legacy metadata map; use jsonencode() for historically supported object and array values.
                       Metadata for the project. Values are strings; use jsonencode() for complex values.
                     type: object
                     x-kubernetes-map-type: granular
+                  metadataJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap metadata, tags, model_rpm_limit, or model_tpm_limit.
+                      Additional project metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   modelMaxBudget:
                     additionalProperties:
                       type: number
@@ -297,10 +316,29 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Metadata; use jsonencode() for complex values.
+                      Legacy metadata map; use jsonencode() for historically supported object and array values.
                       Metadata for the project. Values are strings; use jsonencode() for complex values.
                     type: object
                     x-kubernetes-map-type: granular
+                  metadataJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap metadata, tags, model_rpm_limit, or model_tpm_limit.
+                      Additional project metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   modelMaxBudget:
                     additionalProperties:
                       type: number
@@ -577,7 +615,7 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      Metadata; use jsonencode() for complex values.
+                      Legacy metadata map; use jsonencode() for historically supported object and array values.
                       Metadata for the project. Values are strings; use jsonencode() for complex values.
                     type: object
                     x-kubernetes-map-type: granular

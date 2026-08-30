@@ -63,8 +63,8 @@ spec:
                 properties:
                   alias:
                     description: |-
-                      (String) An alias for the server. Must not contain hyphens.
-                      Alias for the MCP server.
+                      (String, Computed) An optional server alias. Non-empty configured aliases are sent with ASCII spaces normalized to underscores, while state preserves configured spelling when the API value is semantically equal. When alias is omitted on Create and server_name is set, LiteLLM defaults alias from the name; when both are omitted, server_id is the fallback.
+                      Alias for the MCP server. LiteLLM normalizes ASCII spaces to underscores and defaults an omitted alias from server_name.
                     type: string
                   allowAllKeys:
                     description: |-
@@ -78,31 +78,83 @@ spec:
                     items:
                       type: string
                     type: array
-                  args:
+                  argsSecretRef:
                     description: |-
-                      (List of String) Arguments to pass to the command for stdio transport.
+                      (List of String, Sensitive) Arguments to pass to the command for stdio transport.
                       Arguments for the command (stdio transport).
                     items:
-                      type: string
+                      description: |-
+                        A LocalSecretKeySelector is a reference to a secret key
+                        in the same namespace with the referencing object.
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          description: Name of the secret.
+                          type: string
+                      required:
+                      - key
+                      - name
+                      type: object
                     type: array
+                  audience:
+                    description: |-
+                      (String, Computed) Canonical audience for oauth2_token_exchange, oauth2_id_jag, or explicit OAuth2 client_credentials. Empty strings are rejected and removal sends null.
+                      Canonical OAuth audience used by RFC 8693 token exchange, ID-JAG, or OAuth2 client credentials.
+                    type: string
                   authType:
                     description: |-
                       (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
                       Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
                     type: string
-                  authorizationUrl:
+                  authorizationUrlSecretRef:
                     description: |-
-                      (String) OAuth2 authorization URL (used with oauth2 auth type).
+                      (String, Sensitive) OAuth2 authorization URL (used with oauth2 auth type).
                       OAuth authorization URL for the MCP server.
-                    type: string
-                  command:
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  availableOnPublicInternet:
                     description: |-
-                      (String) Command to execute for stdio transport.
-                      Command to run for stdio transport.
+                      (Bool, Computed) IP-classification hint used by LiteLLM. Explicit false is preserved. Removing owned configuration restores LiteLLM's durable true default. This is not a complete security boundary, especially when untrusted reverse-proxy headers affect client-IP classification.
+                      Whether the MCP server is available from the public internet. Removing configured ownership restores LiteLLM's durable true default.
+                    type: boolean
+                  byokApiKeyHelpUrl:
+                    description: |-
+                      (String, Computed) Informational URL for BYOK API-key setup. Removing owned configuration sends null.
+                      Bring-your-own-key API key help URL.
                     type: string
+                  byokDescription:
+                    description: |-
+                      (List of String, Computed) Instructions shown for BYOK setup. An empty list is an explicit clear.
+                      Bring-your-own-key setup description lines.
+                    items:
+                      type: string
+                    type: array
+                  commandSecretRef:
+                    description: |-
+                      (String, Sensitive) Command to execute for stdio transport.
+                      Command to run for stdio transport.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   credentialsSecretRef:
                     description: |-
-                      (Map of String, Sensitive) Credentials for authenticating with the MCP server. For static api_key, bearer_token, basic, authorization, and token modes, LiteLLM v1.98 reads the secret from auth_value; keys named token or api_key are ignored. OAuth2 uses fields such as client_id and client_secret. This attribute is marked as sensitive and will not be displayed in plan output.
+                      (Map of String, Sensitive) Credentials for authenticating with the MCP server. For static api_key, bearer_token, basic, authorization, and token modes, LiteLLM v1.98 reads the secret from auth_value; keys named token or api_key are ignored. OAuth modes use fields such as client_id, client_secret, token_endpoint_auth_method, and optional upstream_resource. Legacy token_exchange_endpoint, audience, subject_token_type, and token_exchange_profile keys remain accepted for existing HCL, but new configurations should use the canonical sibling arguments below. A canonical sibling and its legacy map key cannot be configured together. The resource keeps the complete map sensitive, while the singular data source may expose only LiteLLM's separately reviewed upstream_resource scalar.
                       Credentials map for the MCP server authentication.
                     properties:
                       name:
@@ -111,19 +163,70 @@ spec:
                     required:
                     - name
                     type: object
+                  dcrBridge:
+                    description: |-
+                      (Bool, Computed) Enables LiteLLM's dynamic-client-registration bridge. true requires auth_type = "true_passthrough" or "oauth_delegate". Removing owned configuration sends null, which is distinct from an explicit false value.
+                      Whether the dynamic client registration bridge is enabled.
+                    type: boolean
+                  delegateAuthToUpstream:
+                    description: |-
+                      (Bool, Computed) Lets clients complete authentication directly with an upstream OAuth2 MCP server. true requires auth_type = "oauth2" and an explicit oauth2_flow = "authorization_code". The provider does not infer a safe interactive boundary from omitted or redacted credentials because LiteLLM can stamp an omitted M2M-shaped flow as client_credentials. Removing owned configuration restores false.
+                      Whether LiteLLM delegates authentication to the upstream MCP server.
+                    type: boolean
                   description:
                     description: |-
                       (String) A human-readable description of the MCP server.
                       Description of the MCP server.
                     type: string
-                  env:
-                    additionalProperties:
-                      type: string
+                  envSecretRef:
                     description: |-
-                      (Map of String) Environment variables to set when running the MCP server.
+                      (Map of String, Sensitive) Environment variables to set when running the MCP server.
                       Environment variables for the command (stdio transport).
+                    properties:
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - name
                     type: object
-                    x-kubernetes-map-type: granular
+                  envVars:
+                    description: (List of Object, Computed, Sensitive) Ordered environment-variable
+                      definitions used by LiteLLM when interpolating ${NAME} references
+                      in static headers. name is required and must match [A-Za-z_][A-Za-z0-9_]*;
+                      names must be unique. value defaults to an empty string, scope
+                      defaults to global and accepts global or user, and description
+                      is optional. LiteLLM encrypts global values at rest. User-scoped
+                      values are admin placeholders; each user's actual secret is
+                      managed through separate LiteLLM endpoints. An empty list is
+                      an explicit clear. API null/omission is treated as role masking
+                      and does not erase known state.
+                    items:
+                      properties:
+                        description:
+                          description: |-
+                            (String) A human-readable description of the MCP server.
+                            Optional nullable environment-variable description.
+                          type: string
+                        name:
+                          description: Environment-variable name.
+                          type: string
+                        scope:
+                          description: 'Value scope: global or user.'
+                          type: string
+                        valueSecretRef:
+                          description: Admin-provided value or user-scope placeholder.
+                          properties:
+                            key:
+                              type: string
+                            name:
+                              description: Name of the secret.
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                      type: object
+                    type: array
                   extraHeaders:
                     description: |-
                       (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.
@@ -131,6 +234,35 @@ spec:
                     items:
                       type: string
                     type: array
+                  instructions:
+                    description: |-
+                      (String, Computed) Server instructions. An explicitly configured empty string is preserved; removing owned configuration sends null.
+                      Instructions associated with the MCP server. An empty string is a valid owned value.
+                    type: string
+                  isByok:
+                    description: |-
+                      (Bool, Computed) Enables LiteLLM's per-user bring-your-own-key workflow. Per-user credentials use separate LiteLLM endpoints and are not stored in this resource. Removing owned configuration restores false.
+                      Whether this MCP server uses bring-your-own-key configuration.
+                    type: boolean
+                  issuerSecretRef:
+                    description: |-
+                      (String, Computed, Sensitive) Canonical OAuth issuer anchor for oauth2, true_passthrough, oauth_delegate, or oauth2_token_exchange. Empty strings are rejected; removing owned configuration sends null. LiteLLM role masking returns null/omission, which preserves known resource state. This role-masked value is intentionally absent from data sources.
+                      OAuth issuer anchor. LiteLLM may mask this value by role; null or omission on read does not prove a clear.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  maxConcurrentRequests:
+                    description: |-
+                      (Int64, Computed) Outbound request limit. Configure 1–2147483647; omission/null is the canonical writable unlimited form.
+                      Positive maximum number of concurrent requests.
+                    type: number
                   mcpAccessGroups:
                     description: |-
                       (List of String) Access groups that are allowed to use this MCP server.
@@ -175,59 +307,229 @@ spec:
                           type: array
                         serverName:
                           description: |-
-                            (String) The name of the MCP server. Must not contain hyphens.
+                            (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
                             Server name in MCP info.
                           type: string
                       type: object
                     type: array
-                  registrationUrl:
+                  mcpInfoClearPathsSecretRef:
                     description: |-
-                      (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).
+                      (List of String, Optional, Sensitive) Canonical RFC 6901 object-member pointers that record explicit tombstones. Root pointers, array traversal, duplicates, equal paths, and ancestor/descendant conflicts are rejected.
+                      Sensitive list of canonical RFC 6901 object-member pointers to clear. Root and array traversal are not supported.
+                    items:
+                      description: |-
+                        A LocalSecretKeySelector is a reference to a secret key
+                        in the same namespace with the referencing object.
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          description: Name of the secret.
+                          type: string
+                      required:
+                      - key
+                      - name
+                      type: object
+                    type: array
+                  mcpInfoJsonSecretRef:
+                    description: |-
+                      (String, Optional, Computed, Sensitive) A complete non-null JSON object for whole-document MCP info ownership. The empty object ({}) means an explicit whole-document clear. It conflicts with mcp_info, mcp_info_overrides_json, and mcp_info_clear_paths.
+                      Sensitive complete MCP info JSON object. The root must be a non-null object; {} explicitly owns and clears the whole document. Authoritative reads expose the complete object without dropping unknown members or exact JSON numbers.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  mcpInfoOverridesJsonSecretRef:
+                    description: |-
+                      (String, Optional, Sensitive) A recursively selective non-null JSON object. Scalars, arrays, nested null, and nested empty objects are atomic owned values; a non-empty nested object owns only its recursively selected members.
+                      Sensitive recursive selective MCP info JSON object. Nested null is data and a nested empty object atomically replaces that member.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  oauth2Flow:
+                    description: |-
+                      (String, Computed) Stored OAuth2 flow: client_credentials or authorization_code. LiteLLM can stamp a flow when it is omitted; the provider adopts the returned value rather than inferring it locally. Removing owned configuration sends null.
+                      OAuth2 flow stamped and returned by LiteLLM.
+                    type: string
+                  oauthPassthrough:
+                    description: |-
+                      (Bool, Computed) Enables upstream OAuth discovery and challenge passthrough for an unauthenticated server. true requires auth_type = "none" and an Authorization member in extra_headers (matched case-insensitively). Removing owned configuration restores false.
+                      Whether OAuth Authorization headers are passed through to the upstream MCP server.
+                    type: boolean
+                  oauthScopesSecretRef:
+                    description: |-
+                      (List of String, Sensitive) Write-only OAuth scopes stored by LiteLLM at credentials.scopes. LiteLLM v1.98 strips this member from every management response, so imports leave it null and data sources do not expose it. An explicit empty list clears owned scopes. Configure scopes only through this argument; credentials["scopes"] is rejected because the legacy credentials map cannot represent a native list.
+                      Sensitive write-only OAuth scopes stored natively at credentials.scopes. LiteLLM v1.98 management reads never expose this value.
+                    items:
+                      description: |-
+                        A LocalSecretKeySelector is a reference to a secret key
+                        in the same namespace with the referencing object.
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          description: Name of the secret.
+                          type: string
+                      required:
+                      - key
+                      - name
+                      type: object
+                    type: array
+                  registrationUrlSecretRef:
+                    description: |-
+                      (String, Sensitive) OAuth2 dynamic client registration URL (used with oauth2 auth type).
                       OAuth registration URL for the MCP server.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  serverId:
+                    description: |-
+                      (String, Computed, Forces Replacement) A create-only server identity. It must be a non-empty manageable path segment and cannot be ./.. or LiteLLM's reserved all-team-mcpservers/all-proxy-mcpservers identities. When omitted, the provider selects a stable generated identity. Adding or changing a configured value replaces the resource; existing generated-ID configurations and imports can continue omitting it without replacement.
+                      Create-only unique identifier for the MCP server. When omitted, the provider selects a stable generated identifier.
                     type: string
                   serverName:
                     description: |-
-                      (String) The name of the MCP server. Must not contain hyphens.
-                      Name of the MCP server.
+                      (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
+                      Optional name of the MCP server. When name and alias are omitted, LiteLLM uses server_id as the tool-prefix fallback.
                     type: string
                   skipUrlValidation:
                     description: |-
                       (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
                       Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
                     type: boolean
-                  specPath:
+                  sourceUrl:
                     description: |-
-                      (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
-                      Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+                      (String, Computed) Informational source URL associated with the MCP server. Removing owned configuration sends null.
+                      Source URL associated with the MCP server.
                     type: string
+                  specPathSecretRef:
+                    description: |-
+                      (String, Sensitive) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
+                      Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   specVersion:
                     description: |-
                       (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
                       Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
                     type: string
-                  staticHeaders:
+                  staticHeadersSecretRef:
+                    description: |-
+                      (Map of String, Sensitive) Static HTTP headers that are always included in requests.
+                      Static headers to always include with requests.
+                    properties:
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  subjectTokenType:
+                    description: |-
+                      (String, Computed) Canonical RFC 8693 subject-token type for oauth2_token_exchange or oauth2_id_jag. Omission leaves LiteLLM's runtime default in effect; the provider does not synthesize one.
+                      Canonical RFC 8693 subject token type.
+                    type: string
+                  timeout:
+                    description: |-
+                      (Float64, Computed) Finite timeout in seconds. A configured value must be greater than zero; omission/null restores LiteLLM's runtime default.
+                      Positive finite request timeout.
+                    type: number
+                  tokenExchangeEndpointSecretRef:
+                    description: |-
+                      (String, Computed, Sensitive) Canonical token-exchange endpoint for oauth2_token_exchange or oauth2_id_jag. Canonical token-exchange configuration requires explicit known non-empty client_id and client_secret credentials. Empty strings are rejected and removal sends null.
+                      Canonical OAuth token-exchange endpoint. The legacy credentials key remains accepted as an alternative source, but the two sources cannot be configured together.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  tokenExchangeProfile:
+                    description: |-
+                      (String, Computed) Canonical token-exchange profile: rfc8693 or entra_obo. entra_obo requires explicit known non-empty client credentials, a known token_exchange_endpoint or token_url, and a non-empty oauth_scopes list. Canonical audience and subject_token_type are rejected with this profile because Entra does not use them.
+                      Canonical token-exchange wire profile.
+                    type: string
+                  tokenUrlSecretRef:
+                    description: |-
+                      (String, Sensitive) OAuth2 token URL. It may also supply the token endpoint for token exchange when token_exchange_endpoint is omitted.
+                      OAuth token URL for the MCP server.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  toolNameToDescription:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Static HTTP headers that are always included in requests.
-                      Static headers to always include with requests.
+                      (Map of String, Computed) Tool description overrides with arbitrary string values. An empty map is an explicit clear.
+                      Tool-name description overrides. Values are arbitrary strings and an empty map clears all overrides.
                     type: object
                     x-kubernetes-map-type: granular
-                  tokenUrl:
+                  toolNameToDisplayName:
+                    additionalProperties:
+                      type: string
                     description: |-
-                      (String) OAuth2 token URL (used with oauth2 auth type).
-                      OAuth token URL for the MCP server.
-                    type: string
+                      (Map of String, Computed) Tool display-name overrides. Each value may be empty or contain only ASCII letters, digits, underscores, and hyphens. An empty map is an explicit clear.
+                      Tool-name display overrides. Empty values and an empty map are valid.
+                    type: object
+                    x-kubernetes-map-type: granular
                   transport:
                     description: |-
                       (String) The transport protocol. Must be one of: http, sse, stdio.
                       Transport type for the MCP server (http, sse, stdio).
                     type: string
-                  url:
+                  urlSecretRef:
                     description: |-
-                      (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
+                      (String, Sensitive) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
                       URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
-                    type: string
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                 type: object
               initProvider:
                 description: |-
@@ -244,8 +546,8 @@ spec:
                 properties:
                   alias:
                     description: |-
-                      (String) An alias for the server. Must not contain hyphens.
-                      Alias for the MCP server.
+                      (String, Computed) An optional server alias. Non-empty configured aliases are sent with ASCII spaces normalized to underscores, while state preserves configured spelling when the API value is semantically equal. When alias is omitted on Create and server_name is set, LiteLLM defaults alias from the name; when both are omitted, server_id is the fallback.
+                      Alias for the MCP server. LiteLLM normalizes ASCII spaces to underscores and defaults an omitted alias from server_name.
                     type: string
                   allowAllKeys:
                     description: |-
@@ -259,45 +561,126 @@ spec:
                     items:
                       type: string
                     type: array
-                  args:
-                    description: |-
-                      (List of String) Arguments to pass to the command for stdio transport.
-                      Arguments for the command (stdio transport).
+                  argsSecretRef:
                     items:
                       type: string
                     type: array
+                  audience:
+                    description: |-
+                      (String, Computed) Canonical audience for oauth2_token_exchange, oauth2_id_jag, or explicit OAuth2 client_credentials. Empty strings are rejected and removal sends null.
+                      Canonical OAuth audience used by RFC 8693 token exchange, ID-JAG, or OAuth2 client credentials.
+                    type: string
                   authType:
                     description: |-
                       (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
                       Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
                     type: string
-                  authorizationUrl:
+                  authorizationUrlSecretRef:
                     description: |-
-                      (String) OAuth2 authorization URL (used with oauth2 auth type).
+                      (String, Sensitive) OAuth2 authorization URL (used with oauth2 auth type).
                       OAuth authorization URL for the MCP server.
-                    type: string
-                  command:
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  availableOnPublicInternet:
                     description: |-
-                      (String) Command to execute for stdio transport.
-                      Command to run for stdio transport.
+                      (Bool, Computed) IP-classification hint used by LiteLLM. Explicit false is preserved. Removing owned configuration restores LiteLLM's durable true default. This is not a complete security boundary, especially when untrusted reverse-proxy headers affect client-IP classification.
+                      Whether the MCP server is available from the public internet. Removing configured ownership restores LiteLLM's durable true default.
+                    type: boolean
+                  byokApiKeyHelpUrl:
+                    description: |-
+                      (String, Computed) Informational URL for BYOK API-key setup. Removing owned configuration sends null.
+                      Bring-your-own-key API key help URL.
                     type: string
+                  byokDescription:
+                    description: |-
+                      (List of String, Computed) Instructions shown for BYOK setup. An empty list is an explicit clear.
+                      Bring-your-own-key setup description lines.
+                    items:
+                      type: string
+                    type: array
+                  commandSecretRef:
+                    description: |-
+                      (String, Sensitive) Command to execute for stdio transport.
+                      Command to run for stdio transport.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   credentialsSecretRef:
                     additionalProperties:
                       type: string
                     type: object
+                  dcrBridge:
+                    description: |-
+                      (Bool, Computed) Enables LiteLLM's dynamic-client-registration bridge. true requires auth_type = "true_passthrough" or "oauth_delegate". Removing owned configuration sends null, which is distinct from an explicit false value.
+                      Whether the dynamic client registration bridge is enabled.
+                    type: boolean
+                  delegateAuthToUpstream:
+                    description: |-
+                      (Bool, Computed) Lets clients complete authentication directly with an upstream OAuth2 MCP server. true requires auth_type = "oauth2" and an explicit oauth2_flow = "authorization_code". The provider does not infer a safe interactive boundary from omitted or redacted credentials because LiteLLM can stamp an omitted M2M-shaped flow as client_credentials. Removing owned configuration restores false.
+                      Whether LiteLLM delegates authentication to the upstream MCP server.
+                    type: boolean
                   description:
                     description: |-
                       (String) A human-readable description of the MCP server.
                       Description of the MCP server.
                     type: string
-                  env:
+                  envSecretRef:
                     additionalProperties:
                       type: string
-                    description: |-
-                      (Map of String) Environment variables to set when running the MCP server.
-                      Environment variables for the command (stdio transport).
                     type: object
-                    x-kubernetes-map-type: granular
+                  envVars:
+                    description: (List of Object, Computed, Sensitive) Ordered environment-variable
+                      definitions used by LiteLLM when interpolating ${NAME} references
+                      in static headers. name is required and must match [A-Za-z_][A-Za-z0-9_]*;
+                      names must be unique. value defaults to an empty string, scope
+                      defaults to global and accepts global or user, and description
+                      is optional. LiteLLM encrypts global values at rest. User-scoped
+                      values are admin placeholders; each user's actual secret is
+                      managed through separate LiteLLM endpoints. An empty list is
+                      an explicit clear. API null/omission is treated as role masking
+                      and does not erase known state.
+                    items:
+                      properties:
+                        description:
+                          description: |-
+                            (String) A human-readable description of the MCP server.
+                            Optional nullable environment-variable description.
+                          type: string
+                        name:
+                          description: Environment-variable name.
+                          type: string
+                        scope:
+                          description: 'Value scope: global or user.'
+                          type: string
+                        valueSecretRef:
+                          description: Admin-provided value or user-scope placeholder.
+                          properties:
+                            key:
+                              type: string
+                            name:
+                              description: Name of the secret.
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                      type: object
+                    type: array
                   extraHeaders:
                     description: |-
                       (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.
@@ -305,6 +688,35 @@ spec:
                     items:
                       type: string
                     type: array
+                  instructions:
+                    description: |-
+                      (String, Computed) Server instructions. An explicitly configured empty string is preserved; removing owned configuration sends null.
+                      Instructions associated with the MCP server. An empty string is a valid owned value.
+                    type: string
+                  isByok:
+                    description: |-
+                      (Bool, Computed) Enables LiteLLM's per-user bring-your-own-key workflow. Per-user credentials use separate LiteLLM endpoints and are not stored in this resource. Removing owned configuration restores false.
+                      Whether this MCP server uses bring-your-own-key configuration.
+                    type: boolean
+                  issuerSecretRef:
+                    description: |-
+                      (String, Computed, Sensitive) Canonical OAuth issuer anchor for oauth2, true_passthrough, oauth_delegate, or oauth2_token_exchange. Empty strings are rejected; removing owned configuration sends null. LiteLLM role masking returns null/omission, which preserves known resource state. This role-masked value is intentionally absent from data sources.
+                      OAuth issuer anchor. LiteLLM may mask this value by role; null or omission on read does not prove a clear.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  maxConcurrentRequests:
+                    description: |-
+                      (Int64, Computed) Outbound request limit. Configure 1–2147483647; omission/null is the canonical writable unlimited form.
+                      Positive maximum number of concurrent requests.
+                    type: number
                   mcpAccessGroups:
                     description: |-
                       (List of String) Access groups that are allowed to use this MCP server.
@@ -349,59 +761,192 @@ spec:
                           type: array
                         serverName:
                           description: |-
-                            (String) The name of the MCP server. Must not contain hyphens.
+                            (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
                             Server name in MCP info.
                           type: string
                       type: object
                     type: array
-                  registrationUrl:
+                  mcpInfoClearPathsSecretRef:
+                    items:
+                      type: string
+                    type: array
+                  mcpInfoJsonSecretRef:
                     description: |-
-                      (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).
+                      (String, Optional, Computed, Sensitive) A complete non-null JSON object for whole-document MCP info ownership. The empty object ({}) means an explicit whole-document clear. It conflicts with mcp_info, mcp_info_overrides_json, and mcp_info_clear_paths.
+                      Sensitive complete MCP info JSON object. The root must be a non-null object; {} explicitly owns and clears the whole document. Authoritative reads expose the complete object without dropping unknown members or exact JSON numbers.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  mcpInfoOverridesJsonSecretRef:
+                    description: |-
+                      (String, Optional, Sensitive) A recursively selective non-null JSON object. Scalars, arrays, nested null, and nested empty objects are atomic owned values; a non-empty nested object owns only its recursively selected members.
+                      Sensitive recursive selective MCP info JSON object. Nested null is data and a nested empty object atomically replaces that member.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  oauth2Flow:
+                    description: |-
+                      (String, Computed) Stored OAuth2 flow: client_credentials or authorization_code. LiteLLM can stamp a flow when it is omitted; the provider adopts the returned value rather than inferring it locally. Removing owned configuration sends null.
+                      OAuth2 flow stamped and returned by LiteLLM.
+                    type: string
+                  oauthPassthrough:
+                    description: |-
+                      (Bool, Computed) Enables upstream OAuth discovery and challenge passthrough for an unauthenticated server. true requires auth_type = "none" and an Authorization member in extra_headers (matched case-insensitively). Removing owned configuration restores false.
+                      Whether OAuth Authorization headers are passed through to the upstream MCP server.
+                    type: boolean
+                  oauthScopesSecretRef:
+                    items:
+                      type: string
+                    type: array
+                  registrationUrlSecretRef:
+                    description: |-
+                      (String, Sensitive) OAuth2 dynamic client registration URL (used with oauth2 auth type).
                       OAuth registration URL for the MCP server.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  serverId:
+                    description: |-
+                      (String, Computed, Forces Replacement) A create-only server identity. It must be a non-empty manageable path segment and cannot be ./.. or LiteLLM's reserved all-team-mcpservers/all-proxy-mcpservers identities. When omitted, the provider selects a stable generated identity. Adding or changing a configured value replaces the resource; existing generated-ID configurations and imports can continue omitting it without replacement.
+                      Create-only unique identifier for the MCP server. When omitted, the provider selects a stable generated identifier.
                     type: string
                   serverName:
                     description: |-
-                      (String) The name of the MCP server. Must not contain hyphens.
-                      Name of the MCP server.
+                      (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
+                      Optional name of the MCP server. When name and alias are omitted, LiteLLM uses server_id as the tool-prefix fallback.
                     type: string
                   skipUrlValidation:
                     description: |-
                       (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
                       Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
                     type: boolean
-                  specPath:
+                  sourceUrl:
                     description: |-
-                      (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
-                      Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+                      (String, Computed) Informational source URL associated with the MCP server. Removing owned configuration sends null.
+                      Source URL associated with the MCP server.
                     type: string
+                  specPathSecretRef:
+                    description: |-
+                      (String, Sensitive) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
+                      Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   specVersion:
                     description: |-
                       (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
                       Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
                     type: string
-                  staticHeaders:
+                  staticHeadersSecretRef:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  subjectTokenType:
+                    description: |-
+                      (String, Computed) Canonical RFC 8693 subject-token type for oauth2_token_exchange or oauth2_id_jag. Omission leaves LiteLLM's runtime default in effect; the provider does not synthesize one.
+                      Canonical RFC 8693 subject token type.
+                    type: string
+                  timeout:
+                    description: |-
+                      (Float64, Computed) Finite timeout in seconds. A configured value must be greater than zero; omission/null restores LiteLLM's runtime default.
+                      Positive finite request timeout.
+                    type: number
+                  tokenExchangeEndpointSecretRef:
+                    description: |-
+                      (String, Computed, Sensitive) Canonical token-exchange endpoint for oauth2_token_exchange or oauth2_id_jag. Canonical token-exchange configuration requires explicit known non-empty client_id and client_secret credentials. Empty strings are rejected and removal sends null.
+                      Canonical OAuth token-exchange endpoint. The legacy credentials key remains accepted as an alternative source, but the two sources cannot be configured together.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  tokenExchangeProfile:
+                    description: |-
+                      (String, Computed) Canonical token-exchange profile: rfc8693 or entra_obo. entra_obo requires explicit known non-empty client credentials, a known token_exchange_endpoint or token_url, and a non-empty oauth_scopes list. Canonical audience and subject_token_type are rejected with this profile because Entra does not use them.
+                      Canonical token-exchange wire profile.
+                    type: string
+                  tokenUrlSecretRef:
+                    description: |-
+                      (String, Sensitive) OAuth2 token URL. It may also supply the token endpoint for token exchange when token_exchange_endpoint is omitted.
+                      OAuth token URL for the MCP server.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  toolNameToDescription:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Static HTTP headers that are always included in requests.
-                      Static headers to always include with requests.
+                      (Map of String, Computed) Tool description overrides with arbitrary string values. An empty map is an explicit clear.
+                      Tool-name description overrides. Values are arbitrary strings and an empty map clears all overrides.
                     type: object
                     x-kubernetes-map-type: granular
-                  tokenUrl:
+                  toolNameToDisplayName:
+                    additionalProperties:
+                      type: string
                     description: |-
-                      (String) OAuth2 token URL (used with oauth2 auth type).
-                      OAuth token URL for the MCP server.
-                    type: string
+                      (Map of String, Computed) Tool display-name overrides. Each value may be empty or contain only ASCII letters, digits, underscores, and hyphens. An empty map is an explicit clear.
+                      Tool-name display overrides. Empty values and an empty map are valid.
+                    type: object
+                    x-kubernetes-map-type: granular
                   transport:
                     description: |-
                       (String) The transport protocol. Must be one of: http, sse, stdio.
                       Transport type for the MCP server (http, sse, stdio).
                     type: string
-                  url:
+                  urlSecretRef:
                     description: |-
-                      (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
+                      (String, Sensitive) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
                       URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
-                    type: string
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                 type: object
               managementPolicies:
                 default:
@@ -462,10 +1007,6 @@ spec:
             - forProvider
             type: object
             x-kubernetes-validations:
-            - message: spec.forProvider.serverName is a required parameter
-              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
-                || ''Update'' in self.managementPolicies) || has(self.forProvider.serverName)
-                || (has(self.initProvider) && has(self.initProvider.serverName))'
             - message: spec.forProvider.transport is a required parameter
               rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
                 || ''Update'' in self.managementPolicies) || has(self.forProvider.transport)
@@ -477,8 +1018,8 @@ spec:
                 properties:
                   alias:
                     description: |-
-                      (String) An alias for the server. Must not contain hyphens.
-                      Alias for the MCP server.
+                      (String, Computed) An optional server alias. Non-empty configured aliases are sent with ASCII spaces normalized to underscores, while state preserves configured spelling when the API value is semantically equal. When alias is omitted on Create and server_name is set, LiteLLM defaults alias from the name; when both are omitted, server_id is the fallback.
+                      Alias for the MCP server. LiteLLM normalizes ASCII spaces to underscores and defaults an omitted alias from server_name.
                     type: string
                   allowAllKeys:
                     description: |-
@@ -492,28 +1033,33 @@ spec:
                     items:
                       type: string
                     type: array
-                  args:
+                  audience:
                     description: |-
-                      (List of String) Arguments to pass to the command for stdio transport.
-                      Arguments for the command (stdio transport).
-                    items:
-                      type: string
-                    type: array
+                      (String, Computed) Canonical audience for oauth2_token_exchange, oauth2_id_jag, or explicit OAuth2 client_credentials. Empty strings are rejected and removal sends null.
+                      Canonical OAuth audience used by RFC 8693 token exchange, ID-JAG, or OAuth2 client credentials.
+                    type: string
                   authType:
                     description: |-
                       (String) The authentication type. Defaults to "none". LiteLLM v1.98 accepts exactly none, api_key, bearer_token, basic, authorization, oauth2, aws_sigv4, token, oauth2_token_exchange, oauth2_id_jag, true_passthrough, or oauth_delegate. When using a value other than "none", the selected mode may require credentials and additional endpoint-specific fields.
                       Authentication type accepted by the LiteLLM v1.98 MCP server request contract.
                     type: string
-                  authorizationUrl:
+                  availableOnPublicInternet:
                     description: |-
-                      (String) OAuth2 authorization URL (used with oauth2 auth type).
-                      OAuth authorization URL for the MCP server.
-                    type: string
-                  command:
+                      (Bool, Computed) IP-classification hint used by LiteLLM. Explicit false is preserved. Removing owned configuration restores LiteLLM's durable true default. This is not a complete security boundary, especially when untrusted reverse-proxy headers affect client-IP classification.
+                      Whether the MCP server is available from the public internet. Removing configured ownership restores LiteLLM's durable true default.
+                    type: boolean
+                  byokApiKeyHelpUrl:
                     description: |-
-                      (String) Command to execute for stdio transport.
-                      Command to run for stdio transport.
+                      (String, Computed) Informational URL for BYOK API-key setup. Removing owned configuration sends null.
+                      Bring-your-own-key API key help URL.
                     type: string
+                  byokDescription:
+                    description: |-
+                      (List of String, Computed) Instructions shown for BYOK setup. An empty list is an explicit clear.
+                      Bring-your-own-key setup description lines.
+                    items:
+                      type: string
+                    type: array
                   createdAt:
                     description: |-
                       Timestamp of when the MCP server was created.
@@ -524,19 +1070,47 @@ spec:
                       The user or system that created the MCP server.
                       User who created the server.
                     type: string
+                  dcrBridge:
+                    description: |-
+                      (Bool, Computed) Enables LiteLLM's dynamic-client-registration bridge. true requires auth_type = "true_passthrough" or "oauth_delegate". Removing owned configuration sends null, which is distinct from an explicit false value.
+                      Whether the dynamic client registration bridge is enabled.
+                    type: boolean
+                  delegateAuthToUpstream:
+                    description: |-
+                      (Bool, Computed) Lets clients complete authentication directly with an upstream OAuth2 MCP server. true requires auth_type = "oauth2" and an explicit oauth2_flow = "authorization_code". The provider does not infer a safe interactive boundary from omitted or redacted credentials because LiteLLM can stamp an omitted M2M-shaped flow as client_credentials. Removing owned configuration restores false.
+                      Whether LiteLLM delegates authentication to the upstream MCP server.
+                    type: boolean
                   description:
                     description: |-
                       (String) A human-readable description of the MCP server.
                       Description of the MCP server.
                     type: string
-                  env:
-                    additionalProperties:
-                      type: string
-                    description: |-
-                      (Map of String) Environment variables to set when running the MCP server.
-                      Environment variables for the command (stdio transport).
-                    type: object
-                    x-kubernetes-map-type: granular
+                  envVars:
+                    description: (List of Object, Computed, Sensitive) Ordered environment-variable
+                      definitions used by LiteLLM when interpolating ${NAME} references
+                      in static headers. name is required and must match [A-Za-z_][A-Za-z0-9_]*;
+                      names must be unique. value defaults to an empty string, scope
+                      defaults to global and accepts global or user, and description
+                      is optional. LiteLLM encrypts global values at rest. User-scoped
+                      values are admin placeholders; each user's actual secret is
+                      managed through separate LiteLLM endpoints. An empty list is
+                      an explicit clear. API null/omission is treated as role masking
+                      and does not erase known state.
+                    items:
+                      properties:
+                        description:
+                          description: |-
+                            (String) A human-readable description of the MCP server.
+                            Optional nullable environment-variable description.
+                          type: string
+                        name:
+                          description: Environment-variable name.
+                          type: string
+                        scope:
+                          description: 'Value scope: global or user.'
+                          type: string
+                      type: object
+                    type: array
                   extraHeaders:
                     description: |-
                       (List of String) Extra header names to forward/include in requests. This matches the LiteLLM API schema.
@@ -544,10 +1118,30 @@ spec:
                     items:
                       type: string
                     type: array
+                  fieldOwnershipGeneration:
+                    description: |-
+                      A non-sensitive computed generation for presence-aware ownership of MCP fields, including the v1.98 parity, advanced runtime, sensitive environment-variable, and canonical token-exchange additions. It forces Apply for ownership-only takeover or removal without changing identity.
+                      Internal non-sensitive generation of presence-aware MCP field ownership intent.
+                    type: number
                   id:
                     description: The unique identifier for the MCP server (same as
                       server_id).
                     type: string
+                  instructions:
+                    description: |-
+                      (String, Computed) Server instructions. An explicitly configured empty string is preserved; removing owned configuration sends null.
+                      Instructions associated with the MCP server. An empty string is a valid owned value.
+                    type: string
+                  isByok:
+                    description: |-
+                      (Bool, Computed) Enables LiteLLM's per-user bring-your-own-key workflow. Per-user credentials use separate LiteLLM endpoints and are not stored in this resource. Removing owned configuration restores false.
+                      Whether this MCP server uses bring-your-own-key configuration.
+                    type: boolean
+                  maxConcurrentRequests:
+                    description: |-
+                      (Int64, Computed) Outbound request limit. Configure 1–2147483647; omission/null is the canonical writable unlimited form.
+                      Positive maximum number of concurrent requests.
+                    type: number
                   mcpAccessGroups:
                     description: |-
                       (List of String) Access groups that are allowed to use this MCP server.
@@ -592,63 +1186,96 @@ spec:
                           type: array
                         serverName:
                           description: |-
-                            (String) The name of the MCP server. Must not contain hyphens.
+                            (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
                             Server name in MCP info.
                           type: string
                       type: object
                     type: array
-                  registrationUrl:
+                  mcpInfoOwnershipGeneration:
                     description: |-
-                      (String) OAuth2 dynamic client registration URL (used with oauth2 auth type).
-                      OAuth registration URL for the MCP server.
+                      A non-sensitive computed generation that changes when MCP info ownership intent changes, including equal-value takeover. It forces Apply without making the resource ID unknown.
+                      Internal non-sensitive generation of MCP info ownership intent.
+                    type: number
+                  oauth2Flow:
+                    description: |-
+                      (String, Computed) Stored OAuth2 flow: client_credentials or authorization_code. LiteLLM can stamp a flow when it is omitted; the provider adopts the returned value rather than inferring it locally. Removing owned configuration sends null.
+                      OAuth2 flow stamped and returned by LiteLLM.
                     type: string
+                  oauthPassthrough:
+                    description: |-
+                      (Bool, Computed) Enables upstream OAuth discovery and challenge passthrough for an unauthenticated server. true requires auth_type = "none" and an Authorization member in extra_headers (matched case-insensitively). Removing owned configuration restores false.
+                      Whether OAuth Authorization headers are passed through to the upstream MCP server.
+                    type: boolean
                   serverId:
                     description: |-
-                      The server identifier assigned by LiteLLM.
-                      Unique identifier for the MCP server.
+                      (String, Computed, Forces Replacement) A create-only server identity. It must be a non-empty manageable path segment and cannot be ./.. or LiteLLM's reserved all-team-mcpservers/all-proxy-mcpservers identities. When omitted, the provider selects a stable generated identity. Adding or changing a configured value replaces the resource; existing generated-ID configurations and imports can continue omitting it without replacement.
+                      Create-only unique identifier for the MCP server. When omitted, the provider selects a stable generated identifier.
                     type: string
                   serverName:
                     description: |-
-                      (String) The name of the MCP server. Must not contain hyphens.
-                      Name of the MCP server.
+                      (String) An optional 1–128 character MCP tool-prefix name. When omitted, LiteLLM uses alias, then server_id, as the effective prefix fallback. Removing a configured name sends an explicit null.
+                      Optional name of the MCP server. When name and alias are omitted, LiteLLM uses server_id as the tool-prefix fallback.
                     type: string
                   skipUrlValidation:
                     description: |-
                       (Bool, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept it, so the provider does not send it. New or changed true values are rejected; an unchanged historical true remains plannable so unrelated updates and destroy continue to work. Remove the argument (false remains a safe migration no-op).
                       Deprecated compatibility attribute. LiteLLM v1.98 does not accept this field; new or changed true values are unsafe, while unchanged historical state remains plannable.
                     type: boolean
-                  specPath:
+                  sourceUrl:
                     description: |-
-                      (String) A LiteLLM-local path or HTTP(S) URL for an OpenAPI specification. It can satisfy the HTTP/SSE endpoint requirement without url; if both are set, LiteLLM uses url as the OpenAPI base URL.
-                      Path or URL of an OpenAPI specification. For HTTP and SSE transports this can be used instead of url.
+                      (String, Computed) Informational source URL associated with the MCP server. Removing owned configuration sends null.
+                      Source URL associated with the MCP server.
                     type: string
                   specVersion:
                     description: |-
                       (String, Deprecated) Compatibility-only attribute retained for existing HCL and state. LiteLLM v1.98 does not accept or return it, so the provider does not send it. New or changed non-default values are rejected; an unchanged historical value remains plannable so existing configurations can be upgraded or destroyed safely. Remove it from configuration when practical.
                       Deprecated compatibility attribute. LiteLLM v1.98 does not accept or return this field.
                     type: string
-                  staticHeaders:
+                  subjectTokenType:
+                    description: |-
+                      (String, Computed) Canonical RFC 8693 subject-token type for oauth2_token_exchange or oauth2_id_jag. Omission leaves LiteLLM's runtime default in effect; the provider does not synthesize one.
+                      Canonical RFC 8693 subject token type.
+                    type: string
+                  timeout:
+                    description: |-
+                      (Float64, Computed) Finite timeout in seconds. A configured value must be greater than zero; omission/null restores LiteLLM's runtime default.
+                      Positive finite request timeout.
+                    type: number
+                  tokenExchangeProfile:
+                    description: |-
+                      (String, Computed) Canonical token-exchange profile: rfc8693 or entra_obo. entra_obo requires explicit known non-empty client credentials, a known token_exchange_endpoint or token_url, and a non-empty oauth_scopes list. Canonical audience and subject_token_type are rejected with this profile because Entra does not use them.
+                      Canonical token-exchange wire profile.
+                    type: string
+                  toolNameToDescription:
                     additionalProperties:
                       type: string
                     description: |-
-                      (Map of String) Static HTTP headers that are always included in requests.
-                      Static headers to always include with requests.
+                      (Map of String, Computed) Tool description overrides with arbitrary string values. An empty map is an explicit clear.
+                      Tool-name description overrides. Values are arbitrary strings and an empty map clears all overrides.
                     type: object
                     x-kubernetes-map-type: granular
-                  tokenUrl:
+                  toolNameToDisplayName:
+                    additionalProperties:
+                      type: string
                     description: |-
-                      (String) OAuth2 token URL (used with oauth2 auth type).
-                      OAuth token URL for the MCP server.
-                    type: string
+                      (Map of String, Computed) Tool display-name overrides. Each value may be empty or contain only ASCII letters, digits, underscores, and hyphens. An empty map is an explicit clear.
+                      Tool-name display overrides. Empty values and an empty map are valid.
+                    type: object
+                    x-kubernetes-map-type: granular
                   transport:
                     description: |-
                       (String) The transport protocol. Must be one of: http, sse, stdio.
                       Transport type for the MCP server (http, sse, stdio).
                     type: string
-                  url:
+                  updatedAt:
                     description: |-
-                      (String) The MCP server URL. HTTP and SSE require at least one of url or spec_path; stdio does not require a URL.
-                      URL of the MCP server. HTTP and SSE transports require url or spec_path; stdio does not require a URL.
+                      Timestamp of the latest server update. Null/omission under role redaction preserves a known prior value; a first restricted create/import resolves it to null.
+                      Timestamp when the server was last updated.
+                    type: string
+                  updatedBy:
+                    description: |-
+                      The user or system that last updated the server, with the same role-redaction retention semantics as updated_at.
+                      User who last updated the server.
                     type: string
                 type: object
               conditions:

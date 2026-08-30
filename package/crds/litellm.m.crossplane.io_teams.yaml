@@ -94,10 +94,24 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+                      Legacy metadata map. Values are strings; use jsonencode() for historically supported objects and arrays.
                       Arbitrary metadata for the team.
                     type: object
                     x-kubernetes-map-type: granular
+                  metadataJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap legacy, dedicated, or server-owned metadata roots.
+                      Additional team metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   modelAliases:
                     additionalProperties:
                       type: string
@@ -381,10 +395,24 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+                      Legacy metadata map. Values are strings; use jsonencode() for historically supported objects and arrays.
                       Arbitrary metadata for the team.
                     type: object
                     x-kubernetes-map-type: granular
+                  metadataJsonSecretRef:
+                    description: |-
+                      Non-null JSON object for lossless heterogeneous metadata. Its top-level keys cannot overlap legacy, dedicated, or server-owned metadata roots.
+                      Additional team metadata as a semantic JSON object.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
                   modelAliases:
                     additionalProperties:
                       type: string
@@ -726,7 +754,7 @@ spec:
                     additionalProperties:
                       type: string
                     description: |-
-                      A map of metadata pairs for the team. Values are strings; use jsonencode() for complex values (objects, arrays) — they will be sent as native JSON to the API.
+                      Legacy metadata map. Values are strings; use jsonencode() for historically supported objects and arrays.
                       Arbitrary metadata for the team.
                     type: object
                     x-kubernetes-map-type: granular
