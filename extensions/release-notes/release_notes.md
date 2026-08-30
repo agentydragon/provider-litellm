@@ -1,7 +1,7 @@
-# v2.1.0-rc.1
+# v2.1.0
 
-Prerelease. Tracks the upstream `ncecere/litellm` **v2.1.0** release, replacing
-the pinned development-branch build the previous prerelease used.
+Tracks the upstream `ncecere/litellm` **v2.1.0** release, replacing
+the pinned development-branch build used by the v2.0.2-rc.1 prerelease.
 
 ## Changed
 

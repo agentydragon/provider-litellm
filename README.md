@@ -64,7 +64,7 @@ kind: Provider
 metadata:
   name: provider-litellm
 spec:
-  package: xpkg.upbound.io/thecodingsheikh/provider-litellm:v2.0.1
+  package: xpkg.upbound.io/thecodingsheikh/provider-litellm:v2.1.0
 ```
 
 The package is published on the
@@ -220,7 +220,7 @@ require and which Terraform 1.5.7 could not offer.
 ## Versioning
 
 The provider version tracks the upstream `ncecere/litellm` Terraform provider version it
-wraps: `v2.0.1` of this provider is built against `ncecere/litellm` v2.0.1.
+wraps: `v2.1.0` of this provider is built against `ncecere/litellm` v2.1.0.
 
 ## FAQ
 
