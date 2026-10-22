@@ -158,7 +158,7 @@ test-terraform-provider-patch:
 	@./hack/build-terraform-provider.sh \
 		"$(TERRAFORM_PROVIDER_REPO)" "$(TERRAFORM_PROVIDER_REF)" "$(TERRAFORM_PROVIDER_VERSION)" \
 		"$(TERRAFORM_PROVIDER_SRC)" "$(TERRAFORM_PROVIDER_MIRROR)" linux_amd64 || $(FAIL)
-	@cd "$(TERRAFORM_PROVIDER_SRC)" && grep -Fq 'func TestReadKeyClearsOrganizationIDWhenAPIOmitsIt(' internal/provider/resource_key_test.go && go test ./internal/provider -run 'TestReadKeyClearsOrganizationIDWhenAPIOmitsIt' -count=1 || $(FAIL)
+	@cd "$(TERRAFORM_PROVIDER_SRC)" && grep -Fq 'func TestReadKeyClearsOrganizationIDWhenAPIOmitsIt(' internal/provider/resource_key_test.go && grep -Fq 'func TestKeyWriteOnlyCrossplaneUpdateRetainsPlannedValueProtocol(' internal/provider/key_wo_crossplane_protocol_test.go && go test ./internal/provider -run 'TestReadKeyClearsOrganizationIDWhenAPIOmitsIt|TestKeyWriteOnlyCrossplane(Create|Update)RetainsPlannedValueProtocol' -count=1 || $(FAIL)
 
 $(TERRAFORM_PROVIDER_SCHEMA): $(TERRAFORM) terraform-provider
 	@$(INFO) generating provider schema for $(TERRAFORM_PROVIDER_SOURCE) $(TERRAFORM_PROVIDER_VERSION)
