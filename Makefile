@@ -149,6 +149,16 @@ terraform-provider:
 		$(HOSTOS)_$(HOSTARCH) $(filter linux_%,$(PLATFORMS)) || $(FAIL)
 	@$(OK) building $(TERRAFORM_PROVIDER_SOURCE) from $(TERRAFORM_PROVIDER_REF)
 
+# Exercise the focused regression test embedded in the Crossplane compatibility
+# patch. The provider wrapper's normal unit tests do not run tests from the
+# Terraform provider source that the runtime image embeds.
+.PHONY: test-terraform-provider-patch
+test-terraform-provider-patch:
+	@./hack/build-terraform-provider.sh \
+		"$(TERRAFORM_PROVIDER_REPO)" "$(TERRAFORM_PROVIDER_REF)" "$(TERRAFORM_PROVIDER_VERSION)" \
+		"$(TERRAFORM_PROVIDER_SRC)" "$(TERRAFORM_PROVIDER_MIRROR)" linux_amd64 || $(FAIL)
+	@cd "$(TERRAFORM_PROVIDER_SRC)" && grep -Fq 'func TestReadKeyResolvesUnknownOrganizationIDWhenAPIOmitsIt(' internal/provider/resource_key_test.go && go test ./internal/provider -run 'TestReadKeyResolvesUnknownOrganizationIDWhenAPIOmitsIt' -count=1 || $(FAIL)
+
 $(TERRAFORM_PROVIDER_SCHEMA): $(TERRAFORM) terraform-provider
 	@$(INFO) generating provider schema for $(TERRAFORM_PROVIDER_SOURCE) $(TERRAFORM_PROVIDER_VERSION)
 	@# Start clean: the lock file pins the previous version, and the version
